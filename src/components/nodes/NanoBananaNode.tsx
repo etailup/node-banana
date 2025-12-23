@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import { Handle, Position, NodeProps, Node } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
-import { useWorkflowStore } from "@/store/workflowStore";
+import { useWorkflowStore, saveNanoBananaDefaults } from "@/store/workflowStore";
 import { NanoBananaNodeData, AspectRatio, Resolution, ModelType } from "@/types";
 
 // All 10 aspect ratios supported by both models
@@ -25,28 +25,36 @@ export function NanoBananaNode({ id, data, selected }: NodeProps<NanoBananaNodeT
 
   const handleAspectRatioChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
-      updateNodeData(id, { aspectRatio: e.target.value as AspectRatio });
+      const aspectRatio = e.target.value as AspectRatio;
+      updateNodeData(id, { aspectRatio });
+      saveNanoBananaDefaults({ aspectRatio });
     },
     [id, updateNodeData]
   );
 
   const handleResolutionChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
-      updateNodeData(id, { resolution: e.target.value as Resolution });
+      const resolution = e.target.value as Resolution;
+      updateNodeData(id, { resolution });
+      saveNanoBananaDefaults({ resolution });
     },
     [id, updateNodeData]
   );
 
   const handleModelChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
-      updateNodeData(id, { model: e.target.value as ModelType });
+      const model = e.target.value as ModelType;
+      updateNodeData(id, { model });
+      saveNanoBananaDefaults({ model });
     },
     [id, updateNodeData]
   );
 
   const handleGoogleSearchToggle = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      updateNodeData(id, { useGoogleSearch: e.target.checked });
+      const useGoogleSearch = e.target.checked;
+      updateNodeData(id, { useGoogleSearch });
+      saveNanoBananaDefaults({ useGoogleSearch });
     },
     [id, updateNodeData]
   );

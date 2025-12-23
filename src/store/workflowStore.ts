@@ -145,18 +145,20 @@ const createDefaultNodeData = (type: NodeType): WorkflowNodeData => {
       return {
         prompt: "",
       } as PromptNodeData;
-    case "nanoBanana":
+    case "nanoBanana": {
+      const defaults = loadNanoBananaDefaults();
       return {
         inputImages: [],
         inputPrompt: null,
         outputImage: null,
-        aspectRatio: "1:1",
-        resolution: "1K",
-        model: "nano-banana-pro",
-        useGoogleSearch: false,
+        aspectRatio: defaults.aspectRatio,
+        resolution: defaults.resolution,
+        model: defaults.model,
+        useGoogleSearch: defaults.useGoogleSearch,
         status: "idle",
         error: null,
       } as NanoBananaNodeData;
+    }
     case "llmGenerate":
       return {
         inputPrompt: null,
@@ -213,6 +215,38 @@ const GROUP_COLOR_ORDER: GroupColor[] = [
 
 // localStorage helpers for auto-save configs
 const STORAGE_KEY = "node-banana-workflow-configs";
+
+// localStorage helpers for NanoBanana sticky settings
+const NANO_BANANA_DEFAULTS_KEY = "node-banana-nanoBanana-defaults";
+
+interface NanoBananaDefaults {
+  aspectRatio: string;
+  resolution: string;
+  model: string;
+  useGoogleSearch: boolean;
+}
+
+const loadNanoBananaDefaults = (): NanoBananaDefaults => {
+  if (typeof window === "undefined") {
+    return { aspectRatio: "1:1", resolution: "1K", model: "nano-banana-pro", useGoogleSearch: false };
+  }
+  const stored = localStorage.getItem(NANO_BANANA_DEFAULTS_KEY);
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return { aspectRatio: "1:1", resolution: "1K", model: "nano-banana-pro", useGoogleSearch: false };
+    }
+  }
+  return { aspectRatio: "1:1", resolution: "1K", model: "nano-banana-pro", useGoogleSearch: false };
+};
+
+export const saveNanoBananaDefaults = (settings: Partial<NanoBananaDefaults>) => {
+  if (typeof window === "undefined") return;
+  const current = loadNanoBananaDefaults();
+  const updated = { ...current, ...settings };
+  localStorage.setItem(NANO_BANANA_DEFAULTS_KEY, JSON.stringify(updated));
+};
 
 const generateWorkflowId = () =>
   `wf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
