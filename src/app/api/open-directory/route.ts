@@ -1,10 +1,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
-import { exec } from "child_process";
+import { execFile } from "child_process";
 import { promisify } from "util";
 import os from "os";
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 export async function POST(req: NextRequest) {
     try {
@@ -19,24 +19,29 @@ export async function POST(req: NextRequest) {
         }
 
         let command = "";
+        let args: string[] = [];
         const platform = os.platform();
 
         switch (platform) {
             case "darwin":
-                command = `open "${path}"`;
+                command = "open";
+                args = [path];
                 break;
             case "win32":
-                command = `explorer "${path}"`;
+                command = "explorer";
+                args = [path];
                 break;
             case "linux":
-                command = `xdg-open "${path}"`;
+                command = "xdg-open";
+                args = [path];
                 break;
             default:
-                // Fallback for other Unix-like systems, might not work everywhere
-                command = `xdg-open "${path}"`;
+                // Fallback for other Unix-like systems
+                command = "xdg-open";
+                args = [path];
         }
 
-        await execAsync(command);
+        await execFileAsync(command, args);
 
         return NextResponse.json({ success: true });
     } catch (error) {
