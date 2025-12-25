@@ -77,6 +77,22 @@ export function Header() {
     }, 50);
   };
 
+  const handleOpenDirectory = async () => {
+    if (!saveDirectoryPath) return;
+
+    try {
+      await fetch("/api/open-directory", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ path: saveDirectoryPath }),
+      });
+    } catch (error) {
+      console.error("Failed to open directory:", error);
+    }
+  };
+
   return (
     <>
       <ProjectSetupModal
@@ -125,6 +141,25 @@ export function Header() {
                   {hasUnsavedChanges && !isSaving && (
                     <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500" />
                   )}
+                </button>
+                <button
+                  onClick={handleOpenDirectory}
+                  className="p-1 text-neutral-400 hover:text-neutral-200 transition-colors"
+                  title="Open Project Folder"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z"
+                    />
+                  </svg>
                 </button>
                 <button
                   onClick={handleOpenSettings}
