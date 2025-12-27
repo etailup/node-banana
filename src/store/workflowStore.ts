@@ -22,10 +22,13 @@ import {
   WorkflowNodeData,
   ImageHistoryItem,
   WorkflowSaveConfig,
+  WorkflowCostData,
   NodeGroup,
   GroupColor,
 } from "@/types";
 import { useToast } from "@/components/Toast";
+import { calculateGenerationCost } from "@/utils/costCalculator";
+import { logger } from "@/utils/logger";
 
 export type EdgeStyle = "angular" | "curved";
 
@@ -125,6 +128,15 @@ interface WorkflowStore {
   saveToFile: () => Promise<boolean>;
   initializeAutoSave: () => void;
   cleanupAutoSave: () => void;
+
+  // Cost tracking state
+  incurredCost: number;
+
+  // Cost tracking actions
+  addIncurredCost: (cost: number) => void;
+  resetIncurredCost: () => void;
+  loadIncurredCost: (workflowId: string) => void;
+  saveIncurredCost: () => void;
 }
 
 const createDefaultNodeData = (type: NodeType): WorkflowNodeData => {
@@ -162,6 +174,7 @@ const createDefaultNodeData = (type: NodeType): WorkflowNodeData => {
     case "llmGenerate":
       return {
         inputPrompt: null,
+        inputImages: [],
         outputText: null,
         provider: "google",
         model: "gemini-3-flash-preview",
@@ -215,6 +228,36 @@ const GROUP_COLOR_ORDER: GroupColor[] = [
 
 // localStorage helpers for auto-save configs
 const STORAGE_KEY = "node-banana-workflow-configs";
+
+// localStorage helpers for cost tracking
+const COST_DATA_STORAGE_KEY = "node-banana-workflow-costs";
+
+const loadWorkflowCostData = (workflowId: string): WorkflowCostData | null => {
+  if (typeof window === "undefined") return null;
+  const stored = localStorage.getItem(COST_DATA_STORAGE_KEY);
+  if (!stored) return null;
+  try {
+    const allCosts: Record<string, WorkflowCostData> = JSON.parse(stored);
+    return allCosts[workflowId] || null;
+  } catch {
+    return null;
+  }
+};
+
+const saveWorkflowCostData = (data: WorkflowCostData): void => {
+  if (typeof window === "undefined") return;
+  const stored = localStorage.getItem(COST_DATA_STORAGE_KEY);
+  let allCosts: Record<string, WorkflowCostData> = {};
+  if (stored) {
+    try {
+      allCosts = JSON.parse(stored);
+    } catch {
+      allCosts = {};
+    }
+  }
+  allCosts[data.workflowId] = data;
+  localStorage.setItem(COST_DATA_STORAGE_KEY, JSON.stringify(allCosts));
+};
 
 // localStorage helpers for NanoBanana sticky settings
 const NANO_BANANA_DEFAULTS_KEY = "node-banana-nanoBanana-defaults";
@@ -286,6 +329,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   hasUnsavedChanges: false,
   autoSaveEnabled: true,
   isSaving: false,
+
+  // Cost tracking initial state
+  incurredCost: 0,
 
   setEdgeStyle: (style: EdgeStyle) => {
     set({ edgeStyle: style });
@@ -727,11 +773,22 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     const { nodes, edges, updateNodeData, getConnectedInputs, isRunning } = get();
 
     if (isRunning) {
+      logger.warn('workflow.start', 'Workflow already running, ignoring execution request');
       return;
     }
 
+    // Start logging session
+    await logger.startSession();
+
     const isResuming = startFromNodeId === get().pausedAtNodeId;
     set({ isRunning: true, pausedAtNodeId: null });
+
+    logger.info('workflow.start', 'Workflow execution started', {
+      nodeCount: nodes.length,
+      edgeCount: edges.length,
+      startFromNodeId,
+      isResuming,
+    });
 
     // Topological sort
     const sorted: WorkflowNode[] = [];
@@ -741,6 +798,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     const visit = (nodeId: string) => {
       if (visited.has(nodeId)) return;
       if (visiting.has(nodeId)) {
+        logger.error('workflow.validation', 'Cycle detected in workflow', { nodeId });
         throw new Error("Cycle detected in workflow");
       }
 
@@ -781,13 +839,37 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           const incomingEdges = edges.filter((e) => e.target === node.id);
           const pauseEdge = incomingEdges.find((e) => e.data?.hasPause);
           if (pauseEdge) {
+            logger.info('workflow.end', 'Workflow paused at node', {
+              nodeId: node.id,
+              nodeType: node.type,
+            });
             set({ pausedAtNodeId: node.id, isRunning: false, currentNodeId: null });
             useToast.getState().show("Workflow paused - click Run to continue", "warning");
+
+            // Save logs to server (on pause)
+            const session = logger.getCurrentSession();
+            if (session) {
+              session.endTime = new Date().toISOString();
+              fetch('/api/logs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session }),
+              }).catch((err) => {
+                console.error('Failed to save log session:', err);
+              });
+            }
+
+            await logger.endSession();
             return;
           }
         }
 
         set({ currentNodeId: node.id });
+
+        logger.info('node.execution', `Executing ${node.type} node`, {
+          nodeId: node.id,
+          nodeType: node.type,
+        });
 
         switch (node.type) {
           case "imageInput":
@@ -817,11 +899,17 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             const { images, text } = getConnectedInputs(node.id);
 
             if (images.length === 0 || !text) {
+              logger.error('node.error', 'nanoBanana node missing inputs', {
+                nodeId: node.id,
+                hasImages: images.length > 0,
+                hasText: !!text,
+              });
               updateNodeData(node.id, {
                 status: "error",
                 error: "Missing image or text input",
               });
               set({ isRunning: false, currentNodeId: null });
+              await logger.endSession();
               return;
             }
 
@@ -844,6 +932,15 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 useGoogleSearch: nodeData.useGoogleSearch,
               };
 
+              logger.info('api.gemini', 'Calling Gemini API for image generation', {
+                nodeId: node.id,
+                model: nodeData.model,
+                aspectRatio: nodeData.aspectRatio,
+                resolution: nodeData.resolution,
+                imageCount: images.length,
+                prompt: text,
+              });
+
               const response = await fetch("/api/generate", {
                 method: "POST",
                 headers: {
@@ -862,11 +959,19 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   if (errorText) errorMessage += ` - ${errorText.substring(0, 200)}`;
                 }
 
+                logger.error('api.error', 'Gemini API request failed', {
+                  nodeId: node.id,
+                  status: response.status,
+                  statusText: response.statusText,
+                  errorMessage,
+                });
+
                 updateNodeData(node.id, {
                   status: "error",
                   error: errorMessage,
                 });
                 set({ isRunning: false, currentNodeId: null });
+                await logger.endSession();
                 return;
               }
 
@@ -887,6 +992,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   error: null,
                 });
 
+                // Track cost
+                const generationCost = calculateGenerationCost(nodeData.model, nodeData.resolution);
+                get().addIncurredCost(generationCost);
+
                 // Auto-save to generations folder if configured
                 const genPath = get().generationsPath;
                 if (genPath) {
@@ -903,11 +1012,16 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   });
                 }
               } else {
+                logger.error('api.error', 'Gemini API generation failed', {
+                  nodeId: node.id,
+                  error: result.error,
+                });
                 updateNodeData(node.id, {
                   status: "error",
                   error: result.error || "Generation failed",
                 });
                 set({ isRunning: false, currentNodeId: null });
+                await logger.endSession();
                 return;
               }
             } catch (error) {
@@ -922,41 +1036,64 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 errorMessage = error.message;
               }
 
+              logger.error('node.error', 'nanoBanana node execution failed', {
+                nodeId: node.id,
+                errorMessage,
+              }, error instanceof Error ? error : undefined);
+
               updateNodeData(node.id, {
                 status: "error",
                 error: errorMessage,
               });
               set({ isRunning: false, currentNodeId: null });
+              await logger.endSession();
               return;
             }
             break;
           }
 
           case "llmGenerate": {
-            const { text } = getConnectedInputs(node.id);
+            const { images, text } = getConnectedInputs(node.id);
 
             if (!text) {
+              logger.error('node.error', 'llmGenerate node missing text input', {
+                nodeId: node.id,
+              });
               updateNodeData(node.id, {
                 status: "error",
                 error: "Missing text input",
               });
               set({ isRunning: false, currentNodeId: null });
+              await logger.endSession();
               return;
             }
 
             updateNodeData(node.id, {
               inputPrompt: text,
+              inputImages: images,
               status: "loading",
               error: null,
             });
 
             try {
               const nodeData = node.data as LLMGenerateNodeData;
+
+              logger.info('api.llm', 'Calling LLM API', {
+                nodeId: node.id,
+                provider: nodeData.provider,
+                model: nodeData.model,
+                temperature: nodeData.temperature,
+                maxTokens: nodeData.maxTokens,
+                hasImages: images.length > 0,
+                prompt: text,
+              });
+
               const response = await fetch("/api/llm", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   prompt: text,
+                  ...(images.length > 0 && { images }),
                   provider: nodeData.provider,
                   model: nodeData.model,
                   temperature: nodeData.temperature,
@@ -973,11 +1110,17 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 } catch {
                   if (errorText) errorMessage += ` - ${errorText.substring(0, 200)}`;
                 }
+                logger.error('api.error', 'LLM API request failed', {
+                  nodeId: node.id,
+                  status: response.status,
+                  errorMessage,
+                });
                 updateNodeData(node.id, {
                   status: "error",
                   error: errorMessage,
                 });
                 set({ isRunning: false, currentNodeId: null });
+                await logger.endSession();
                 return;
               }
 
@@ -990,19 +1133,28 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   error: null,
                 });
               } else {
+                logger.error('api.error', 'LLM generation failed', {
+                  nodeId: node.id,
+                  error: result.error,
+                });
                 updateNodeData(node.id, {
                   status: "error",
                   error: result.error || "LLM generation failed",
                 });
                 set({ isRunning: false, currentNodeId: null });
+                await logger.endSession();
                 return;
               }
             } catch (error) {
+              logger.error('node.error', 'llmGenerate node execution failed', {
+                nodeId: node.id,
+              }, error instanceof Error ? error : undefined);
               updateNodeData(node.id, {
                 status: "error",
                 error: error instanceof Error ? error.message : "LLM generation failed",
               });
               set({ isRunning: false, currentNodeId: null });
+              await logger.endSession();
               return;
             }
             break;
@@ -1070,11 +1222,15 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
               updateNodeData(node.id, { status: "complete", error: null });
             } catch (error) {
+              logger.error('node.error', 'splitGrid node execution failed', {
+                nodeId: node.id,
+              }, error instanceof Error ? error : undefined);
               updateNodeData(node.id, {
                 status: "error",
                 error: error instanceof Error ? error.message : "Failed to split image",
               });
               set({ isRunning: false, currentNodeId: null });
+              await logger.endSession();
               return;
             }
             break;
@@ -1091,9 +1247,41 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         }
       }
 
+      logger.info('workflow.end', 'Workflow execution completed successfully');
       set({ isRunning: false, currentNodeId: null });
-    } catch {
+
+      // Save logs to server
+      const session = logger.getCurrentSession();
+      if (session) {
+        session.endTime = new Date().toISOString();
+        fetch('/api/logs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session }),
+        }).catch((err) => {
+          console.error('Failed to save log session:', err);
+        });
+      }
+
+      await logger.endSession();
+    } catch (error) {
+      logger.error('workflow.error', 'Workflow execution failed', {}, error instanceof Error ? error : undefined);
       set({ isRunning: false, currentNodeId: null });
+
+      // Save logs to server (even on error)
+      const session = logger.getCurrentSession();
+      if (session) {
+        session.endTime = new Date().toISOString();
+        fetch('/api/logs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session }),
+        }).catch((err) => {
+          console.error('Failed to save log session:', err);
+        });
+      }
+
+      await logger.endSession();
     }
   },
 
@@ -1105,13 +1293,21 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     const { nodes, updateNodeData, getConnectedInputs, isRunning } = get();
 
     if (isRunning) {
+      logger.warn('node.execution', 'Cannot regenerate node, workflow already running', { nodeId });
       return;
     }
 
     const node = nodes.find((n) => n.id === nodeId);
     if (!node) {
+      logger.warn('node.error', 'Node not found for regeneration', { nodeId });
       return;
     }
+
+    await logger.startSession();
+    logger.info('node.execution', 'Regenerating node', {
+      nodeId,
+      nodeType: node.type,
+    });
 
     set({ isRunning: true, currentNodeId: nodeId });
 
@@ -1125,17 +1321,32 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         let text = inputs.text ?? nodeData.inputPrompt;
 
         if (!images || images.length === 0 || !text) {
+          logger.error('node.error', 'nanoBanana regeneration failed: missing inputs', {
+            nodeId,
+            hasImages: !!(images && images.length > 0),
+            hasText: !!text,
+          });
           updateNodeData(nodeId, {
             status: "error",
             error: "Missing image or text input",
           });
           set({ isRunning: false, currentNodeId: null });
+          await logger.endSession();
           return;
         }
 
         updateNodeData(nodeId, {
           status: "loading",
           error: null,
+        });
+
+        logger.info('api.gemini', 'Calling Gemini API for node regeneration', {
+          nodeId,
+          model: nodeData.model,
+          aspectRatio: nodeData.aspectRatio,
+          resolution: nodeData.resolution,
+          imageCount: images.length,
+          prompt: text,
         });
 
         const response = await fetch("/api/generate", {
@@ -1160,8 +1371,14 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           } catch {
             if (errorText) errorMessage += ` - ${errorText.substring(0, 200)}`;
           }
+          logger.error('api.error', 'Gemini API regeneration failed', {
+            nodeId,
+            status: response.status,
+            errorMessage,
+          });
           updateNodeData(nodeId, { status: "error", error: errorMessage });
           set({ isRunning: false, currentNodeId: null });
+          await logger.endSession();
           return;
         }
 
@@ -1180,6 +1397,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             status: "complete",
             error: null,
           });
+
+          // Track cost
+          const generationCost = calculateGenerationCost(nodeData.model, nodeData.resolution);
+          get().addIncurredCost(generationCost);
 
           // Auto-save to generations folder if configured
           const genPath = get().generationsPath;
@@ -1205,22 +1426,38 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       } else if (node.type === "llmGenerate") {
         const nodeData = node.data as LLMGenerateNodeData;
 
-        // Always get fresh connected input first, fall back to stored input only if not connected
+        // Always get fresh connected inputs first, fall back to stored inputs only if not connected
         const inputs = getConnectedInputs(nodeId);
+        const images = inputs.images.length > 0 ? inputs.images : nodeData.inputImages;
         const text = inputs.text ?? nodeData.inputPrompt;
 
         if (!text) {
+          logger.error('node.error', 'llmGenerate regeneration failed: missing text input', {
+            nodeId,
+          });
           updateNodeData(nodeId, {
             status: "error",
             error: "Missing text input",
           });
           set({ isRunning: false, currentNodeId: null });
+          await logger.endSession();
           return;
         }
 
         updateNodeData(nodeId, {
+          inputImages: images,
           status: "loading",
           error: null,
+        });
+
+        logger.info('api.llm', 'Calling LLM API for node regeneration', {
+          nodeId,
+          provider: nodeData.provider,
+          model: nodeData.model,
+          temperature: nodeData.temperature,
+          maxTokens: nodeData.maxTokens,
+          hasImages: images.length > 0,
+          prompt: text,
         });
 
         const response = await fetch("/api/llm", {
@@ -1228,6 +1465,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             prompt: text,
+            ...(images.length > 0 && { images }),
             provider: nodeData.provider,
             model: nodeData.model,
             temperature: nodeData.temperature,
@@ -1244,8 +1482,14 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           } catch {
             if (errorText) errorMessage += ` - ${errorText.substring(0, 200)}`;
           }
+          logger.error('api.error', 'LLM API regeneration failed', {
+            nodeId,
+            status: response.status,
+            errorMessage,
+          });
           updateNodeData(nodeId, { status: "error", error: errorMessage });
           set({ isRunning: false, currentNodeId: null });
+          await logger.endSession();
           return;
         }
 
@@ -1257,6 +1501,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             error: null,
           });
         } else {
+          logger.error('api.error', 'LLM regeneration failed', {
+            nodeId,
+            error: result.error,
+          });
           updateNodeData(nodeId, {
             status: "error",
             error: result.error || "LLM generation failed",
@@ -1264,13 +1512,47 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         }
       }
 
+      logger.info('node.execution', 'Node regeneration completed successfully', { nodeId });
       set({ isRunning: false, currentNodeId: null });
+
+      // Save logs to server
+      const session = logger.getCurrentSession();
+      if (session) {
+        session.endTime = new Date().toISOString();
+        fetch('/api/logs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session }),
+        }).catch((err) => {
+          console.error('Failed to save log session:', err);
+        });
+      }
+
+      await logger.endSession();
     } catch (error) {
+      logger.error('node.error', 'Node regeneration failed', {
+        nodeId,
+      }, error instanceof Error ? error : undefined);
       updateNodeData(nodeId, {
         status: "error",
         error: error instanceof Error ? error.message : "Regeneration failed",
       });
       set({ isRunning: false, currentNodeId: null });
+
+      // Save logs to server (even on error)
+      const session = logger.getCurrentSession();
+      if (session) {
+        session.endTime = new Date().toISOString();
+        fetch('/api/logs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session }),
+        }).catch((err) => {
+          console.error('Failed to save log session:', err);
+        });
+      }
+
+      await logger.endSession();
     }
   },
 
@@ -1324,6 +1606,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     const configs = loadSaveConfigs();
     const savedConfig = workflow.id ? configs[workflow.id] : null;
 
+    // Load cost data for this workflow
+    const costData = workflow.id ? loadWorkflowCostData(workflow.id) : null;
+
     set({
       nodes: workflow.nodes,
       edges: workflow.edges,
@@ -1338,6 +1623,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       generationsPath: savedConfig?.generationsPath || null,
       lastSavedAt: savedConfig?.lastSavedAt || null,
       hasUnsavedChanges: false,
+      // Restore cost data
+      incurredCost: costData?.incurredCost || 0,
     });
   },
 
@@ -1355,6 +1642,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       generationsPath: null,
       lastSavedAt: null,
       hasUnsavedChanges: false,
+      // Reset cost tracking
+      incurredCost: 0,
     });
   },
 
@@ -1502,5 +1791,31 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       clearInterval(autoSaveIntervalId);
       autoSaveIntervalId = null;
     }
+  },
+
+  // Cost tracking actions
+  addIncurredCost: (cost: number) => {
+    set((state) => ({ incurredCost: state.incurredCost + cost }));
+    get().saveIncurredCost();
+  },
+
+  resetIncurredCost: () => {
+    set({ incurredCost: 0 });
+    get().saveIncurredCost();
+  },
+
+  loadIncurredCost: (workflowId: string) => {
+    const data = loadWorkflowCostData(workflowId);
+    set({ incurredCost: data?.incurredCost || 0 });
+  },
+
+  saveIncurredCost: () => {
+    const { workflowId, incurredCost } = get();
+    if (!workflowId) return;
+    saveWorkflowCostData({
+      workflowId,
+      incurredCost,
+      lastUpdated: Date.now(),
+    });
   },
 }));

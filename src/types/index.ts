@@ -36,6 +36,8 @@ export type NodeStatus = "idle" | "loading" | "complete" | "error";
 // Base node data - using Record to satisfy React Flow's type constraints
 export interface BaseNodeData extends Record<string, unknown> {
   label?: string;
+  customTitle?: string;
+  comment?: string;
 }
 
 // Image Input Node Data
@@ -134,6 +136,7 @@ export interface NanoBananaNodeData extends BaseNodeData {
 // LLM Generate Node Data (Text Generation)
 export interface LLMGenerateNodeData extends BaseNodeData {
   inputPrompt: string | null;
+  inputImages: string[];
   outputText: string | null;
   provider: LLMProvider;
   model: LLMModelType;
@@ -216,6 +219,7 @@ export interface GenerateResponse {
 // API Request/Response types for LLM Text Generation
 export interface LLMGenerateRequest {
   prompt: string;
+  images?: string[];
   provider: LLMProvider;
   model: LLMModelType;
   temperature?: number;
@@ -247,6 +251,13 @@ export interface WorkflowSaveConfig {
   directoryPath: string;
   generationsPath: string | null;
   lastSavedAt: number | null;
+}
+
+// Cost tracking data stored per-workflow in localStorage
+export interface WorkflowCostData {
+  workflowId: string;
+  incurredCost: number;
+  lastUpdated: number;
 }
 
 // Group background color options (dark mode tints)

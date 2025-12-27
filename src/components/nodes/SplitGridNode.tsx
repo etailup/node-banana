@@ -11,6 +11,7 @@ type SplitGridNodeType = Node<SplitGridNodeData, "splitGrid">;
 
 export function SplitGridNode({ id, data, selected }: NodeProps<SplitGridNodeType>) {
   const nodeData = data;
+  const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const [showSettings, setShowSettings] = useState(false);
 
   // Show settings modal on first creation (when not configured)
@@ -32,6 +33,10 @@ export function SplitGridNode({ id, data, selected }: NodeProps<SplitGridNodeTyp
     <BaseNode
       id={id}
       title="Split Grid"
+      customTitle={nodeData.customTitle}
+      comment={nodeData.comment}
+      onCustomTitleChange={(title) => updateNodeData(id, { customTitle: title || undefined })}
+      onCommentChange={(comment) => updateNodeData(id, { comment: comment || undefined })}
       selected={selected}
       hasError={nodeData.status === "error"}
     >

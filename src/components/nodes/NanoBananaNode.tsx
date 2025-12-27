@@ -76,6 +76,10 @@ export function NanoBananaNode({ id, data, selected }: NodeProps<NanoBananaNodeT
     <BaseNode
       id={id}
       title="Generate"
+      customTitle={nodeData.customTitle}
+      comment={nodeData.comment}
+      onCustomTitleChange={(title) => updateNodeData(id, { customTitle: title || undefined })}
+      onCommentChange={(comment) => updateNodeData(id, { comment: comment || undefined })}
       selected={selected}
       hasError={nodeData.status === "error"}
     >

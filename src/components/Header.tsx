@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { useWorkflowStore, WorkflowFile } from "@/store/workflowStore";
 import { ProjectSetupModal } from "./ProjectSetupModal";
+import { CostIndicator } from "./CostIndicator";
 
 export function Header() {
   const {
@@ -103,6 +104,8 @@ export function Header() {
             {isProjectConfigured ? (
               <>
                 <span className="text-sm text-neutral-300">{workflowName}</span>
+                <span className="text-neutral-600">|</span>
+                <CostIndicator />
                 <button
                   onClick={() => canSave ? saveToFile() : handleOpenSettings()}
                   disabled={isSaving}

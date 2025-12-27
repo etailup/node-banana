@@ -20,7 +20,15 @@ export function PromptNode({ id, data, selected }: NodeProps<PromptNodeType>) {
   );
 
   return (
-    <BaseNode id={id} title="Prompt" selected={selected}>
+    <BaseNode
+      id={id}
+      title="Prompt"
+      customTitle={nodeData.customTitle}
+      comment={nodeData.comment}
+      onCustomTitleChange={(title) => updateNodeData(id, { customTitle: title || undefined })}
+      onCommentChange={(comment) => updateNodeData(id, { comment: comment || undefined })}
+      selected={selected}
+    >
       <textarea
         value={nodeData.prompt}
         onChange={handleChange}
