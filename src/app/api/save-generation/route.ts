@@ -11,6 +11,7 @@ export async function POST(request: NextRequest) {
     directoryPath = body.directoryPath;
     const image = body.image;
     const prompt = body.prompt;
+    const imageId = body.imageId; // Optional ID for carousel support
 
     logger.info('file.save', 'Generation auto-save request received', {
       directoryPath,
@@ -51,17 +52,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate filename: timestamp + sanitized prompt snippet
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-    const promptSnippet = prompt
-      ? prompt
-          .slice(0, 30)
-          .replace(/[^a-zA-Z0-9]/g, "_")
-          .replace(/_+/g, "_")
-          .replace(/^_|_$/g, "")
-          .toLowerCase()
-      : "generation";
-    const filename = `${timestamp}_${promptSnippet}.png`;
+    // Generate filename: use imageId if provided, otherwise timestamp + sanitized prompt snippet
+    let filename: string;
+    if (imageId) {
+      filename = `${imageId}.png`;
+    } else {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+      const promptSnippet = prompt
+        ? prompt
+            .slice(0, 30)
+            .replace(/[^a-zA-Z0-9]/g, "_")
+            .replace(/_+/g, "_")
+            .replace(/^_|_$/g, "")
+            .toLowerCase()
+        : "generation";
+      filename = `${timestamp}_${promptSnippet}.png`;
+    }
     const filePath = path.join(directoryPath, filename);
 
     // Extract base64 data and convert to buffer
@@ -81,6 +87,7 @@ export async function POST(request: NextRequest) {
       success: true,
       filePath,
       filename,
+      imageId: imageId || filename.replace('.png', ''), // Return ID for carousel tracking
     });
   } catch (error) {
     logger.error('file.error', 'Failed to save generation', {

@@ -37,8 +37,14 @@ export function BaseNode({
   minHeight = 100,
 }: BaseNodeProps) {
   const currentNodeId = useWorkflowStore((state) => state.currentNodeId);
+  const groups = useWorkflowStore((state) => state.groups);
+  const nodes = useWorkflowStore((state) => state.nodes);
   const isCurrentlyExecuting = currentNodeId === id;
   const { getNodes, setNodes } = useReactFlow();
+
+  // Check if node is in a locked group
+  const node = nodes.find((n) => n.id === id);
+  const isInLockedGroup = node?.groupId && groups[node.groupId]?.locked;
 
   // Inline editing state
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -210,6 +216,15 @@ export function BaseNode({
               </span>
             )}
           </div>
+
+          {/* Lock Badge for nodes in locked groups */}
+          {isInLockedGroup && (
+            <div className="ml-2 shrink-0 flex items-center" title="This node is in a locked group and will be skipped during execution">
+              <svg className="w-3.5 h-3.5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+          )}
 
           {/* Comment Icon */}
           <div className="relative ml-2 shrink-0" ref={commentPopoverRef}>

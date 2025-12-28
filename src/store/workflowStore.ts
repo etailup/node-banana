@@ -83,6 +83,7 @@ interface WorkflowStore {
   addNodesToGroup: (nodeIds: string[], groupId: string) => void;
   removeNodesFromGroup: (nodeIds: string[]) => void;
   updateGroup: (groupId: string, updates: Partial<NodeGroup>) => void;
+  toggleGroupLock: (groupId: string) => void;
   moveGroupNodes: (groupId: string, delta: { x: number; y: number }) => void;
   setNodeGroupId: (nodeId: string, groupId: string | undefined) => void;
 
@@ -169,6 +170,8 @@ const createDefaultNodeData = (type: NodeType): WorkflowNodeData => {
         useGoogleSearch: defaults.useGoogleSearch,
         status: "idle",
         error: null,
+        imageHistory: [],
+        selectedHistoryIndex: 0,
       } as NanoBananaNodeData;
     }
     case "llmGenerate":
@@ -647,6 +650,19 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     }));
   },
 
+  toggleGroupLock: (groupId: string) => {
+    set((state) => ({
+      groups: {
+        ...state.groups,
+        [groupId]: {
+          ...state.groups[groupId],
+          locked: !state.groups[groupId].locked,
+        },
+      },
+      hasUnsavedChanges: true,
+    }));
+  },
+
   moveGroupNodes: (groupId: string, delta: { x: number; y: number }) => {
     set((state) => ({
       nodes: state.nodes.map((node) =>
@@ -770,7 +786,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   },
 
   executeWorkflow: async (startFromNodeId?: string) => {
-    const { nodes, edges, updateNodeData, getConnectedInputs, isRunning } = get();
+    const { nodes, edges, groups, updateNodeData, getConnectedInputs, isRunning } = get();
 
     if (isRunning) {
       logger.warn('workflow.start', 'Workflow already running, ignoring execution request');
@@ -862,6 +878,18 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             await logger.endSession();
             return;
           }
+        }
+
+        // Check if node is in a locked group - if so, skip execution
+        const nodeGroup = node.groupId ? groups[node.groupId] : null;
+        if (nodeGroup?.locked) {
+          logger.info('node.execution', `Skipping node in locked group`, {
+            nodeId: node.id,
+            nodeType: node.type,
+            groupId: node.groupId,
+            groupName: nodeGroup.name,
+          });
+          continue; // Skip to next node
         }
 
         set({ currentNodeId: node.id });
@@ -978,18 +1006,34 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
               const result = await response.json();
 
               if (result.success && result.image) {
+                const timestamp = Date.now();
+                const imageId = `${timestamp}`;
+
                 // Save the newly generated image to global history
                 get().addToGlobalHistory({
                   image: result.image,
-                  timestamp: Date.now(),
+                  timestamp,
                   prompt: text,
                   aspectRatio: nodeData.aspectRatio,
                   model: nodeData.model,
                 });
+
+                // Add to node's carousel history
+                const newHistoryItem = {
+                  id: imageId,
+                  timestamp,
+                  prompt: text,
+                  aspectRatio: nodeData.aspectRatio,
+                  model: nodeData.model,
+                };
+                const updatedHistory = [newHistoryItem, ...(nodeData.imageHistory || [])];
+
                 updateNodeData(node.id, {
                   outputImage: result.image,
                   status: "complete",
                   error: null,
+                  imageHistory: updatedHistory,
+                  selectedHistoryIndex: 0,
                 });
 
                 // Track cost
@@ -1006,6 +1050,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                       directoryPath: genPath,
                       image: result.image,
                       prompt: text,
+                      imageId,
                     }),
                   }).catch((err) => {
                     console.error("Failed to save generation:", err);
@@ -1384,18 +1429,34 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
         const result = await response.json();
         if (result.success && result.image) {
+          const timestamp = Date.now();
+          const imageId = `${timestamp}`;
+
           // Save the newly generated image to global history
           get().addToGlobalHistory({
             image: result.image,
-            timestamp: Date.now(),
+            timestamp,
             prompt: text,
             aspectRatio: nodeData.aspectRatio,
             model: nodeData.model,
           });
+
+          // Add to node's carousel history
+          const newHistoryItem = {
+            id: imageId,
+            timestamp,
+            prompt: text,
+            aspectRatio: nodeData.aspectRatio,
+            model: nodeData.model,
+          };
+          const updatedHistory = [newHistoryItem, ...(nodeData.imageHistory || [])];
+
           updateNodeData(nodeId, {
             outputImage: result.image,
             status: "complete",
             error: null,
+            imageHistory: updatedHistory,
+            selectedHistoryIndex: 0,
           });
 
           // Track cost
@@ -1412,6 +1473,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 directoryPath: genPath,
                 image: result.image,
                 prompt: text,
+                imageId,
               }),
             }).catch((err) => {
               console.error("Failed to save generation:", err);
@@ -1509,6 +1571,99 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             status: "error",
             error: result.error || "LLM generation failed",
           });
+        }
+      } else if (node.type === "splitGrid") {
+        const nodeData = node.data as SplitGridNodeData;
+
+        // Get fresh connected inputs
+        const inputs = getConnectedInputs(nodeId);
+        const sourceImage = inputs.images[0] || null;
+
+        if (!sourceImage) {
+          logger.error('node.error', 'splitGrid regeneration failed: no input image', {
+            nodeId,
+          });
+          updateNodeData(nodeId, {
+            status: "error",
+            error: "No input image connected",
+          });
+          set({ isRunning: false, currentNodeId: null });
+          await logger.endSession();
+          return;
+        }
+
+        if (!nodeData.isConfigured) {
+          logger.error('node.error', 'splitGrid regeneration failed: not configured', {
+            nodeId,
+          });
+          updateNodeData(nodeId, {
+            status: "error",
+            error: "Node not configured - open settings first",
+          });
+          set({ isRunning: false, currentNodeId: null });
+          await logger.endSession();
+          return;
+        }
+
+        updateNodeData(nodeId, {
+          sourceImage,
+          status: "loading",
+          error: null,
+        });
+
+        logger.info('node.execution', 'Splitting grid manually', {
+          nodeId,
+          gridRows: nodeData.gridRows,
+          gridCols: nodeData.gridCols,
+          childCount: nodeData.childNodeIds.length,
+        });
+
+        try {
+          // Import and use the grid splitter
+          const { splitWithDimensions } = await import("@/utils/gridSplitter");
+          const { images: splitImages } = await splitWithDimensions(
+            sourceImage,
+            nodeData.gridRows,
+            nodeData.gridCols
+          );
+
+          // Populate child imageInput nodes with split images
+          for (let index = 0; index < nodeData.childNodeIds.length; index++) {
+            const childSet = nodeData.childNodeIds[index];
+            if (splitImages[index]) {
+              // Create a promise to get image dimensions
+              await new Promise<void>((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                  updateNodeData(childSet.imageInput, {
+                    image: splitImages[index],
+                    filename: `split-${Math.floor(index / nodeData.gridCols) + 1}-${(index % nodeData.gridCols) + 1}.png`,
+                    dimensions: { width: img.width, height: img.height },
+                  });
+                  resolve();
+                };
+                img.onerror = () => resolve();
+                img.src = splitImages[index];
+              });
+            }
+          }
+
+          logger.info('node.execution', 'Grid split completed successfully', {
+            nodeId,
+            splitCount: splitImages.length,
+          });
+          updateNodeData(nodeId, { status: "complete", error: null });
+        } catch (error) {
+          logger.error('node.error', 'splitGrid manual execution failed', {
+            nodeId,
+          }, error instanceof Error ? error : undefined);
+          updateNodeData(nodeId, {
+            status: "error",
+            error: error instanceof Error ? error.message : "Failed to split image",
+          });
+          set({ isRunning: false, currentNodeId: null });
+          await logger.endSession();
+          return;
         }
       }
 
