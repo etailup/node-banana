@@ -106,7 +106,7 @@ export function NanoBananaNode({ id, data, selected }: NodeProps<NanoBananaNodeT
     if (history.length === 0 || isLoadingCarouselImage) return;
 
     const currentIndex = nodeData.selectedHistoryIndex || 0;
-    const newIndex = (currentIndex + 1) % history.length;
+    const newIndex = currentIndex === 0 ? history.length - 1 : currentIndex - 1;
     const imageItem = history[newIndex];
 
     setIsLoadingCarouselImage(true);
@@ -126,7 +126,7 @@ export function NanoBananaNode({ id, data, selected }: NodeProps<NanoBananaNodeT
     if (history.length === 0 || isLoadingCarouselImage) return;
 
     const currentIndex = nodeData.selectedHistoryIndex || 0;
-    const newIndex = currentIndex === 0 ? history.length - 1 : currentIndex - 1;
+    const newIndex = (currentIndex + 1) % history.length;
     const imageItem = history[newIndex];
 
     setIsLoadingCarouselImage(true);
