@@ -88,8 +88,10 @@ interface WorkflowStore {
   setNodeGroupId: (nodeId: string, groupId: string | undefined) => void;
 
   // UI State
+  openModalCount: number;
   isModalOpen: boolean;
-  setIsModalOpen: (isOpen: boolean) => void;
+  incrementModalCount: () => void;
+  decrementModalCount: () => void;
 
   // Execution
   isRunning: boolean;
@@ -322,6 +324,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   edgeStyle: "curved" as EdgeStyle,
   clipboard: null,
   groups: {},
+  openModalCount: 0,
   isModalOpen: false,
   isRunning: false,
   currentNodeId: null,
@@ -345,8 +348,18 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     set({ edgeStyle: style });
   },
 
-  setIsModalOpen: (isOpen: boolean) => {
-    set({ isModalOpen: isOpen });
+  incrementModalCount: () => {
+    set((state) => {
+      const newCount = state.openModalCount + 1;
+      return { openModalCount: newCount, isModalOpen: newCount > 0 };
+    });
+  },
+
+  decrementModalCount: () => {
+    set((state) => {
+      const newCount = Math.max(0, state.openModalCount - 1);
+      return { openModalCount: newCount, isModalOpen: newCount > 0 };
+    });
   },
 
   addNode: (type: NodeType, position: XYPosition) => {

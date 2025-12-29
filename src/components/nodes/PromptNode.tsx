@@ -13,7 +13,8 @@ type PromptNodeType = Node<PromptNodeData, "prompt">;
 export function PromptNode({ id, data, selected }: NodeProps<PromptNodeType>) {
   const nodeData = data;
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
-  const setIsModalOpen = useWorkflowStore((state) => state.setIsModalOpen);
+  const incrementModalCount = useWorkflowStore((state) => state.incrementModalCount);
+  const decrementModalCount = useWorkflowStore((state) => state.decrementModalCount);
   const [isModalOpenLocal, setIsModalOpenLocal] = useState(false);
 
   const handleChange = useCallback(
@@ -25,13 +26,13 @@ export function PromptNode({ id, data, selected }: NodeProps<PromptNodeType>) {
 
   const handleOpenModal = useCallback(() => {
     setIsModalOpenLocal(true);
-    setIsModalOpen(true);
-  }, [setIsModalOpen]);
+    incrementModalCount();
+  }, [incrementModalCount]);
 
   const handleCloseModal = useCallback(() => {
     setIsModalOpenLocal(false);
-    setIsModalOpen(false);
-  }, [setIsModalOpen]);
+    decrementModalCount();
+  }, [decrementModalCount]);
 
   const handleSubmitModal = useCallback(
     (prompt: string) => {

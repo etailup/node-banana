@@ -154,6 +154,7 @@ export function NanoBananaNode({ id, data, selected }: NodeProps<NanoBananaNodeT
       onCommentChange={(comment) => updateNodeData(id, { comment: comment || undefined })}
       onRun={handleRegenerate}
       selected={selected}
+      isExecuting={isRunning}
       hasError={nodeData.status === "error"}
     >
       {/* Image input - accepts multiple connections */}
