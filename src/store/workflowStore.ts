@@ -87,6 +87,10 @@ interface WorkflowStore {
   moveGroupNodes: (groupId: string, delta: { x: number; y: number }) => void;
   setNodeGroupId: (nodeId: string, groupId: string | undefined) => void;
 
+  // UI State
+  isModalOpen: boolean;
+  setIsModalOpen: (isOpen: boolean) => void;
+
   // Execution
   isRunning: boolean;
   currentNodeId: string | null;
@@ -318,6 +322,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   edgeStyle: "curved" as EdgeStyle,
   clipboard: null,
   groups: {},
+  isModalOpen: false,
   isRunning: false,
   currentNodeId: null,
   pausedAtNodeId: null,
@@ -338,6 +343,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
   setEdgeStyle: (style: EdgeStyle) => {
     set({ edgeStyle: style });
+  },
+
+  setIsModalOpen: (isOpen: boolean) => {
+    set({ isModalOpen: isOpen });
   },
 
   addNode: (type: NodeType, position: XYPosition) => {

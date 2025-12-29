@@ -152,6 +152,7 @@ export function NanoBananaNode({ id, data, selected }: NodeProps<NanoBananaNodeT
       comment={nodeData.comment}
       onCustomTitleChange={(title) => updateNodeData(id, { customTitle: title || undefined })}
       onCommentChange={(comment) => updateNodeData(id, { comment: comment || undefined })}
+      onRun={handleRegenerate}
       selected={selected}
       hasError={nodeData.status === "error"}
     >
@@ -238,17 +239,7 @@ export function NanoBananaNode({ id, data, selected }: NodeProps<NanoBananaNodeT
                   </svg>
                 </div>
               )}
-              <div className="absolute top-1 right-1 flex gap-1">
-                <button
-                  onClick={handleRegenerate}
-                  disabled={isRunning}
-                  className="w-5 h-5 bg-neutral-900/80 hover:bg-blue-600/80 disabled:opacity-50 disabled:cursor-not-allowed rounded flex items-center justify-center text-neutral-400 hover:text-white transition-colors"
-                  title="Regenerate"
-                >
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </button>
+              <div className="absolute top-1 right-1">
                 <button
                   onClick={handleClearImage}
                   className="w-5 h-5 bg-neutral-900/80 hover:bg-red-600/80 rounded flex items-center justify-center text-neutral-400 hover:text-white transition-colors"

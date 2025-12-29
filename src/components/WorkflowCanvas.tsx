@@ -187,7 +187,7 @@ const findScrollableAncestor = (target: HTMLElement, deltaX: number, deltaY: num
 };
 
 export function WorkflowCanvas() {
-  const { nodes, edges, groups, onNodesChange, onEdgesChange, onConnect, addNode, updateNodeData, loadWorkflow, getNodeById, addToGlobalHistory, setNodeGroupId, executeWorkflow } =
+  const { nodes, edges, groups, onNodesChange, onEdgesChange, onConnect, addNode, updateNodeData, loadWorkflow, getNodeById, addToGlobalHistory, setNodeGroupId, executeWorkflow, isModalOpen } =
     useWorkflowStore();
   const { screenToFlowPosition, getViewport, zoomIn, zoomOut, setViewport } = useReactFlow();
   const [isDragOver, setIsDragOver] = useState(false);
@@ -1091,17 +1091,20 @@ export function WorkflowCanvas() {
         fitView
         deleteKeyCode={["Backspace", "Delete"]}
         multiSelectionKeyCode="Shift"
-        selectionOnDrag={isMacOS}
-        panOnDrag={!isMacOS}
+        selectionOnDrag={isMacOS && !isModalOpen}
+        panOnDrag={!isMacOS && !isModalOpen}
         selectNodesOnDrag={false}
         nodeDragThreshold={5}
         zoomOnScroll={false}
-        zoomOnPinch={true}
+        zoomOnPinch={!isModalOpen}
         minZoom={0.1}
         maxZoom={4}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-        panActivationKeyCode="Space"
-        onWheel={handleWheel}
+        panActivationKeyCode={isModalOpen ? null : "Space"}
+        onWheel={isModalOpen ? undefined : handleWheel}
+        nodesDraggable={!isModalOpen}
+        nodesConnectable={!isModalOpen}
+        elementsSelectable={!isModalOpen}
         className="bg-neutral-900"
         defaultEdgeOptions={{
           type: "editable",
