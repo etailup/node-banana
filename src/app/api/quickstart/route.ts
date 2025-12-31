@@ -8,8 +8,59 @@ import {
   repairWorkflowJSON,
   parseJSONFromResponse,
 } from "@/lib/quickstart/validation";
+import { ImageInputNodeData } from "@/types";
+import * as fs from "fs";
+import * as path from "path";
 
 export const maxDuration = 60; // 1 minute timeout
+
+/**
+ * Convert local image paths (e.g., /sample-images/model.jpg) to base64 data URLs
+ */
+async function convertLocalImagesToBase64(workflow: WorkflowFile): Promise<WorkflowFile> {
+  const updatedNodes = await Promise.all(
+    workflow.nodes.map(async (node) => {
+      if (node.type === "imageInput") {
+        const data = node.data as ImageInputNodeData;
+        // Check if image is a local path (starts with /sample-images/)
+        if (data.image && data.image.startsWith("/sample-images/")) {
+          try {
+            // Read file from public folder
+            const publicPath = path.join(process.cwd(), "public", data.image);
+            const fileBuffer = fs.readFileSync(publicPath);
+            const base64 = fileBuffer.toString("base64");
+
+            // Determine MIME type from extension
+            const ext = path.extname(data.image).toLowerCase();
+            const mimeType = ext === ".png" ? "image/png"
+              : ext === ".webp" ? "image/webp"
+              : "image/jpeg";
+
+            const dataUrl = `data:${mimeType};base64,${base64}`;
+
+            return {
+              ...node,
+              data: {
+                ...data,
+                image: dataUrl,
+              },
+            };
+          } catch (error) {
+            console.error(`Failed to convert image to base64: ${data.image}`, error);
+            // Return node unchanged if conversion fails
+            return node;
+          }
+        }
+      }
+      return node;
+    })
+  );
+
+  return {
+    ...workflow,
+    nodes: updatedNodes,
+  };
+}
 
 interface QuickstartRequest {
   description: string;
@@ -43,10 +94,12 @@ export async function POST(request: NextRequest) {
       console.log(`[Quickstart:${requestId}] Using preset template: ${templateId}`);
       try {
         const workflow = getPresetTemplate(templateId, contentLevel);
+        // Convert any local image paths to base64 for the Gemini API
+        const workflowWithBase64 = await convertLocalImagesToBase64(workflow);
         console.log(`[Quickstart:${requestId}] Preset template loaded successfully`);
         return NextResponse.json<QuickstartResponse>({
           success: true,
-          workflow,
+          workflow: workflowWithBase64,
         });
       } catch (error) {
         console.error(`[Quickstart:${requestId}] Preset template error:`, error);
