@@ -10,6 +10,18 @@ export interface PresetTemplate {
   workflow: Omit<WorkflowFile, "id">;
 }
 
+// Sample image URLs from Unsplash for "full" content level
+export const SAMPLE_IMAGES = {
+  portrait: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=80",
+  landscape: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80",
+  product: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80",
+  art: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=800&q=80",
+  architecture: "https://images.unsplash.com/photo-1486325212027-8081e485255e?w=800&q=80",
+  nature: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&q=80",
+  style1: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=800&q=80",
+  style2: "https://images.unsplash.com/photo-1547891654-e66ed7ebb968?w=800&q=80",
+};
+
 // Default node dimensions for consistent layouts
 const NODE_DIMENSIONS = {
   imageInput: { width: 300, height: 280 },
@@ -21,10 +33,10 @@ const NODE_DIMENSIONS = {
 };
 
 // Default node data factories
-const createImageInputData = () => ({
-  image: null,
-  filename: null,
-  dimensions: null,
+const createImageInputData = (imageUrl: string | null = null, filename: string | null = null) => ({
+  image: imageUrl,
+  filename: filename,
+  dimensions: imageUrl ? { width: 800, height: 600 } : null,
 });
 
 const createPromptData = (prompt: string = "") => ({
@@ -66,6 +78,138 @@ const createAnnotationData = () => ({
 const createOutputData = () => ({
   image: null,
 });
+
+// Content for each template at each level
+interface TemplateContent {
+  prompts: Record<string, string>; // nodeId -> prompt content
+  images: Record<string, { url: string; filename: string }>; // nodeId -> image info
+}
+
+const TEMPLATE_CONTENT: Record<string, Record<ContentLevel, TemplateContent>> = {
+  "simple-edit": {
+    empty: {
+      prompts: { "prompt-1": "" },
+      images: {},
+    },
+    minimal: {
+      prompts: {
+        "prompt-1": "Describe how you want to transform this image. For example:\n- Change the lighting or mood\n- Add or remove elements\n- Apply a specific style\n- Enhance certain features",
+      },
+      images: {},
+    },
+    full: {
+      prompts: {
+        "prompt-1": "Transform this portrait into a professional headshot with soft studio lighting, clean neutral background, and subtle color grading. Enhance skin texture naturally while maintaining the subject's authentic appearance. Add a slight vignette for focus.",
+      },
+      images: {
+        "imageInput-1": { url: SAMPLE_IMAGES.portrait, filename: "portrait-sample.jpg" },
+      },
+    },
+  },
+  "llm-chain": {
+    empty: {
+      prompts: { "prompt-1": "" },
+      images: {},
+    },
+    minimal: {
+      prompts: {
+        "prompt-1": "Enter a brief concept here. The LLM will expand this into a detailed image generation prompt.\n\nExample concepts:\n- A cozy cabin in winter\n- Futuristic city at sunset\n- Magical forest scene",
+      },
+      images: {},
+    },
+    full: {
+      prompts: {
+        "prompt-1": "You are a creative prompt engineer specializing in image generation. Take this concept and expand it into a detailed, evocative prompt:\n\nConcept: A serene mountain lake at golden hour\n\nExpand with specific details about: composition, lighting quality, atmospheric conditions, color palette, textures, mood, and artistic style. Make it vivid and precise for AI image generation.",
+      },
+      images: {
+        "imageInput-1": { url: SAMPLE_IMAGES.landscape, filename: "landscape-reference.jpg" },
+      },
+    },
+  },
+  "contact-sheet": {
+    empty: {
+      prompts: { "prompt-1": "" },
+      images: {},
+    },
+    minimal: {
+      prompts: {
+        "prompt-1": "Describe how to combine elements from all reference images.\n\nConsider:\n- Which image provides the style/mood?\n- Which provides the composition?\n- What elements to take from each?\n- What is the final desired output?",
+      },
+      images: {},
+    },
+    full: {
+      prompts: {
+        "prompt-1": "Create a new product photograph combining these references:\n- Image 1: Use the clean, minimal composition style\n- Image 2: Apply the warm lighting and color temperature\n- Image 3: Match the professional product photography aesthetic\n\nGenerate a hero shot suitable for e-commerce with soft shadows and neutral background.",
+      },
+      images: {
+        "imageInput-1": { url: SAMPLE_IMAGES.product, filename: "product-1.jpg" },
+        "imageInput-2": { url: SAMPLE_IMAGES.architecture, filename: "lighting-ref.jpg" },
+        "imageInput-3": { url: SAMPLE_IMAGES.nature, filename: "mood-ref.jpg" },
+      },
+    },
+  },
+  "annotate-generate": {
+    empty: {
+      prompts: { "prompt-1": "" },
+      images: {},
+    },
+    minimal: {
+      prompts: {
+        "prompt-1": "After annotating the image, describe what should be generated:\n\n- What should appear in marked areas?\n- What style should match the original?\n- Any specific details to include?\n\nTip: Use rectangles to mark areas for replacement.",
+      },
+      images: {},
+    },
+    full: {
+      prompts: {
+        "prompt-1": "Replace the annotated areas with seamlessly integrated content:\n- Match the existing lighting direction and intensity\n- Maintain consistent perspective and scale\n- Blend edges naturally with surrounding areas\n- Preserve the overall style and color palette\n\nThe result should look like a natural, unedited photograph.",
+      },
+      images: {
+        "imageInput-1": { url: SAMPLE_IMAGES.architecture, filename: "architecture-edit.jpg" },
+      },
+    },
+  },
+  "prompt-expansion": {
+    empty: {
+      prompts: { "prompt-1": "" },
+      images: {},
+    },
+    minimal: {
+      prompts: {
+        "prompt-1": "Write a short concept (1-2 sentences) that the LLM will expand into a full image generation prompt.\n\nThe LLM will add:\n- Visual details\n- Lighting descriptions\n- Composition guidance\n- Style references\n- Technical specifications",
+      },
+      images: {},
+    },
+    full: {
+      prompts: {
+        "prompt-1": "Expand this into a detailed image generation prompt:\n\n\"A cozy reading nook with afternoon light\"\n\nInclude specifics about:\n1. Furniture style and materials\n2. Lighting quality (direction, color temperature, shadows)\n3. Atmospheric elements (dust motes, steam from tea)\n4. Color palette and mood\n5. Camera angle and composition\n6. Artistic style (photorealistic, illustrated, etc.)\n\nOutput only the expanded prompt, ready for image generation.",
+      },
+      images: {
+        "imageInput-1": { url: SAMPLE_IMAGES.art, filename: "style-reference.jpg" },
+      },
+    },
+  },
+  "style-transfer": {
+    empty: {
+      prompts: { "prompt-1": "" },
+      images: {},
+    },
+    minimal: {
+      prompts: {
+        "prompt-1": "Describe how to transfer the style:\n\n- Image 1 (top): STYLE reference - its colors, textures, artistic style\n- Image 2 (bottom): CONTENT to transform\n\nSpecify which style elements to transfer:\n- Color palette?\n- Brush strokes/texture?\n- Lighting mood?\n- Artistic medium?",
+      },
+      images: {},
+    },
+    full: {
+      prompts: {
+        "prompt-1": "Apply the artistic style from the first image to the content of the second image:\n\nStyle Transfer Instructions:\n- Extract the color palette, brushwork, and artistic technique from Image 1\n- Preserve the composition, subjects, and spatial relationships from Image 2\n- Blend the style naturally without losing content recognizability\n- Match the texture and visual rhythm of the style reference\n\nCreate a harmonious fusion that feels like an original artwork.",
+      },
+      images: {
+        "imageInput-1": { url: SAMPLE_IMAGES.style1, filename: "style-source.jpg" },
+        "imageInput-2": { url: SAMPLE_IMAGES.style2, filename: "content-image.jpg" },
+      },
+    },
+  },
+};
 
 // Preset templates
 export const PRESET_TEMPLATES: PresetTemplate[] = [
@@ -539,40 +683,6 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
   },
 ];
 
-// Content level prompt examples
-const CONTENT_EXAMPLES: Record<string, Record<ContentLevel, string>> = {
-  "simple-edit": {
-    empty: "",
-    minimal: "Describe your edit here...",
-    full: "Transform this image into a professional studio photograph with soft lighting, clean background, and enhanced details. Maintain the subject's natural appearance while improving overall image quality.",
-  },
-  "llm-chain": {
-    empty: "",
-    minimal: "Enter a brief concept for the LLM to expand...",
-    full: "Take the following concept and expand it into a detailed, vivid image generation prompt with specific visual details, lighting, composition, and artistic style.",
-  },
-  "contact-sheet": {
-    empty: "",
-    minimal: "Describe how to combine these images...",
-    full: "Using these reference images as style and subject guides, generate a new image that combines their best elements. Match the lighting and color palette of the first image, the composition style of the second, and incorporate elements from the third.",
-  },
-  "annotate-generate": {
-    empty: "",
-    minimal: "Describe what to generate in the annotated areas...",
-    full: "Replace the areas marked with red rectangles with natural-looking content that seamlessly blends with the surrounding image. Maintain consistent lighting, perspective, and style.",
-  },
-  "prompt-expansion": {
-    empty: "",
-    minimal: "Enter a brief prompt to expand...",
-    full: "You are a creative prompt engineer. Take the user's brief concept and expand it into a detailed, professional image generation prompt. Include specific details about: composition, lighting, colors, textures, mood, and artistic style. Output only the expanded prompt.",
-  },
-  "style-transfer": {
-    empty: "",
-    minimal: "Describe how to apply the style...",
-    full: "Apply the artistic style, color palette, and visual aesthetic from the first reference image to the content of the second image. Preserve the subject matter and composition of the content image while transforming its visual style to match the reference.",
-  },
-};
-
 /**
  * Get a preset template with content adjusted for the specified level
  */
@@ -585,23 +695,38 @@ export function getPresetTemplate(
     throw new Error(`Template not found: ${templateId}`);
   }
 
-  const promptContent = CONTENT_EXAMPLES[templateId]?.[contentLevel] || "";
+  const content = TEMPLATE_CONTENT[templateId]?.[contentLevel];
+  if (!content) {
+    throw new Error(`Content not found for ${templateId} at level ${contentLevel}`);
+  }
 
-  // Clone the workflow
+  // Clone the workflow and apply content
   const workflow: WorkflowFile = {
     ...template.workflow,
     id: `wf_${Date.now()}_${templateId}`,
     nodes: template.workflow.nodes.map((node) => {
-      if (node.type === "prompt") {
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            prompt: promptContent,
-          },
+      const clonedNode = { ...node, data: { ...node.data } };
+
+      // Apply prompt content
+      if (node.type === "prompt" && content.prompts[node.id] !== undefined) {
+        clonedNode.data = {
+          ...clonedNode.data,
+          prompt: content.prompts[node.id],
         };
       }
-      return { ...node };
+
+      // Apply image content for "full" level
+      if (node.type === "imageInput" && content.images[node.id]) {
+        const imageInfo = content.images[node.id];
+        clonedNode.data = {
+          ...clonedNode.data,
+          image: imageInfo.url,
+          filename: imageInfo.filename,
+          dimensions: { width: 800, height: 600 },
+        };
+      }
+
+      return clonedNode;
     }),
     edges: template.workflow.edges.map((edge) => ({ ...edge })),
   };
@@ -619,4 +744,11 @@ export function getAllPresets(): Pick<PresetTemplate, "id" | "name" | "descripti
     description,
     icon,
   }));
+}
+
+/**
+ * Export template content for use in API route (for fetching images)
+ */
+export function getTemplateContent(templateId: string, contentLevel: ContentLevel): TemplateContent | null {
+  return TEMPLATE_CONTENT[templateId]?.[contentLevel] || null;
 }
