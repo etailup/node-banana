@@ -20,6 +20,7 @@ export const PromptEditorModal: React.FC<PromptEditorModalProps> = ({
   onClose,
 }) => {
   const [prompt, setPrompt] = useState(initialPrompt);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const [fontSize, setFontSize] = useState(() => {
     // Load font size from localStorage on mount
     if (typeof window !== 'undefined') {
@@ -46,11 +47,23 @@ export const PromptEditorModal: React.FC<PromptEditorModalProps> = ({
     }
   }, [fontSize]);
 
+  // Track unsaved changes
+  const hasUnsavedChanges = prompt !== initialPrompt;
+
+  // Handle close attempt - show confirmation if there are unsaved changes
+  const handleAttemptClose = useCallback(() => {
+    if (hasUnsavedChanges) {
+      setShowConfirmation(true);
+    } else {
+      onClose();
+    }
+  }, [hasUnsavedChanges, onClose]);
+
   // Handle Escape key to close
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        handleAttemptClose();
       }
     };
 
@@ -61,7 +74,7 @@ export const PromptEditorModal: React.FC<PromptEditorModalProps> = ({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, handleAttemptClose]);
 
   const handleSubmit = useCallback(() => {
     onSubmit(prompt);
@@ -76,10 +89,10 @@ export const PromptEditorModal: React.FC<PromptEditorModalProps> = ({
     (e: React.MouseEvent<HTMLDivElement>) => {
       // Only close if clicking the backdrop itself, not the dialog content
       if (e.target === e.currentTarget) {
-        onClose();
+        handleAttemptClose();
       }
     },
-    [onClose]
+    [handleAttemptClose]
   );
 
   if (!isOpen) return null;
@@ -89,7 +102,7 @@ export const PromptEditorModal: React.FC<PromptEditorModalProps> = ({
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50"
       onClick={handleBackdropClick}
     >
-      <div className="bg-neutral-800 border border-neutral-700 rounded-lg shadow-2xl w-full max-w-3xl h-[85vh] flex flex-col mx-4">
+      <div className="relative bg-neutral-800 border border-neutral-700 rounded-lg shadow-2xl w-full max-w-3xl h-[85vh] flex flex-col mx-4">
         {/* Header */}
         <div className="px-6 pt-6 pb-4">
           <h2 className="text-xl font-semibold text-neutral-100">
@@ -129,7 +142,7 @@ export const PromptEditorModal: React.FC<PromptEditorModalProps> = ({
         {/* Footer with buttons */}
         <div className="flex justify-end gap-3 px-6 pb-6">
           <button
-            onClick={onClose}
+            onClick={handleAttemptClose}
             className="px-4 py-2 text-sm font-medium text-neutral-300 bg-neutral-700 hover:bg-neutral-600 rounded transition-colors focus:outline-none focus:ring-1 focus:ring-neutral-500"
           >
             Cancel
@@ -141,6 +154,31 @@ export const PromptEditorModal: React.FC<PromptEditorModalProps> = ({
             Submit
           </button>
         </div>
+
+        {/* Confirmation overlay */}
+        {showConfirmation && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-lg">
+            <div className="bg-neutral-800 border border-neutral-600 rounded-lg p-6 mx-4 max-w-sm shadow-xl">
+              <p className="text-neutral-100 text-center mb-6">
+                You have unsaved changes
+              </p>
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2 text-sm font-medium text-neutral-300 bg-neutral-700 hover:bg-neutral-600 rounded transition-colors focus:outline-none focus:ring-1 focus:ring-neutral-500"
+                >
+                  Discard
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors focus:outline-none focus:ring-1 focus:ring-blue-400"
+                >
+                  Submit
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
