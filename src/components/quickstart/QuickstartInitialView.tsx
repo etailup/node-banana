@@ -32,11 +32,9 @@ export function QuickstartInitialView({
           </p>
 
           <div className="flex flex-col gap-2.5 mt-auto">
-            <a
-              href="https://docs.nodebanana.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-neutral-400 hover:text-neutral-200 transition-colors"
+            <span
+              className="flex items-center gap-2 text-sm text-neutral-600 cursor-default"
+              title="Coming soon"
             >
               <svg
                 className="w-4 h-4"
@@ -51,8 +49,8 @@ export function QuickstartInitialView({
                   d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
                 />
               </svg>
-              Docs
-            </a>
+              Docs (coming soon)
+            </span>
             <a
               href="https://discord.com/invite/89Nr6EKkTf"
               target="_blank"
@@ -102,6 +100,19 @@ export function QuickstartInitialView({
           />
 
           <OptionButton
+            onClick={onSelectLoad}
+            icon={
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776"
+              />
+            }
+            title="Load workflow"
+            description="Open existing file"
+          />
+
+          <OptionButton
             onClick={onSelectTemplates}
             icon={
               <path
@@ -125,19 +136,7 @@ export function QuickstartInitialView({
             }
             title="Prompt a workflow"
             description="Describe what you want"
-          />
-
-          <OptionButton
-            onClick={onSelectLoad}
-            icon={
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776"
-              />
-            }
-            title="Load workflow"
-            description="Open existing file"
+            badge="Beta"
           />
         </div>
       </div>
@@ -150,11 +149,13 @@ function OptionButton({
   icon,
   title,
   description,
+  badge,
 }: {
   onClick: () => void;
   icon: React.ReactNode;
   title: string;
   description: string;
+  badge?: string;
 }) {
   return (
     <button
@@ -174,9 +175,16 @@ function OptionButton({
           </svg>
         </div>
         <div>
-          <h3 className="text-sm font-medium text-neutral-200 group-hover:text-neutral-100 transition-colors">
-            {title}
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-medium text-neutral-200 group-hover:text-neutral-100 transition-colors">
+              {title}
+            </h3>
+            {badge && (
+              <span className="px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide rounded bg-blue-500/20 text-blue-400">
+                {badge}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-neutral-500">{description}</p>
         </div>
       </div>
