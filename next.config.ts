@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   experimental: {
     serverActions: {
-      bodySizeLimit: "2gb",
+      bodySizeLimit: "50mb",
     },
   },
   turbopack: {

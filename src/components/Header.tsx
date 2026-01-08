@@ -74,7 +74,10 @@ export function Header() {
     setShowProjectModal(false);
     // Small delay to let state update
     setTimeout(() => {
-      saveToFile();
+      saveToFile().catch((error) => {
+        console.error("Failed to save project:", error);
+        alert("Failed to save project. Please try again.");
+      });
     }, 50);
   };
 

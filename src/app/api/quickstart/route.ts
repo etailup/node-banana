@@ -9,8 +9,8 @@ import {
   parseJSONFromResponse,
 } from "@/lib/quickstart/validation";
 import { ImageInputNodeData } from "@/types";
-import * as fs from "fs";
-import * as path from "path";
+import fs from "fs/promises";
+import path from "path";
 
 export const maxDuration = 60; // 1 minute timeout
 
@@ -27,7 +27,7 @@ async function convertLocalImagesToBase64(workflow: WorkflowFile): Promise<Workf
           try {
             // Read file from public folder
             const publicPath = path.join(process.cwd(), "public", data.image);
-            const fileBuffer = fs.readFileSync(publicPath);
+            const fileBuffer = await fs.readFile(publicPath);
             const base64 = fileBuffer.toString("base64");
 
             // Determine MIME type from extension
