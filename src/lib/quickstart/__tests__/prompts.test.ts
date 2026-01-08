@@ -38,8 +38,8 @@ describe("prompts", () => {
     it("should include connection rules", () => {
       const prompt = buildQuickstartPrompt("test", "minimal");
       expect(prompt).toContain("Connection Rules");
-      expect(prompt).toContain("image\" handles can ONLY connect to \"image\" handles");
-      expect(prompt).toContain("text\" handles can ONLY connect to \"text\" handles");
+      expect(prompt).toContain('"image" handles connect ONLY to "image" handles');
+      expect(prompt).toContain('"text" handles connect ONLY to "text" handles');
     });
 
     it("should include node layout guidelines", () => {
@@ -51,7 +51,7 @@ describe("prompts", () => {
 
     it("should include required JSON structure", () => {
       const prompt = buildQuickstartPrompt("test", "minimal");
-      expect(prompt).toContain("Required JSON Structure");
+      expect(prompt).toContain("COMPLETE EXAMPLE WORKFLOW");
       expect(prompt).toContain('"version": 1');
       expect(prompt).toContain('"nodes"');
       expect(prompt).toContain('"edges"');
@@ -74,8 +74,8 @@ describe("prompts", () => {
 
     it("should include edge ID format instructions", () => {
       const prompt = buildQuickstartPrompt("test", "minimal");
-      expect(prompt).toContain("Edge ID Format");
-      expect(prompt).toContain("edge-{source}-{target}");
+      expect(prompt).toContain("EDGES/CONNECTIONS");
+      expect(prompt).toContain("edge-{source}-{target}-{sourceHandle}-{targetHandle}");
     });
 
     it("should include a timestamp in the workflow ID", () => {
@@ -85,7 +85,7 @@ describe("prompts", () => {
 
     it("should emphasize nanoBanana requirements", () => {
       const prompt = buildQuickstartPrompt("test", "minimal");
-      expect(prompt).toContain("nanoBanana REQUIRES both an image input AND a text input");
+      expect(prompt).toContain("REQUIRES both image AND text inputs");
     });
 
     it("should instruct to output only JSON", () => {
