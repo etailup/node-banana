@@ -43,6 +43,7 @@ export interface BaseNodeData extends Record<string, unknown> {
 // Image Input Node Data
 export interface ImageInputNodeData extends BaseNodeData {
   image: string | null;
+  imageRef?: string;  // External image reference for storage optimization
   filename: string | null;
   dimensions: { width: number; height: number } | null;
 }
@@ -101,8 +102,10 @@ export type AnnotationShape =
 // Annotation Node Data
 export interface AnnotationNodeData extends BaseNodeData {
   sourceImage: string | null;
+  sourceImageRef?: string;  // External image reference for storage optimization
   annotations: AnnotationShape[];
   outputImage: string | null;
+  outputImageRef?: string;  // External image reference for storage optimization
 }
 
 // Prompt Node Data
@@ -132,8 +135,10 @@ export interface CarouselImageItem {
 // Nano Banana Node Data (Image Generation)
 export interface NanoBananaNodeData extends BaseNodeData {
   inputImages: string[]; // Now supports multiple images
+  inputImageRefs?: string[];  // External image references for storage optimization
   inputPrompt: string | null;
   outputImage: string | null;
+  outputImageRef?: string;  // External image reference for storage optimization
   aspectRatio: AspectRatio;
   resolution: Resolution; // Only used by Nano Banana Pro
   model: ModelType;
@@ -148,6 +153,7 @@ export interface NanoBananaNodeData extends BaseNodeData {
 export interface LLMGenerateNodeData extends BaseNodeData {
   inputPrompt: string | null;
   inputImages: string[];
+  inputImageRefs?: string[];  // External image references for storage optimization
   outputText: string | null;
   provider: LLMProvider;
   model: LLMModelType;
@@ -160,11 +166,13 @@ export interface LLMGenerateNodeData extends BaseNodeData {
 // Output Node Data
 export interface OutputNodeData extends BaseNodeData {
   image: string | null;
+  imageRef?: string;  // External image reference for storage optimization
 }
 
 // Split Grid Node Data (Utility Node)
 export interface SplitGridNodeData extends BaseNodeData {
   sourceImage: string | null;
+  sourceImageRef?: string;  // External image reference for storage optimization
   targetCount: number;  // 4, 6, 8, 9, or 10
   defaultPrompt: string;
   generateSettings: {

@@ -992,11 +992,11 @@ export function WorkflowCanvas() {
       if (jsonFiles.length > 0) {
         const file = jsonFiles[0];
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
           try {
             const workflow = JSON.parse(e.target?.result as string) as WorkflowFile;
             if (workflow.version && workflow.nodes && workflow.edges) {
-              loadWorkflow(workflow);
+              await loadWorkflow(workflow);
             } else {
               alert("Invalid workflow file format");
             }
@@ -1084,8 +1084,8 @@ export function WorkflowCanvas() {
       {/* Welcome Modal */}
       {isCanvasEmpty && showQuickstart && (
         <WelcomeModal
-          onWorkflowGenerated={(workflow) => {
-            loadWorkflow(workflow);
+          onWorkflowGenerated={async (workflow) => {
+            await loadWorkflow(workflow);
             setShowQuickstart(false);
           }}
           onClose={() => setShowQuickstart(false)}

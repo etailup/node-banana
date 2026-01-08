@@ -57,6 +57,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Auto-create subfolders for inputs and generations
+    const inputsFolder = path.join(directoryPath, "inputs");
+    const generationsFolder = path.join(directoryPath, "generations");
+
+    try {
+      await fs.mkdir(inputsFolder, { recursive: true });
+      await fs.mkdir(generationsFolder, { recursive: true });
+    } catch (mkdirError) {
+      logger.warn('file.save', 'Failed to create subfolders (non-fatal)', {
+        inputsFolder,
+        generationsFolder,
+        error: mkdirError instanceof Error ? mkdirError.message : 'Unknown error',
+      });
+      // Continue anyway - folders may already exist or be created later
+    }
+
     // Sanitize filename (remove special chars, ensure .json extension)
     const safeName = filename.replace(/[^a-zA-Z0-9-_]/g, "_");
     const filePath = path.join(directoryPath, `${safeName}.json`);

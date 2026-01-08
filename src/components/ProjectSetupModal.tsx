@@ -6,7 +6,7 @@ import { generateWorkflowId, useWorkflowStore } from "@/store/workflowStore";
 interface ProjectSetupModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (id: string, name: string, directoryPath: string, generationsPath: string | null) => void;
+  onSave: (id: string, name: string, directoryPath: string) => void;
   mode: "new" | "settings";
 }
 
@@ -16,14 +16,13 @@ export function ProjectSetupModal({
   onSave,
   mode,
 }: ProjectSetupModalProps) {
-  const { workflowName, saveDirectoryPath, generationsPath } = useWorkflowStore();
+  const { workflowName, saveDirectoryPath, useExternalImageStorage, setUseExternalImageStorage } = useWorkflowStore();
 
   const [name, setName] = useState("");
   const [directoryPath, setDirectoryPath] = useState("");
-  const [genPath, setGenPath] = useState("");
+  const [externalStorage, setExternalStorage] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
-  const [isBrowsingWorkflow, setIsBrowsingWorkflow] = useState(false);
-  const [isBrowsingGen, setIsBrowsingGen] = useState(false);
+  const [isBrowsing, setIsBrowsing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Pre-fill when opening in settings mode
@@ -31,18 +30,15 @@ export function ProjectSetupModal({
     if (isOpen && mode === "settings") {
       setName(workflowName || "");
       setDirectoryPath(saveDirectoryPath || "");
-      setGenPath(generationsPath || "");
+      setExternalStorage(useExternalImageStorage);
     } else if (isOpen && mode === "new") {
       setName("");
       setDirectoryPath("");
-      setGenPath("");
+      setExternalStorage(true);
     }
-  }, [isOpen, mode, workflowName, saveDirectoryPath, generationsPath]);
+  }, [isOpen, mode, workflowName, saveDirectoryPath, useExternalImageStorage]);
 
-  const handleBrowse = async (target: "workflow" | "generations") => {
-    const setIsBrowsing = target === "workflow" ? setIsBrowsingWorkflow : setIsBrowsingGen;
-    const setPath = target === "workflow" ? setDirectoryPath : setGenPath;
-
+  const handleBrowse = async () => {
     setIsBrowsing(true);
     setError(null);
 
@@ -60,7 +56,7 @@ export function ProjectSetupModal({
       }
 
       if (result.path) {
-        setPath(result.path);
+        setDirectoryPath(result.path);
       }
     } catch (err) {
       setError(
@@ -78,7 +74,7 @@ export function ProjectSetupModal({
     }
 
     if (!directoryPath.trim()) {
-      setError("Workflow directory is required");
+      setError("Project directory is required");
       return;
     }
 
@@ -86,57 +82,39 @@ export function ProjectSetupModal({
     setError(null);
 
     try {
-      // Validate workflow directory exists
+      // Validate project directory exists
       const response = await fetch(
         `/api/workflow?path=${encodeURIComponent(directoryPath.trim())}`
       );
       const result = await response.json();
 
       if (!result.exists) {
-        setError("Workflow directory does not exist");
+        setError("Project directory does not exist");
         setIsValidating(false);
         return;
       }
 
       if (!result.isDirectory) {
-        setError("Workflow path is not a directory");
+        setError("Project path is not a directory");
         setIsValidating(false);
         return;
       }
 
-      // Validate generations directory if provided
-      if (genPath.trim()) {
-        const genResponse = await fetch(
-          `/api/workflow?path=${encodeURIComponent(genPath.trim())}`
-        );
-        const genResult = await genResponse.json();
-
-        if (!genResult.exists) {
-          setError("Generations directory does not exist");
-          setIsValidating(false);
-          return;
-        }
-
-        if (!genResult.isDirectory) {
-          setError("Generations path is not a directory");
-          setIsValidating(false);
-          return;
-        }
-      }
-
       const id = mode === "new" ? generateWorkflowId() : useWorkflowStore.getState().workflowId || generateWorkflowId();
-      onSave(id, name.trim(), directoryPath.trim(), genPath.trim() || null);
+      // Update external storage setting
+      setUseExternalImageStorage(externalStorage);
+      onSave(id, name.trim(), directoryPath.trim());
       setIsValidating(false);
     } catch (err) {
       setError(
-        `Failed to validate directories: ${err instanceof Error ? err.message : "Unknown error"}`
+        `Failed to validate directory: ${err instanceof Error ? err.message : "Unknown error"}`
       );
       setIsValidating(false);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !isValidating && !isBrowsingWorkflow && !isBrowsingGen) {
+    if (e.key === "Enter" && !isValidating && !isBrowsing) {
       handleSave();
     }
     if (e.key === "Escape") {
@@ -145,8 +123,6 @@ export function ProjectSetupModal({
   };
 
   if (!isOpen) return null;
-
-  const isBrowsing = isBrowsingWorkflow || isBrowsingGen;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
@@ -175,55 +151,45 @@ export function ProjectSetupModal({
 
           <div>
             <label className="block text-sm text-neutral-400 mb-1">
-              Workflow Directory
+              Project Directory
             </label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={directoryPath}
                 onChange={(e) => setDirectoryPath(e.target.value)}
-                placeholder="/Users/username/projects"
+                placeholder="/Users/username/projects/my-project"
                 className="flex-1 px-3 py-2 bg-neutral-900 border border-neutral-600 rounded text-neutral-100 text-sm focus:outline-none focus:border-neutral-500"
               />
               <button
                 type="button"
-                onClick={() => handleBrowse("workflow")}
+                onClick={handleBrowse}
                 disabled={isBrowsing}
                 className="px-3 py-2 bg-neutral-700 hover:bg-neutral-600 disabled:bg-neutral-700 disabled:opacity-50 text-neutral-200 text-sm rounded transition-colors"
               >
-                {isBrowsingWorkflow ? "..." : "Browse"}
+                {isBrowsing ? "..." : "Browse"}
               </button>
             </div>
             <p className="text-xs text-neutral-500 mt-1">
-              Where the workflow JSON file will be saved
+              Workflow files and images will be saved here. Subfolders for inputs and generations will be auto-created.
             </p>
           </div>
 
-          <div>
-            <label className="block text-sm text-neutral-400 mb-1">
-              Generations Directory
-              <span className="text-neutral-500 ml-1">(optional)</span>
-            </label>
-            <div className="flex gap-2">
+          <div className="pt-2 border-t border-neutral-700">
+            <label className="flex items-center gap-3 cursor-pointer">
               <input
-                type="text"
-                value={genPath}
-                onChange={(e) => setGenPath(e.target.value)}
-                placeholder="/Users/username/generations"
-                className="flex-1 px-3 py-2 bg-neutral-900 border border-neutral-600 rounded text-neutral-100 text-sm focus:outline-none focus:border-neutral-500"
+                type="checkbox"
+                checked={!externalStorage}
+                onChange={(e) => setExternalStorage(!e.target.checked)}
+                className="w-4 h-4 rounded border-neutral-600 bg-neutral-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-neutral-800"
               />
-              <button
-                type="button"
-                onClick={() => handleBrowse("generations")}
-                disabled={isBrowsing}
-                className="px-3 py-2 bg-neutral-700 hover:bg-neutral-600 disabled:bg-neutral-700 disabled:opacity-50 text-neutral-200 text-sm rounded transition-colors"
-              >
-                {isBrowsingGen ? "..." : "Browse"}
-              </button>
-            </div>
-            <p className="text-xs text-neutral-500 mt-1">
-              Generated images will be automatically saved here
-            </p>
+              <div>
+                <span className="text-sm text-neutral-200">Embed images as base64</span>
+                <p className="text-xs text-neutral-500">
+                  Embeds all images in workflow, larger workflow files. Can hit memory limits on very large workflows.
+                </p>
+              </div>
+            </label>
           </div>
 
           {error && <p className="text-sm text-red-400">{error}</p>}

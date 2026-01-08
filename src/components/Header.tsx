@@ -51,11 +51,11 @@ export function Header() {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const workflow = JSON.parse(event.target?.result as string) as WorkflowFile;
         if (workflow.version && workflow.nodes && workflow.edges) {
-          loadWorkflow(workflow);
+          await loadWorkflow(workflow);
         } else {
           alert("Invalid workflow file format");
         }
@@ -69,8 +69,8 @@ export function Header() {
     e.target.value = "";
   };
 
-  const handleProjectSave = async (id: string, name: string, path: string, genPath: string | null) => {
-    setWorkflowMetadata(id, name, path, genPath);
+  const handleProjectSave = async (id: string, name: string, path: string) => {
+    setWorkflowMetadata(id, name, path); // generationsPath is auto-derived
     setShowProjectModal(false);
     // Small delay to let state update
     setTimeout(() => {
