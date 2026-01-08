@@ -1121,6 +1121,7 @@ export function WorkflowCanvas() {
         nodesConnectable={!isModalOpen}
         elementsSelectable={!isModalOpen}
         className="bg-neutral-900"
+        proOptions={{ hideAttribution: true }}
         defaultEdgeOptions={{
           type: "editable",
           animated: false,
