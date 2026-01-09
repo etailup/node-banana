@@ -281,6 +281,10 @@ export async function GET(
     | null;
   const searchQuery = request.nextUrl.searchParams.get("search") || undefined;
   const refresh = request.nextUrl.searchParams.get("refresh") === "true";
+  const capabilitiesParam = request.nextUrl.searchParams.get("capabilities");
+  const capabilitiesFilter: ModelCapability[] | null = capabilitiesParam
+    ? (capabilitiesParam.split(",") as ModelCapability[])
+    : null;
 
   // Get API keys from headers
   const replicateKey = request.headers.get("X-Replicate-Key");
@@ -403,8 +407,19 @@ export async function GET(
     );
   }
 
+  // Filter by capabilities if specified
+  let filteredModels = allModels;
+  if (capabilitiesFilter && capabilitiesFilter.length > 0) {
+    filteredModels = allModels.filter((model) =>
+      model.capabilities.some((cap) => capabilitiesFilter.includes(cap))
+    );
+    console.log(
+      `[Models:${requestId}] Filtered to ${filteredModels.length} models with capabilities: ${capabilitiesFilter.join(", ")}`
+    );
+  }
+
   // Sort models by provider, then by name
-  allModels.sort((a, b) => {
+  filteredModels.sort((a, b) => {
     if (a.provider !== b.provider) {
       return a.provider.localeCompare(b.provider);
     }
@@ -412,12 +427,12 @@ export async function GET(
   });
 
   console.log(
-    `[Models:${requestId}] Returning ${allModels.length} models from ${Object.keys(providerResults).length} providers`
+    `[Models:${requestId}] Returning ${filteredModels.length} models from ${Object.keys(providerResults).length} providers`
   );
 
   const response: ModelsSuccessResponse = {
     success: true,
-    models: allModels,
+    models: filteredModels,
     cached: anyFromCache && allFromCache,
     providers: providerResults,
   };
