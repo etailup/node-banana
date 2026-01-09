@@ -51,6 +51,19 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
     return providers;
   }, [providerSettings]);
 
+  // Migrate legacy data: derive selectedModel from model field if missing
+  useEffect(() => {
+    if (nodeData.model && !nodeData.selectedModel) {
+      const displayName = nodeData.model === "nano-banana" ? "Nano Banana" : "Nano Banana Pro";
+      const newSelectedModel: SelectedModel = {
+        provider: "gemini",
+        modelId: nodeData.model,
+        displayName,
+      };
+      updateNodeData(id, { selectedModel: newSelectedModel });
+    }
+  }, [id, nodeData.model, nodeData.selectedModel, updateNodeData]);
+
   // Fetch models from external providers when provider changes
   useEffect(() => {
     const fetchModels = async () => {
