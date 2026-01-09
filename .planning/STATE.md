@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 ## Current Position
 
-Phase: 3 of 6 (Generate Node Refactor) - COMPLETE
-Plan: 3 of 3 in current phase
-Status: Phase complete
-Last activity: 2026-01-09 - Completed 03-03-PLAN.md (Backward compatibility)
+Phase: 4 of 6 (Model Search Dialog)
+Plan: 1 of 2 in current phase
+Status: In progress
+Last activity: 2026-01-09 - Completed 04-01-PLAN.md (Floating action bar provider icons)
 
-Progress: [======================================================] 53% (8/15 plans)
+Progress: [==========================================================] 60% (9/15 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
-- Average duration: 4.9 min
-- Total execution time: 0.67 hours
+- Total plans completed: 9
+- Average duration: 4.6 min
+- Total execution time: 0.70 hours
 
 **By Phase:**
 
@@ -30,9 +30,10 @@ Progress: [======================================================] 53% (8/15 pla
 | 1. Provider Infrastructure | 2/2 | 14 min | 7 min |
 | 2. Model Discovery | 3/3 | 14 min | 4.7 min |
 | 3. Generate Node Refactor | 3/3 | 13 min | 4.3 min |
+| 4. Model Search Dialog | 1/2 | 2 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 5 min, 5 min, 5 min, 3 min
+- Last 5 plans: 5 min, 5 min, 3 min, 2 min
 - Trend: improving
 
 ## Accumulated Context
@@ -61,6 +62,8 @@ Recent decisions affecting current work:
 - Header-based API key passing: X-Replicate-API-Key, X-Fal-API-Key
 - fal.ai sync API (fal.run) instead of queue-based async
 - Dual migration approach: loadWorkflow migrates + UI effect for runtime
+- fal.ai icon always visible in action bar (works without key but rate limited)
+- Replicate icon only visible when API key is configured
 
 ### Deferred Issues
 
@@ -73,6 +76,6 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-09
-Stopped at: Completed 03-03-PLAN.md (Backward compatibility)
+Stopped at: Completed 04-01-PLAN.md (Floating action bar provider icons)
 Resume file: None
-Next action: Plan Phase 4 (Model Search Dialog)
+Next action: Execute 04-02-PLAN.md (Model search dialog with filtering and selection)

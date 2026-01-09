@@ -63,7 +63,7 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 04-01: Floating action bar with provider icons
+- [x] 04-01: Floating action bar with provider icons
 - [ ] 04-02: Model search dialog with filtering and selection
 
 ### Phase 5: Image URL Server
@@ -99,6 +99,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. Provider Infrastructure | 2/2 | Complete | 2026-01-09 |
 | 2. Model Discovery | 3/3 | Complete | 2026-01-09 |
 | 3. Generate Node Refactor | 3/3 | Complete | 2026-01-09 |
-| 4. Model Search Dialog | 0/2 | Not started | - |
+| 4. Model Search Dialog | 1/2 | In progress | - |
 | 5. Image URL Server | 0/2 | Not started | - |
 | 6. Video & Polish | 0/4 | Not started | - |
