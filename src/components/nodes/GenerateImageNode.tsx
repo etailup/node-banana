@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect, useMemo } from "react";
 import { Handle, Position, NodeProps, Node } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
 import { useWorkflowStore, saveNanoBananaDefaults } from "@/store/workflowStore";
-import { NanoBananaNodeData, AspectRatio, Resolution, ModelType } from "@/types";
+import { NanoBananaNodeData, AspectRatio, Resolution, ModelType, ProviderType, SelectedModel } from "@/types";
+import { ProviderModel, ModelCapability } from "@/lib/providers/types";
 
 // All 10 aspect ratios supported by both models
 const ASPECT_RATIOS: AspectRatio[] = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"];
@@ -12,18 +13,115 @@ const ASPECT_RATIOS: AspectRatio[] = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", 
 // Resolutions only for Nano Banana Pro (gemini-3-pro-image-preview)
 const RESOLUTIONS: Resolution[] = ["1K", "2K", "4K"];
 
-const MODELS: { value: ModelType; label: string }[] = [
+// Hardcoded Gemini image models (always available)
+const GEMINI_IMAGE_MODELS: { value: ModelType; label: string }[] = [
   { value: "nano-banana", label: "Nano Banana" },
   { value: "nano-banana-pro", label: "Nano Banana Pro" },
 ];
 
+// Image generation capabilities
+const IMAGE_CAPABILITIES: ModelCapability[] = ["text-to-image", "image-to-image"];
+
 type NanoBananaNodeType = Node<NanoBananaNodeData, "nanoBanana">;
 
-export function NanoBananaNode({ id, data, selected }: NodeProps<NanoBananaNodeType>) {
+export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNodeType>) {
   const nodeData = data;
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const generationsPath = useWorkflowStore((state) => state.generationsPath);
+  const providerSettings = useWorkflowStore((state) => state.providerSettings);
   const [isLoadingCarouselImage, setIsLoadingCarouselImage] = useState(false);
+  const [externalModels, setExternalModels] = useState<ProviderModel[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
+
+  // Get the current selected provider (default to gemini)
+  const currentProvider: ProviderType = nodeData.selectedModel?.provider || "gemini";
+
+  // Get enabled providers
+  const enabledProviders = useMemo(() => {
+    const providers: { id: ProviderType; name: string }[] = [];
+    // Gemini is always available
+    providers.push({ id: "gemini", name: "Gemini" });
+    // Add other enabled providers
+    if (providerSettings.providers.replicate?.enabled && providerSettings.providers.replicate?.apiKey) {
+      providers.push({ id: "replicate", name: "Replicate" });
+    }
+    if (providerSettings.providers.fal?.enabled && providerSettings.providers.fal?.apiKey) {
+      providers.push({ id: "fal", name: "fal.ai" });
+    }
+    return providers;
+  }, [providerSettings]);
+
+  // Fetch models from external providers when provider changes
+  useEffect(() => {
+    const fetchModels = async () => {
+      if (currentProvider === "gemini") {
+        setExternalModels([]);
+        return;
+      }
+
+      setIsLoadingModels(true);
+      try {
+        const capabilities = IMAGE_CAPABILITIES.join(",");
+        const response = await fetch(`/api/models?provider=${currentProvider}&capabilities=${capabilities}`);
+        if (response.ok) {
+          const models = await response.json();
+          setExternalModels(models);
+        } else {
+          setExternalModels([]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch models:", error);
+        setExternalModels([]);
+      } finally {
+        setIsLoadingModels(false);
+      }
+    };
+
+    fetchModels();
+  }, [currentProvider]);
+
+  // Handle provider change
+  const handleProviderChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const provider = e.target.value as ProviderType;
+
+      if (provider === "gemini") {
+        // Reset to Gemini default
+        const newSelectedModel: SelectedModel = {
+          provider: "gemini",
+          modelId: nodeData.model || "nano-banana-pro",
+          displayName: GEMINI_IMAGE_MODELS.find(m => m.value === (nodeData.model || "nano-banana-pro"))?.label || "Nano Banana Pro",
+        };
+        updateNodeData(id, { selectedModel: newSelectedModel });
+      } else {
+        // Set placeholder for external provider
+        const newSelectedModel: SelectedModel = {
+          provider,
+          modelId: "",
+          displayName: "Select model...",
+        };
+        updateNodeData(id, { selectedModel: newSelectedModel });
+      }
+    },
+    [id, nodeData.model, updateNodeData]
+  );
+
+  // Handle model change for external providers
+  const handleExternalModelChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const modelId = e.target.value;
+      const model = externalModels.find(m => m.id === modelId);
+      if (model) {
+        const newSelectedModel: SelectedModel = {
+          provider: currentProvider,
+          modelId: model.id,
+          displayName: model.name,
+        };
+        updateNodeData(id, { selectedModel: newSelectedModel });
+      }
+    },
+    [id, currentProvider, externalModels, updateNodeData]
+  );
 
   const handleAspectRatioChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -48,6 +146,14 @@ export function NanoBananaNode({ id, data, selected }: NodeProps<NanoBananaNodeT
       const model = e.target.value as ModelType;
       updateNodeData(id, { model });
       saveNanoBananaDefaults({ model });
+
+      // Also update selectedModel for consistency
+      const newSelectedModel: SelectedModel = {
+        provider: "gemini",
+        modelId: model,
+        displayName: GEMINI_IMAGE_MODELS.find(m => m.value === model)?.label || model,
+      };
+      updateNodeData(id, { selectedModel: newSelectedModel });
     },
     [id, updateNodeData]
   );
@@ -141,7 +247,8 @@ export function NanoBananaNode({ id, data, selected }: NodeProps<NanoBananaNodeT
     }
   }, [id, nodeData.imageHistory, nodeData.selectedHistoryIndex, isLoadingCarouselImage, loadImageById, updateNodeData]);
 
-  const isNanoBananaPro = nodeData.model === "nano-banana-pro";
+  const isGeminiProvider = currentProvider === "gemini";
+  const isNanoBananaPro = isGeminiProvider && nodeData.model === "nano-banana-pro";
   const hasCarouselImages = (nodeData.imageHistory || []).length > 1;
 
   return (
@@ -316,46 +423,87 @@ export function NanoBananaNode({ id, data, selected }: NodeProps<NanoBananaNodeT
           </div>
         )}
 
-        {/* Model selector */}
-        <select
-          value={nodeData.model}
-          onChange={handleModelChange}
-          className="w-full text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300 shrink-0"
-        >
-          {MODELS.map((m) => (
-            <option key={m.value} value={m.value}>
-              {m.label}
-            </option>
-          ))}
-        </select>
-
-        {/* Aspect ratio and resolution row */}
-        <div className="flex gap-1.5 shrink-0">
+        {/* Provider selector - only show if multiple providers are enabled */}
+        {enabledProviders.length > 1 && (
           <select
-            value={nodeData.aspectRatio}
-            onChange={handleAspectRatioChange}
-            className="flex-1 text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300"
+            value={currentProvider}
+            onChange={handleProviderChange}
+            className="w-full text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300 shrink-0"
           >
-            {ASPECT_RATIOS.map((ratio) => (
-              <option key={ratio} value={ratio}>
-                {ratio}
+            {enabledProviders.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
               </option>
             ))}
           </select>
-          {isNanoBananaPro && (
+        )}
+
+        {/* Model selector */}
+        {isGeminiProvider ? (
+          <select
+            value={nodeData.model}
+            onChange={handleModelChange}
+            className="w-full text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300 shrink-0"
+          >
+            {GEMINI_IMAGE_MODELS.map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <select
+            value={nodeData.selectedModel?.modelId || ""}
+            onChange={handleExternalModelChange}
+            disabled={isLoadingModels}
+            className="w-full text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300 shrink-0 disabled:opacity-50"
+          >
+            {isLoadingModels ? (
+              <option value="">Loading models...</option>
+            ) : externalModels.length === 0 ? (
+              <option value="">No models available</option>
+            ) : (
+              <>
+                <option value="">Select model...</option>
+                {externalModels.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </>
+            )}
+          </select>
+        )}
+
+        {/* Aspect ratio and resolution row - only for Gemini */}
+        {isGeminiProvider && (
+          <div className="flex gap-1.5 shrink-0">
             <select
-              value={nodeData.resolution}
-              onChange={handleResolutionChange}
-              className="w-12 text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300"
+              value={nodeData.aspectRatio}
+              onChange={handleAspectRatioChange}
+              className="flex-1 text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300"
             >
-              {RESOLUTIONS.map((res) => (
-                <option key={res} value={res}>
-                  {res}
+              {ASPECT_RATIOS.map((ratio) => (
+                <option key={ratio} value={ratio}>
+                  {ratio}
                 </option>
               ))}
             </select>
-          )}
-        </div>
+            {isNanoBananaPro && (
+              <select
+                value={nodeData.resolution}
+                onChange={handleResolutionChange}
+                className="w-12 text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300"
+              >
+                {RESOLUTIONS.map((res) => (
+                  <option key={res} value={res}>
+                    {res}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        )}
 
         {/* Google Search toggle - only for Nano Banana Pro */}
         {isNanoBananaPro && (
@@ -373,3 +521,6 @@ export function NanoBananaNode({ id, data, selected }: NodeProps<NanoBananaNodeT
     </BaseNode>
   );
 }
+
+// Backward-compatible alias
+export { GenerateImageNode as NanoBananaNode };
