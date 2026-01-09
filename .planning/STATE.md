@@ -5,32 +5,33 @@
 See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Provider infrastructure that dynamically discovers models from external APIs, enabling users to access hundreds of image/video generation models without hardcoding schemas.
-**Current focus:** Phase 1 - Provider Infrastructure
+**Current focus:** Phase 2 - Model Discovery
 
 ## Current Position
 
-Phase: 1 of 6 (Provider Infrastructure)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-01-09 - Completed provider abstraction plan (01-02)
+Phase: 2 of 6 (Model Discovery)
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-01-09 - Completed 02-01-PLAN.md (Replicate provider)
 
-Progress: [=================---] 13% (2/15 plans)
+Progress: [====================] 20% (3/15 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
-- Average duration: 7 min
-- Total execution time: 0.2 hours
+- Total plans completed: 3
+- Average duration: 6 min
+- Total execution time: 0.3 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1. Provider Infrastructure | 2/2 | 14 min | 7 min |
+| 2. Model Discovery | 1/3 | 4 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 12 min, 2 min
+- Last 5 plans: 12 min, 2 min, 4 min
 - Trend: improving
 
 ## Accumulated Context
@@ -46,6 +47,7 @@ Recent decisions affecting current work:
 - Provider config pattern: {id, name, enabled, apiKey, apiKeyEnvVar?}
 - Provider registry uses self-registration pattern via registerProvider()
 - Gemini remains special-cased in /api/generate for now, not yet migrated
+- Capability inference from model name/description keywords
 
 ### Deferred Issues
 
@@ -58,6 +60,6 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-09
-Stopped at: Phase 1 complete
+Stopped at: Completed 02-01-PLAN.md
 Resume file: None
-Next action: Plan phase 02 (Model Discovery)
+Next action: Execute 02-02-PLAN.md (fal.ai provider)
