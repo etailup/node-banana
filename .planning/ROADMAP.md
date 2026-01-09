@@ -30,7 +30,7 @@ None
 **Plans**: TBD
 
 Plans:
-- [ ] 01-01: Provider settings UI in ProjectSetupModal
+- [x] 01-01: Provider settings UI in ProjectSetupModal
 - [ ] 01-02: Provider abstraction layer and types
 
 ### Phase 2: Model Discovery
@@ -95,7 +95,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Provider Infrastructure | 0/2 | Not started | - |
+| 1. Provider Infrastructure | 1/2 | In progress | - |
 | 2. Model Discovery | 0/3 | Not started | - |
 | 3. Generate Node Refactor | 0/3 | Not started | - |
 | 4. Model Search Dialog | 0/2 | Not started | - |
