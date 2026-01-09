@@ -175,7 +175,14 @@ export function ModelSearchDialog({
         y: center.y + Math.random() * 100 - 50,
       });
 
-      addNode("nanoBanana", position, {
+      // Determine node type based on model capabilities
+      const isVideoModel = model.capabilities.some(
+        (cap) => cap === "text-to-video" || cap === "image-to-video"
+      );
+
+      const nodeType = isVideoModel ? "generateVideo" : "nanoBanana";
+
+      addNode(nodeType, position, {
         selectedModel: {
           provider: model.provider,
           modelId: model.id,
