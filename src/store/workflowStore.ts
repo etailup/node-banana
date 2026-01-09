@@ -64,7 +64,7 @@ interface WorkflowStore {
   setEdgeStyle: (style: EdgeStyle) => void;
 
   // Node operations
-  addNode: (type: NodeType, position: XYPosition) => string;
+  addNode: (type: NodeType, position: XYPosition, initialData?: Partial<WorkflowNodeData>) => string;
   updateNodeData: (nodeId: string, data: Partial<WorkflowNodeData>) => void;
   removeNode: (nodeId: string) => void;
   onNodesChange: (changes: NodeChange<WorkflowNode>[]) => void;
@@ -439,7 +439,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     set({ showQuickstart: show });
   },
 
-  addNode: (type: NodeType, position: XYPosition) => {
+  addNode: (type: NodeType, position: XYPosition, initialData?: Partial<WorkflowNodeData>) => {
     const id = `${type}-${++nodeIdCounter}`;
 
     // Default dimensions based on node type
@@ -455,11 +455,17 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
     const { width, height } = defaultDimensions[type];
 
+    // Merge default data with initialData if provided
+    const defaultData = createDefaultNodeData(type);
+    const nodeData = initialData
+      ? ({ ...defaultData, ...initialData } as WorkflowNodeData)
+      : defaultData;
+
     const newNode: WorkflowNode = {
       id,
       type,
       position,
-      data: createDefaultNodeData(type),
+      data: nodeData,
       style: { width, height },
     };
 
