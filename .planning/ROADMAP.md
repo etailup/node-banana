@@ -16,7 +16,7 @@ None
 
 - [x] **Phase 1: Provider Infrastructure** - API key storage and provider settings UI ✓
 - [x] **Phase 2: Model Discovery** - Dynamic model fetching from Replicate/fal.ai APIs ✓
-- [ ] **Phase 3: Generate Node Refactor** - Rename NanoBanana to generic Generate with multi-model support
+- [x] **Phase 3: Generate Node Refactor** - Rename NanoBanana to generic Generate with multi-model support ✓
 - [ ] **Phase 4: Model Search Dialog** - Floating action bar icons and searchable model browser
 - [ ] **Phase 5: Image URL Server** - Local endpoint serving images as URLs for providers
 - [ ] **Phase 6: Video & Polish** - Video playback, parameter customization, edge cases
@@ -54,7 +54,7 @@ Plans:
 Plans:
 - [x] 03-01: Rename NanoBanana to GenerateImage, add model selector (image models only)
 - [x] 03-02: Provider-specific execution in generate API route
-- [ ] 03-03: Backward compatibility for existing workflows
+- [x] 03-03: Backward compatibility for existing workflows
 
 ### Phase 4: Model Search Dialog
 **Goal**: Users can browse models via floating action bar icons and searchable dialog
@@ -98,7 +98,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 |-------|----------------|--------|-----------|
 | 1. Provider Infrastructure | 2/2 | Complete | 2026-01-09 |
 | 2. Model Discovery | 3/3 | Complete | 2026-01-09 |
-| 3. Generate Node Refactor | 2/3 | In progress | - |
+| 3. Generate Node Refactor | 3/3 | Complete | 2026-01-09 |
 | 4. Model Search Dialog | 0/2 | Not started | - |
 | 5. Image URL Server | 0/2 | Not started | - |
 | 6. Video & Polish | 0/4 | Not started | - |

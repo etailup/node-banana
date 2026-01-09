@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Provider infrastructure that dynamically discovers models from external APIs, enabling users to access hundreds of image/video generation models without hardcoding schemas.
-**Current focus:** Phase 3 - Generate Node Refactor
+**Current focus:** Phase 4 - Model Search Dialog
 
 ## Current Position
 
-Phase: 3 of 6 (Generate Node Refactor)
-Plan: 2 of 3 in current phase
-Status: In progress
-Last activity: 2026-01-09 - Completed 03-02-PLAN.md (Provider-specific execution)
+Phase: 3 of 6 (Generate Node Refactor) - COMPLETE
+Plan: 3 of 3 in current phase
+Status: Phase complete
+Last activity: 2026-01-09 - Completed 03-03-PLAN.md (Backward compatibility)
 
-Progress: [==========================================] 47% (7/15 plans)
+Progress: [======================================================] 53% (8/15 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
-- Average duration: 5.3 min
-- Total execution time: 0.62 hours
+- Total plans completed: 8
+- Average duration: 4.9 min
+- Total execution time: 0.67 hours
 
 **By Phase:**
 
@@ -29,11 +29,11 @@ Progress: [==========================================] 47% (7/15 plans)
 |-------|-------|-------|----------|
 | 1. Provider Infrastructure | 2/2 | 14 min | 7 min |
 | 2. Model Discovery | 3/3 | 14 min | 4.7 min |
-| 3. Generate Node Refactor | 2/3 | 10 min | 5 min |
+| 3. Generate Node Refactor | 3/3 | 13 min | 4.3 min |
 
 **Recent Trend:**
-- Last 5 plans: 5 min, 5 min, 5 min, 5 min
-- Trend: stable
+- Last 5 plans: 5 min, 5 min, 5 min, 3 min
+- Trend: improving
 
 ## Accumulated Context
 
@@ -60,6 +60,7 @@ Recent decisions affecting current work:
 - Server-side provider execution in API route (not client-side)
 - Header-based API key passing: X-Replicate-API-Key, X-Fal-API-Key
 - fal.ai sync API (fal.run) instead of queue-based async
+- Dual migration approach: loadWorkflow migrates + UI effect for runtime
 
 ### Deferred Issues
 
@@ -72,6 +73,6 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-09
-Stopped at: Completed 03-02-PLAN.md (Provider-specific execution)
+Stopped at: Completed 03-03-PLAN.md (Backward compatibility)
 Resume file: None
-Next action: Execute 03-03-PLAN.md (Backward compatibility for existing workflows)
+Next action: Plan Phase 4 (Model Search Dialog)
