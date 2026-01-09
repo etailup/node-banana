@@ -227,19 +227,46 @@ export function ModelSearchDialog({
     }
   };
 
-  // Get capability badge
-  const getCapabilityBadge = (capabilities: ModelCapability[]) => {
-    if (
-      capabilities.includes("text-to-video") ||
-      capabilities.includes("image-to-video")
-    ) {
-      return (
-        <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300">
-          Video
-        </span>
-      );
-    }
-    return null;
+  // Get capability badges - show all capabilities to differentiate similar models
+  const getCapabilityBadges = (capabilities: ModelCapability[]) => {
+    const badges: React.ReactNode[] = [];
+
+    capabilities.forEach((cap) => {
+      let color = "";
+      let label = "";
+
+      switch (cap) {
+        case "text-to-image":
+          color = "bg-green-500/20 text-green-300";
+          label = "txt→img";
+          break;
+        case "image-to-image":
+          color = "bg-cyan-500/20 text-cyan-300";
+          label = "img→img";
+          break;
+        case "text-to-video":
+          color = "bg-purple-500/20 text-purple-300";
+          label = "txt→vid";
+          break;
+        case "image-to-video":
+          color = "bg-pink-500/20 text-pink-300";
+          label = "img→vid";
+          break;
+      }
+
+      if (label) {
+        badges.push(
+          <span
+            key={cap}
+            className={`text-[10px] px-1.5 py-0.5 rounded ${color}`}
+          >
+            {label}
+          </span>
+        );
+      }
+    });
+
+    return badges;
   };
 
   if (!isOpen) return null;
@@ -411,10 +438,10 @@ export function ModelSearchDialog({
                 <button
                   key={`${model.provider}-${model.id}`}
                   onClick={() => handleSelectModel(model)}
-                  className="flex items-start gap-3 p-3 bg-neutral-700/50 hover:bg-neutral-700 border border-neutral-600/50 hover:border-neutral-500 rounded-lg transition-colors text-left cursor-pointer group"
+                  className="flex items-start gap-3 p-4 bg-neutral-700/50 hover:bg-neutral-700 border border-neutral-600/50 hover:border-neutral-500 rounded-lg transition-colors text-left cursor-pointer group"
                 >
-                  {/* Cover Image */}
-                  <div className="w-16 h-16 rounded bg-neutral-600 overflow-hidden flex-shrink-0">
+                  {/* Cover Image - larger */}
+                  <div className="w-20 h-20 rounded bg-neutral-600 overflow-hidden flex-shrink-0">
                     {model.coverImage ? (
                       <img
                         src={model.coverImage}
@@ -428,7 +455,7 @@ export function ModelSearchDialog({
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <svg
-                          className="w-6 h-6 text-neutral-500"
+                          className="w-8 h-8 text-neutral-500"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -446,28 +473,38 @@ export function ModelSearchDialog({
 
                   {/* Model Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-neutral-100 text-sm truncate">
-                        {model.name}
-                      </span>
+                    {/* Model name */}
+                    <div className="font-medium text-neutral-100 text-sm truncate">
+                      {model.name}
+                    </div>
+
+                    {/* Model ID - helps differentiate similar models */}
+                    <div className="text-[10px] text-neutral-500 truncate mt-0.5 font-mono">
+                      {model.id}
+                    </div>
+
+                    {/* Badges row */}
+                    <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
                       <span
                         className={`text-[10px] px-1.5 py-0.5 rounded ${getProviderBadgeColor(model.provider)}`}
                       >
                         {model.provider === "fal" ? "fal.ai" : "Replicate"}
                       </span>
-                      {getCapabilityBadge(model.capabilities)}
+                      {getCapabilityBadges(model.capabilities)}
                     </div>
+
+                    {/* Description - more lines */}
                     {model.description && (
-                      <p className="mt-1 text-xs text-neutral-400 line-clamp-2">
+                      <p className="mt-1.5 text-xs text-neutral-400 line-clamp-3">
                         {model.description}
                       </p>
                     )}
                   </div>
 
                   {/* Hover indicator */}
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 self-center">
                     <svg
-                      className="w-4 h-4 text-neutral-400"
+                      className="w-5 h-5 text-neutral-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
