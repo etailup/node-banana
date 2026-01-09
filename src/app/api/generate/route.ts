@@ -42,12 +42,12 @@ export async function POST(request: NextRequest) {
     console.log(`[API:${requestId}]   - Resolution: ${resolution || 'default'}`);
     console.log(`[API:${requestId}]   - Google Search: ${useGoogleSearch || false}`);
 
-    if (!images || images.length === 0 || !prompt) {
-      console.error(`[API:${requestId}] ❌ Validation failed: missing images or prompt`);
+    if (!prompt) {
+      console.error(`[API:${requestId}] ❌ Validation failed: missing prompt`);
       return NextResponse.json<GenerateResponse>(
         {
           success: false,
-          error: "At least one image and prompt are required",
+          error: "Prompt is required",
         },
         { status: 400 }
       );
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`[API:${requestId}] Extracting image data...`);
     // Extract base64 data and MIME types from data URLs
-    const imageData = images.map((image, idx) => {
+    const imageData = (images || []).map((image, idx) => {
       if (image.includes("base64,")) {
         const [header, data] = image.split("base64,");
         // Extract MIME type from header (e.g., "data:image/png;" -> "image/png")
