@@ -181,6 +181,8 @@ export interface LLMGenerateNodeData extends BaseNodeData {
 export interface OutputNodeData extends BaseNodeData {
   image: string | null;
   imageRef?: string;  // External image reference for storage optimization
+  video?: string | null;  // Video data URL or HTTP URL
+  contentType?: "image" | "video";  // Explicit content type hint
 }
 
 // Split Grid Node Data (Utility Node)
