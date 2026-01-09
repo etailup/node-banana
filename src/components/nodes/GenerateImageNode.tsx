@@ -62,10 +62,17 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
       setIsLoadingModels(true);
       try {
         const capabilities = IMAGE_CAPABILITIES.join(",");
-        const response = await fetch(`/api/models?provider=${currentProvider}&capabilities=${capabilities}`);
+        const headers: HeadersInit = {};
+        if (providerSettings.providers.replicate?.apiKey) {
+          headers["X-Replicate-Key"] = providerSettings.providers.replicate.apiKey;
+        }
+        if (providerSettings.providers.fal?.apiKey) {
+          headers["X-Fal-Key"] = providerSettings.providers.fal.apiKey;
+        }
+        const response = await fetch(`/api/models?provider=${currentProvider}&capabilities=${capabilities}`, { headers });
         if (response.ok) {
-          const models = await response.json();
-          setExternalModels(models);
+          const data = await response.json();
+          setExternalModels(data.models || []);
         } else {
           setExternalModels([]);
         }
@@ -78,7 +85,7 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
     };
 
     fetchModels();
-  }, [currentProvider]);
+  }, [currentProvider, providerSettings]);
 
   // Handle provider change
   const handleProviderChange = useCallback(
