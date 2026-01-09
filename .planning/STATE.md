@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 ## Current Position
 
 Phase: 1 of 6 (Provider Infrastructure)
-Plan: 01-01 complete, ready for 01-02
-Status: In progress
-Last activity: 2026-01-09 - Completed provider settings UI plan (01-01)
+Plan: 2 of 2 in current phase
+Status: Phase complete
+Last activity: 2026-01-09 - Completed provider abstraction plan (01-02)
 
-Progress: [==========----------] 8% (1/12 plans)
+Progress: [=================---] 13% (2/15 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 12 min
+- Total plans completed: 2
+- Average duration: 7 min
 - Total execution time: 0.2 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1. Provider Infrastructure | 1/2 | 12 min | 12 min |
+| 1. Provider Infrastructure | 2/2 | 14 min | 7 min |
 
 **Recent Trend:**
-- Last 5 plans: 12 min
-- Trend: baseline established
+- Last 5 plans: 12 min, 2 min
+- Trend: improving
 
 ## Accumulated Context
 
@@ -44,6 +44,8 @@ Recent decisions affecting current work:
 - API keys stored in localStorage under node-banana-provider-settings key
 - Local state in modal to avoid saving on every keystroke
 - Provider config pattern: {id, name, enabled, apiKey, apiKeyEnvVar?}
+- Provider registry uses self-registration pattern via registerProvider()
+- Gemini remains special-cased in /api/generate for now, not yet migrated
 
 ### Deferred Issues
 
@@ -56,6 +58,6 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-09
-Stopped at: Plan 01-01 complete
+Stopped at: Phase 1 complete
 Resume file: None
-Next action: Execute plan 01-02 (Provider abstraction layer and types)
+Next action: Plan phase 02 (Model Discovery)

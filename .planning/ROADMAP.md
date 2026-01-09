@@ -14,7 +14,7 @@ None
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 1: Provider Infrastructure** - API key storage and provider settings UI
+- [x] **Phase 1: Provider Infrastructure** - API key storage and provider settings UI ✓
 - [ ] **Phase 2: Model Discovery** - Dynamic model fetching from Replicate/fal.ai APIs
 - [ ] **Phase 3: Generate Node Refactor** - Rename NanoBanana to generic Generate with multi-model support
 - [ ] **Phase 4: Model Search Dialog** - Floating action bar icons and searchable model browser
@@ -31,7 +31,7 @@ None
 
 Plans:
 - [x] 01-01: Provider settings UI in ProjectSetupModal
-- [ ] 01-02: Provider abstraction layer and types
+- [x] 01-02: Provider abstraction layer and types
 
 ### Phase 2: Model Discovery
 **Goal**: App can fetch and cache available models from enabled providers at runtime
@@ -95,7 +95,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Provider Infrastructure | 1/2 | In progress | - |
+| 1. Provider Infrastructure | 2/2 | Complete | 2026-01-09 |
 | 2. Model Discovery | 0/3 | Not started | - |
 | 3. Generate Node Refactor | 0/3 | Not started | - |
 | 4. Model Search Dialog | 0/2 | Not started | - |
