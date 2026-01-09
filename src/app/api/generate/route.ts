@@ -236,6 +236,7 @@ async function generateWithReplicate(
   console.log(`[API:${requestId}] Generating with Replicate...`);
   console.log(`[API:${requestId}]   - Model: ${input.model.id}`);
   console.log(`[API:${requestId}]   - Prompt length: ${input.prompt.length} chars`);
+  console.log(`[API:${requestId}]   - Images count: ${input.images?.length || 0}`);
 
   const REPLICATE_API_BASE = "https://api.replicate.com/v1";
 
@@ -275,6 +276,14 @@ async function generateWithReplicate(
     prompt: input.prompt,
     ...input.parameters,
   };
+
+  // Add image input if provided (for img2img workflows)
+  // Note: Different Replicate models use different parameter names
+  // Using 'image' as it's most common for img2img models
+  if (input.images && input.images.length > 0) {
+    predictionInput.image = input.images[0];
+    console.log(`[API:${requestId}] Added image input to prediction (${input.images[0].substring(0, 50)}...)`);
+  }
 
   // Create a prediction
   console.log(`[API:${requestId}] Creating Replicate prediction...`);
