@@ -297,3 +297,18 @@ export interface NodeGroup {
   size: { width: number; height: number };
   locked?: boolean;
 }
+
+// Provider Types for multi-provider support
+export type ProviderType = "gemini" | "replicate" | "fal";
+
+export interface ProviderConfig {
+  id: ProviderType;
+  name: string;
+  enabled: boolean;
+  apiKey: string | null;
+  apiKeyEnvVar?: string;  // For providers using environment variables (e.g., Gemini)
+}
+
+export interface ProviderSettings {
+  providers: Record<ProviderType, ProviderConfig>;
+}
