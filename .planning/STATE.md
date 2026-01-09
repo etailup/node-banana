@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Provider infrastructure that dynamically discovers models from external APIs, enabling users to access hundreds of image/video generation models without hardcoding schemas.
-**Current focus:** Phase 5 - Image URL Server
+**Current focus:** Phase 6 - Video & Polish
 
 ## Current Position
 
-Phase: 5 of 6 (Image URL Server)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-01-09 - Completed 05-02-PLAN.md (Provider image integration)
+Phase: 6 of 6 (Video & Polish)
+Plan: 1 of 4 in current phase
+Status: In progress
+Last activity: 2026-01-09 - Completed 06-01-PLAN.md (GenerateVideo node)
 
-Progress: [========================================================================] 80% (12/15 plans)
+Progress: [=================================================================================] 87% (13/15 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
-- Average duration: 5.1 min
-- Total execution time: 1.01 hours
+- Total plans completed: 13
+- Average duration: 5.5 min
+- Total execution time: 1.18 hours
 
 **By Phase:**
 
@@ -32,10 +32,11 @@ Progress: [=====================================================================
 | 3. Generate Node Refactor | 3/3 | 13 min | 4.3 min |
 | 4. Model Search Dialog | 2/2 | 17 min | 8.5 min |
 | 5. Image URL Server | 2/2 | 5 min | 2.5 min |
+| 6. Video & Polish | 1/4 | 10 min | 10 min |
 
 **Recent Trend:**
-- Last 5 plans: 3 min, 2 min, 15 min, 3 min, 2 min
-- Trend: fast (05-02 was integration only)
+- Last 5 plans: 2 min, 15 min, 3 min, 2 min, 10 min
+- Trend: stable
 
 ## Accumulated Context
 
@@ -70,6 +71,8 @@ Recent decisions affecting current work:
 - Extract variant suffix from fal.ai model IDs for display name
 - No TTL for image store - explicit cleanup pattern (callers delete after use)
 - 256KB threshold for shouldUseImageUrl (Replicate recommendation)
+- Gemini excluded from video node (doesn't support video generation)
+- Large videos (>20MB) return URL instead of base64 to avoid memory issues
 
 ### Deferred Issues
 
@@ -82,6 +85,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-09
-Stopped at: Completed 05-02-PLAN.md (Provider image integration)
+Stopped at: Completed 06-01-PLAN.md (GenerateVideo node)
 Resume file: None
-Next action: Plan Phase 6 (Video & Polish)
+Next action: Execute 06-02-PLAN.md (Video playback in output node)

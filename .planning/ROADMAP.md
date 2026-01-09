@@ -19,7 +19,7 @@ None
 - [x] **Phase 3: Generate Node Refactor** - Rename NanoBanana to generic Generate with multi-model support ✓
 - [x] **Phase 4: Model Search Dialog** - Floating action bar icons and searchable model browser ✓
 - [x] **Phase 5: Image URL Server** - Local endpoint serving images as URLs for providers ✓
-- [ ] **Phase 6: Video & Polish** - Video playback, parameter customization, edge cases
+- [ ] **Phase 6: Video & Polish** - Video playback, parameter customization, edge cases (In progress)
 
 ## Phase Details
 
@@ -84,7 +84,7 @@ Plans:
 **Design decision**: GenerateVideo as separate node type (not combined with GenerateImage)
 
 Plans:
-- [ ] 06-01: GenerateVideo node with video-capable model selector
+- [x] 06-01: GenerateVideo node with video-capable model selector
 - [ ] 06-02: Video playback in output node
 - [ ] 06-03: Custom model parameters from provider schemas
 - [ ] 06-04: Edge case handling and final polish
@@ -101,4 +101,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Generate Node Refactor | 3/3 | Complete | 2026-01-09 |
 | 4. Model Search Dialog | 2/2 | Complete | 2026-01-09 |
 | 5. Image URL Server | 2/2 | Complete | 2026-01-09 |
-| 6. Video & Polish | 0/4 | Not started | - |
+| 6. Video & Polish | 1/4 | In progress | - |
