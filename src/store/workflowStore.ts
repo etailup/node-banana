@@ -27,6 +27,7 @@ import {
   GroupColor,
   ProviderType,
   ProviderSettings,
+  SelectedModel,
 } from "@/types";
 import { useToast } from "@/components/Toast";
 import { calculateGenerationCost } from "@/utils/costCalculator";
@@ -181,6 +182,12 @@ const createDefaultNodeData = (type: NodeType): WorkflowNodeData => {
       } as PromptNodeData;
     case "nanoBanana": {
       const defaults = loadNanoBananaDefaults();
+      const modelDisplayName = defaults.model === "nano-banana" ? "Nano Banana" : "Nano Banana Pro";
+      const defaultSelectedModel: SelectedModel = {
+        provider: "gemini",
+        modelId: defaults.model,
+        displayName: modelDisplayName,
+      };
       return {
         inputImages: [],
         inputPrompt: null,
@@ -188,6 +195,7 @@ const createDefaultNodeData = (type: NodeType): WorkflowNodeData => {
         aspectRatio: defaults.aspectRatio,
         resolution: defaults.resolution,
         model: defaults.model,
+        selectedModel: defaultSelectedModel,
         useGoogleSearch: defaults.useGoogleSearch,
         status: "idle",
         error: null,
@@ -283,21 +291,21 @@ const saveWorkflowCostData = (data: WorkflowCostData): void => {
   localStorage.setItem(COST_DATA_STORAGE_KEY, JSON.stringify(allCosts));
 };
 
-// localStorage helpers for NanoBanana sticky settings
-const NANO_BANANA_DEFAULTS_KEY = "node-banana-nanoBanana-defaults";
+// localStorage helpers for GenerateImage sticky settings
+const GENERATE_IMAGE_DEFAULTS_KEY = "node-banana-nanoBanana-defaults";
 
-interface NanoBananaDefaults {
+interface GenerateImageDefaults {
   aspectRatio: string;
   resolution: string;
   model: string;
   useGoogleSearch: boolean;
 }
 
-const loadNanoBananaDefaults = (): NanoBananaDefaults => {
+const loadGenerateImageDefaults = (): GenerateImageDefaults => {
   if (typeof window === "undefined") {
     return { aspectRatio: "1:1", resolution: "1K", model: "nano-banana-pro", useGoogleSearch: false };
   }
-  const stored = localStorage.getItem(NANO_BANANA_DEFAULTS_KEY);
+  const stored = localStorage.getItem(GENERATE_IMAGE_DEFAULTS_KEY);
   if (stored) {
     try {
       return JSON.parse(stored);
@@ -308,12 +316,17 @@ const loadNanoBananaDefaults = (): NanoBananaDefaults => {
   return { aspectRatio: "1:1", resolution: "1K", model: "nano-banana-pro", useGoogleSearch: false };
 };
 
-export const saveNanoBananaDefaults = (settings: Partial<NanoBananaDefaults>) => {
+export const saveGenerateImageDefaults = (settings: Partial<GenerateImageDefaults>) => {
   if (typeof window === "undefined") return;
-  const current = loadNanoBananaDefaults();
+  const current = loadGenerateImageDefaults();
   const updated = { ...current, ...settings };
-  localStorage.setItem(NANO_BANANA_DEFAULTS_KEY, JSON.stringify(updated));
+  localStorage.setItem(GENERATE_IMAGE_DEFAULTS_KEY, JSON.stringify(updated));
 };
+
+// Backward-compatible aliases
+type NanoBananaDefaults = GenerateImageDefaults;
+const loadNanoBananaDefaults = loadGenerateImageDefaults;
+export const saveNanoBananaDefaults = saveGenerateImageDefaults;
 
 // localStorage helpers for provider settings
 const PROVIDER_SETTINGS_KEY = "node-banana-provider-settings";
