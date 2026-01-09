@@ -25,6 +25,8 @@ import {
   WorkflowCostData,
   NodeGroup,
   GroupColor,
+  ProviderType,
+  ProviderSettings,
 } from "@/types";
 import { useToast } from "@/components/Toast";
 import { calculateGenerationCost } from "@/utils/costCalculator";
@@ -149,6 +151,14 @@ interface WorkflowStore {
   resetIncurredCost: () => void;
   loadIncurredCost: (workflowId: string) => void;
   saveIncurredCost: () => void;
+
+  // Provider settings state
+  providerSettings: ProviderSettings;
+
+  // Provider settings actions
+  updateProviderSettings: (settings: ProviderSettings) => void;
+  updateProviderApiKey: (providerId: ProviderType, apiKey: string | null) => void;
+  toggleProvider: (providerId: ProviderType, enabled: boolean) => void;
 }
 
 const createDefaultNodeData = (type: NodeType): WorkflowNodeData => {
@@ -305,6 +315,35 @@ export const saveNanoBananaDefaults = (settings: Partial<NanoBananaDefaults>) =>
   localStorage.setItem(NANO_BANANA_DEFAULTS_KEY, JSON.stringify(updated));
 };
 
+// localStorage helpers for provider settings
+const PROVIDER_SETTINGS_KEY = "node-banana-provider-settings";
+
+const defaultProviderSettings: ProviderSettings = {
+  providers: {
+    gemini: { id: "gemini", name: "Google Gemini", enabled: true, apiKey: null, apiKeyEnvVar: "GEMINI_API_KEY" },
+    replicate: { id: "replicate", name: "Replicate", enabled: false, apiKey: null },
+    fal: { id: "fal", name: "fal.ai", enabled: false, apiKey: null },
+  }
+};
+
+const getProviderSettings = (): ProviderSettings => {
+  if (typeof window === "undefined") return defaultProviderSettings;
+  const stored = localStorage.getItem(PROVIDER_SETTINGS_KEY);
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return defaultProviderSettings;
+    }
+  }
+  return defaultProviderSettings;
+};
+
+const saveProviderSettings = (settings: ProviderSettings): void => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(PROVIDER_SETTINGS_KEY, JSON.stringify(settings));
+};
+
 const generateWorkflowId = () =>
   `wf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -350,6 +389,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
   // Cost tracking initial state
   incurredCost: 0,
+
+  // Provider settings initial state
+  providerSettings: getProviderSettings(),
 
   setEdgeStyle: (style: EdgeStyle) => {
     set({ edgeStyle: style });
@@ -2023,5 +2065,41 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       incurredCost,
       lastUpdated: Date.now(),
     });
+  },
+
+  // Provider settings actions
+  updateProviderSettings: (settings: ProviderSettings) => {
+    set({ providerSettings: settings });
+    saveProviderSettings(settings);
+  },
+
+  updateProviderApiKey: (providerId: ProviderType, apiKey: string | null) => {
+    const { providerSettings } = get();
+    const updated: ProviderSettings = {
+      providers: {
+        ...providerSettings.providers,
+        [providerId]: {
+          ...providerSettings.providers[providerId],
+          apiKey,
+        },
+      },
+    };
+    set({ providerSettings: updated });
+    saveProviderSettings(updated);
+  },
+
+  toggleProvider: (providerId: ProviderType, enabled: boolean) => {
+    const { providerSettings } = get();
+    const updated: ProviderSettings = {
+      providers: {
+        ...providerSettings.providers,
+        [providerId]: {
+          ...providerSettings.providers[providerId],
+          enabled,
+        },
+      },
+    };
+    set({ providerSettings: updated });
+    saveProviderSettings(updated);
   },
 }));
