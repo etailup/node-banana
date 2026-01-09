@@ -195,9 +195,9 @@ async function fetchReplicateModels(
     url = `${REPLICATE_API_BASE}/models`;
   }
 
-  // Paginate through all results (limit to 5 pages = ~125 models to avoid timeout)
+  // Paginate through results (limit to 15 pages to avoid timeout)
   let pageCount = 0;
-  const maxPages = 5;
+  const maxPages = 15;
 
   while (url && pageCount < maxPages) {
     const response = await fetch(url, {
@@ -268,9 +268,9 @@ async function fetchFalModels(
     headers["Authorization"] = `Key ${apiKey}`;
   }
 
-  // Paginate through all results (limit to 10 pages to avoid timeout)
+  // Paginate through results (limit to 15 pages to avoid timeout)
   let pageCount = 0;
-  const maxPages = 10;
+  const maxPages = 15;
 
   while (hasMore && pageCount < maxPages) {
     let url = `${FAL_API_BASE}/models?status=active`;
