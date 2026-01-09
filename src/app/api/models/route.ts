@@ -184,7 +184,8 @@ async function fetchReplicateModels(
   apiKey: string,
   searchQuery?: string
 ): Promise<ProviderModel[]> {
-  let url: string;
+  const allModels: ProviderModel[] = [];
+  let url: string | null;
   let isSearchRequest = false;
 
   if (searchQuery) {
@@ -194,25 +195,38 @@ async function fetchReplicateModels(
     url = `${REPLICATE_API_BASE}/models`;
   }
 
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-    },
-  });
+  // Paginate through all results (limit to 5 pages = ~125 models to avoid timeout)
+  let pageCount = 0;
+  const maxPages = 5;
 
-  if (!response.ok) {
-    throw new Error(`Replicate API error: ${response.status}`);
+  while (url && pageCount < maxPages) {
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Replicate API error: ${response.status}`);
+    }
+
+    if (isSearchRequest) {
+      const data: ReplicateSearchResponse = await response.json();
+      if (data.results) {
+        allModels.push(...data.results.map((result) => mapReplicateModel(result.model)));
+      }
+      url = data.next;
+    } else {
+      const data: ReplicateModelsResponse = await response.json();
+      if (data.results) {
+        allModels.push(...data.results.map(mapReplicateModel));
+      }
+      url = data.next;
+    }
+    pageCount++;
   }
 
-  if (isSearchRequest) {
-    const data: ReplicateSearchResponse = await response.json();
-    if (!data.results) return [];
-    return data.results.map((result) => mapReplicateModel(result.model));
-  } else {
-    const data: ReplicateModelsResponse = await response.json();
-    if (!data.results) return [];
-    return data.results.map(mapReplicateModel);
-  }
+  return allModels;
 }
 
 // ============ Fal.ai Helpers ============
@@ -245,26 +259,43 @@ async function fetchFalModels(
   apiKey: string | null,
   searchQuery?: string
 ): Promise<ProviderModel[]> {
-  let url = `${FAL_API_BASE}/models?status=active`;
-
-  if (searchQuery) {
-    url += `&q=${encodeURIComponent(searchQuery)}`;
-  }
+  const allModels: ProviderModel[] = [];
+  let cursor: string | null = null;
+  let hasMore = true;
 
   const headers: HeadersInit = {};
   if (apiKey) {
     headers["Authorization"] = `Key ${apiKey}`;
   }
 
-  const response = await fetch(url, { headers });
+  // Paginate through all results (limit to 10 pages to avoid timeout)
+  let pageCount = 0;
+  const maxPages = 10;
 
-  if (!response.ok) {
-    throw new Error(`fal.ai API error: ${response.status}`);
+  while (hasMore && pageCount < maxPages) {
+    let url = `${FAL_API_BASE}/models?status=active`;
+    if (searchQuery) {
+      url += `&q=${encodeURIComponent(searchQuery)}`;
+    }
+    if (cursor) {
+      url += `&cursor=${encodeURIComponent(cursor)}`;
+    }
+
+    const response = await fetch(url, { headers });
+
+    if (!response.ok) {
+      throw new Error(`fal.ai API error: ${response.status}`);
+    }
+
+    const data: FalModelsResponse = await response.json();
+    allModels.push(...data.models.filter(isRelevantFalModel).map(mapFalModel));
+
+    cursor = data.next_cursor;
+    hasMore = data.has_more;
+    pageCount++;
   }
 
-  const data: FalModelsResponse = await response.json();
-
-  return data.models.filter(isRelevantFalModel).map(mapFalModel);
+  return allModels;
 }
 
 // ============ Main Handler ============
