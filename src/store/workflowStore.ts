@@ -1228,6 +1228,171 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             break;
           }
 
+          case "generateVideo": {
+            const { images, text } = getConnectedInputs(node.id);
+
+            if (!text) {
+              logger.error('node.error', 'generateVideo node missing text input', {
+                nodeId: node.id,
+              });
+              updateNodeData(node.id, {
+                status: "error",
+                error: "Missing text input",
+              });
+              set({ isRunning: false, currentNodeId: null });
+              await logger.endSession();
+              return;
+            }
+
+            const nodeData = node.data as GenerateVideoNodeData;
+
+            if (!nodeData.selectedModel?.modelId) {
+              logger.error('node.error', 'generateVideo node missing model selection', {
+                nodeId: node.id,
+              });
+              updateNodeData(node.id, {
+                status: "error",
+                error: "No model selected",
+              });
+              set({ isRunning: false, currentNodeId: null });
+              await logger.endSession();
+              return;
+            }
+
+            updateNodeData(node.id, {
+              inputImages: images,
+              inputPrompt: text,
+              status: "loading",
+              error: null,
+            });
+
+            try {
+              const providerSettingsState = get().providerSettings;
+
+              const requestPayload = {
+                images,
+                prompt: text,
+                selectedModel: nodeData.selectedModel,
+              };
+
+              // Build headers with API keys for external providers
+              const headers: Record<string, string> = {
+                "Content-Type": "application/json",
+              };
+              if (nodeData.selectedModel.provider === "replicate") {
+                const replicateConfig = providerSettingsState.providers.replicate;
+                if (replicateConfig?.apiKey) {
+                  headers["X-Replicate-API-Key"] = replicateConfig.apiKey;
+                }
+              } else if (nodeData.selectedModel.provider === "fal") {
+                const falConfig = providerSettingsState.providers.fal;
+                if (falConfig?.apiKey) {
+                  headers["X-Fal-API-Key"] = falConfig.apiKey;
+                }
+              }
+
+              const provider = nodeData.selectedModel.provider;
+              logger.info('node.execution', `Calling ${provider} API for video generation`, {
+                nodeId: node.id,
+                provider,
+                model: nodeData.selectedModel.modelId,
+                imageCount: images.length,
+                prompt: text,
+              });
+
+              const response = await fetch("/api/generate", {
+                method: "POST",
+                headers,
+                body: JSON.stringify(requestPayload),
+              });
+
+              if (!response.ok) {
+                const errorText = await response.text();
+                let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                try {
+                  const errorJson = JSON.parse(errorText);
+                  errorMessage = errorJson.error || errorMessage;
+                } catch {
+                  if (errorText) errorMessage += ` - ${errorText.substring(0, 200)}`;
+                }
+
+                logger.error('api.error', `${provider} API request failed`, {
+                  nodeId: node.id,
+                  provider,
+                  status: response.status,
+                  statusText: response.statusText,
+                  errorMessage,
+                });
+
+                updateNodeData(node.id, {
+                  status: "error",
+                  error: errorMessage,
+                });
+                set({ isRunning: false, currentNodeId: null });
+                await logger.endSession();
+                return;
+              }
+
+              const result = await response.json();
+
+              // Handle video response (video or videoUrl field)
+              const videoData = result.video || result.videoUrl;
+              if (result.success && videoData) {
+                updateNodeData(node.id, {
+                  outputVideo: videoData,
+                  status: "complete",
+                  error: null,
+                });
+              } else if (result.success && result.image) {
+                // Some models might return an image preview; treat as video for now
+                updateNodeData(node.id, {
+                  outputVideo: result.image,
+                  status: "complete",
+                  error: null,
+                });
+              } else {
+                logger.error('api.error', `${provider} API video generation failed`, {
+                  nodeId: node.id,
+                  provider,
+                  error: result.error,
+                });
+                updateNodeData(node.id, {
+                  status: "error",
+                  error: result.error || "Video generation failed",
+                });
+                set({ isRunning: false, currentNodeId: null });
+                await logger.endSession();
+                return;
+              }
+            } catch (error) {
+              let errorMessage = "Video generation failed";
+              if (error instanceof DOMException && error.name === 'AbortError') {
+                errorMessage = "Request timed out. Video generation may take longer.";
+              } else if (error instanceof TypeError && error.message.includes('NetworkError')) {
+                errorMessage = "Network error. Check your connection and try again.";
+              } else if (error instanceof TypeError) {
+                errorMessage = `Network error: ${error.message}`;
+              } else if (error instanceof Error) {
+                errorMessage = error.message;
+              }
+
+              logger.error('node.error', 'GenerateVideo node execution failed', {
+                nodeId: node.id,
+                provider: nodeData.selectedModel?.provider,
+                errorMessage,
+              }, error instanceof Error ? error : undefined);
+
+              updateNodeData(node.id, {
+                status: "error",
+                error: errorMessage,
+              });
+              set({ isRunning: false, currentNodeId: null });
+              await logger.endSession();
+              return;
+            }
+            break;
+          }
+
           case "llmGenerate": {
             const { images, text } = getConnectedInputs(node.id);
 
@@ -1721,6 +1886,128 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           updateNodeData(nodeId, {
             status: "error",
             error: result.error || "LLM generation failed",
+          });
+        }
+      } else if (node.type === "generateVideo") {
+        const nodeData = node.data as GenerateVideoNodeData;
+        const providerSettingsState = get().providerSettings;
+
+        // Get fresh connected inputs
+        const inputs = getConnectedInputs(nodeId);
+        const images = inputs.images.length > 0 ? inputs.images : nodeData.inputImages;
+        const text = inputs.text ?? nodeData.inputPrompt;
+
+        if (!text) {
+          logger.error('node.error', 'generateVideo regeneration failed: missing text input', {
+            nodeId,
+          });
+          updateNodeData(nodeId, {
+            status: "error",
+            error: "Missing text input",
+          });
+          set({ isRunning: false, currentNodeId: null });
+          await logger.endSession();
+          return;
+        }
+
+        if (!nodeData.selectedModel?.modelId) {
+          logger.error('node.error', 'generateVideo regeneration failed: no model selected', {
+            nodeId,
+          });
+          updateNodeData(nodeId, {
+            status: "error",
+            error: "No model selected",
+          });
+          set({ isRunning: false, currentNodeId: null });
+          await logger.endSession();
+          return;
+        }
+
+        updateNodeData(nodeId, {
+          inputImages: images,
+          status: "loading",
+          error: null,
+        });
+
+        // Build headers with API keys for external providers
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (nodeData.selectedModel.provider === "replicate") {
+          const replicateConfig = providerSettingsState.providers.replicate;
+          if (replicateConfig?.apiKey) {
+            headers["X-Replicate-API-Key"] = replicateConfig.apiKey;
+          }
+        } else if (nodeData.selectedModel.provider === "fal") {
+          const falConfig = providerSettingsState.providers.fal;
+          if (falConfig?.apiKey) {
+            headers["X-Fal-API-Key"] = falConfig.apiKey;
+          }
+        }
+
+        const provider = nodeData.selectedModel.provider;
+        logger.info('node.execution', `Calling ${provider} API for video regeneration`, {
+          nodeId,
+          provider,
+          model: nodeData.selectedModel.modelId,
+          imageCount: images.length,
+          prompt: text,
+        });
+
+        const response = await fetch("/api/generate", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            images,
+            prompt: text,
+            selectedModel: nodeData.selectedModel,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          let errorMessage = `HTTP ${response.status}`;
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.error || errorMessage;
+          } catch {
+            if (errorText) errorMessage += ` - ${errorText.substring(0, 200)}`;
+          }
+          logger.error('api.error', `${provider} API video regeneration failed`, {
+            nodeId,
+            provider,
+            status: response.status,
+            errorMessage,
+          });
+          updateNodeData(nodeId, { status: "error", error: errorMessage });
+          set({ isRunning: false, currentNodeId: null });
+          await logger.endSession();
+          return;
+        }
+
+        const result = await response.json();
+        const videoData = result.video || result.videoUrl;
+        if (result.success && videoData) {
+          updateNodeData(nodeId, {
+            outputVideo: videoData,
+            status: "complete",
+            error: null,
+          });
+        } else if (result.success && result.image) {
+          updateNodeData(nodeId, {
+            outputVideo: result.image,
+            status: "complete",
+            error: null,
+          });
+        } else {
+          logger.error('api.error', `${provider} API video regeneration failed`, {
+            nodeId,
+            provider,
+            error: result.error,
+          });
+          updateNodeData(nodeId, {
+            status: "error",
+            error: result.error || "Video generation failed",
           });
         }
       } else if (node.type === "splitGrid") {

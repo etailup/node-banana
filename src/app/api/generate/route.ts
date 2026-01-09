@@ -365,7 +365,7 @@ async function generateWithReplicate(
     };
   }
 
-  // Extract output image(s)
+  // Extract output
   const output = currentPrediction.output;
   if (!output) {
     return {
@@ -380,36 +380,60 @@ async function generateWithReplicate(
   if (outputUrls.length === 0) {
     return {
       success: false,
-      error: "No output images from prediction",
+      error: "No output from prediction",
     };
   }
 
-  // Fetch the first output image and convert to base64
-  const imageUrl = outputUrls[0];
-  console.log(`[API:${requestId}] Fetching output image from: ${imageUrl}`);
-  const imageResponse = await fetch(imageUrl);
+  // Fetch the first output and convert to base64
+  const mediaUrl = outputUrls[0];
+  console.log(`[API:${requestId}] Fetching output from: ${mediaUrl}`);
+  const mediaResponse = await fetch(mediaUrl);
 
-  if (!imageResponse.ok) {
+  if (!mediaResponse.ok) {
     return {
       success: false,
-      error: `Failed to fetch output image: ${imageResponse.status}`,
+      error: `Failed to fetch output: ${mediaResponse.status}`,
     };
   }
 
-  const imageArrayBuffer = await imageResponse.arrayBuffer();
-  const imageBase64 = Buffer.from(imageArrayBuffer).toString("base64");
-
   // Determine MIME type from response
-  const contentType = imageResponse.headers.get("content-type") || "image/png";
+  const contentType = mediaResponse.headers.get("content-type") || "image/png";
+  const isVideo = contentType.startsWith("video/");
 
-  console.log(`[API:${requestId}] Replicate generation successful`);
+  const mediaArrayBuffer = await mediaResponse.arrayBuffer();
+  const mediaSizeBytes = mediaArrayBuffer.byteLength;
+  const mediaSizeMB = mediaSizeBytes / (1024 * 1024);
+
+  // Log warning for large files
+  if (mediaSizeMB > 10) {
+    console.warn(`[API:${requestId}] Large output file: ${mediaSizeMB.toFixed(2)}MB`);
+  }
+
+  // For very large videos (>20MB), return URL directly instead of base64
+  if (isVideo && mediaSizeMB > 20) {
+    console.log(`[API:${requestId}] Replicate video generation successful (URL only, too large for base64)`);
+    return {
+      success: true,
+      outputs: [
+        {
+          type: "video",
+          data: mediaUrl, // Return URL directly for very large videos
+          url: mediaUrl,
+        },
+      ],
+    };
+  }
+
+  const mediaBase64 = Buffer.from(mediaArrayBuffer).toString("base64");
+
+  console.log(`[API:${requestId}] Replicate ${isVideo ? "video" : "image"} generation successful`);
   return {
     success: true,
     outputs: [
       {
-        type: "image",
-        data: `data:${contentType};base64,${imageBase64}`,
-        url: imageUrl,
+        type: isVideo ? "video" : "image",
+        data: `data:${contentType};base64,${mediaBase64}`,
+        url: mediaUrl,
       },
     ],
   };
@@ -470,51 +494,85 @@ async function generateWithFal(
 
   const result = await response.json();
 
-  // fal.ai response typically has "images" array with url field
-  // or "image" object with url field depending on the model
-  let imageUrl: string | null = null;
+  // fal.ai response can have different structures:
+  // - images: array with url field (image models)
+  // - image: object with url field (image models)
+  // - video: object with url field (video models)
+  // - output: string URL (some models)
+  let mediaUrl: string | null = null;
+  let isVideoModel = false;
 
-  if (result.images && Array.isArray(result.images) && result.images.length > 0) {
-    imageUrl = result.images[0].url;
+  // Check for video output first (video models)
+  if (result.video && result.video.url) {
+    mediaUrl = result.video.url;
+    isVideoModel = true;
+    console.log(`[API:${requestId}] Found video URL in response`);
+  } else if (result.images && Array.isArray(result.images) && result.images.length > 0) {
+    mediaUrl = result.images[0].url;
   } else if (result.image && result.image.url) {
-    imageUrl = result.image.url;
+    mediaUrl = result.image.url;
   } else if (result.output && typeof result.output === "string") {
     // Some models return URL directly in output
-    imageUrl = result.output;
+    mediaUrl = result.output;
   }
 
-  if (!imageUrl) {
+  if (!mediaUrl) {
+    console.error(`[API:${requestId}] No media URL found in fal.ai response:`, JSON.stringify(result, null, 2));
     return {
       success: false,
-      error: "No image URL in response",
+      error: "No media URL in response",
     };
   }
 
-  // Fetch the image and convert to base64
-  console.log(`[API:${requestId}] Fetching output image from: ${imageUrl}`);
-  const imageResponse = await fetch(imageUrl);
+  // Fetch the media and convert to base64
+  console.log(`[API:${requestId}] Fetching output from: ${mediaUrl}`);
+  const mediaResponse = await fetch(mediaUrl);
 
-  if (!imageResponse.ok) {
+  if (!mediaResponse.ok) {
     return {
       success: false,
-      error: `Failed to fetch output image: ${imageResponse.status}`,
+      error: `Failed to fetch output: ${mediaResponse.status}`,
     };
   }
-
-  const imageArrayBuffer = await imageResponse.arrayBuffer();
-  const imageBase64 = Buffer.from(imageArrayBuffer).toString("base64");
 
   // Determine MIME type from response
-  const contentType = imageResponse.headers.get("content-type") || "image/png";
+  const contentType = mediaResponse.headers.get("content-type") || (isVideoModel ? "video/mp4" : "image/png");
+  const isVideo = contentType.startsWith("video/") || isVideoModel;
 
-  console.log(`[API:${requestId}] fal.ai generation successful`);
+  const mediaArrayBuffer = await mediaResponse.arrayBuffer();
+  const mediaSizeBytes = mediaArrayBuffer.byteLength;
+  const mediaSizeMB = mediaSizeBytes / (1024 * 1024);
+
+  // Log warning for large files
+  if (mediaSizeMB > 10) {
+    console.warn(`[API:${requestId}] Large output file: ${mediaSizeMB.toFixed(2)}MB`);
+  }
+
+  // For very large videos (>20MB), return URL directly instead of base64
+  if (isVideo && mediaSizeMB > 20) {
+    console.log(`[API:${requestId}] fal.ai video generation successful (URL only, too large for base64)`);
+    return {
+      success: true,
+      outputs: [
+        {
+          type: "video",
+          data: mediaUrl, // Return URL directly for very large videos
+          url: mediaUrl,
+        },
+      ],
+    };
+  }
+
+  const mediaBase64 = Buffer.from(mediaArrayBuffer).toString("base64");
+
+  console.log(`[API:${requestId}] fal.ai ${isVideo ? "video" : "image"} generation successful`);
   return {
     success: true,
     outputs: [
       {
-        type: "image",
-        data: `data:${contentType};base64,${imageBase64}`,
-        url: imageUrl,
+        type: isVideo ? "video" : "image",
+        data: `data:${contentType};base64,${mediaBase64}`,
+        url: mediaUrl,
       },
     ],
   };
@@ -614,21 +672,34 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // Return first output image
-        const outputImage = result.outputs?.[0]?.data;
-        if (!outputImage) {
+        // Return first output (image or video)
+        const output = result.outputs?.[0];
+        if (!output?.data) {
           return NextResponse.json<GenerateResponse>(
             {
               success: false,
-              error: "No image in generation output",
+              error: "No output in generation result",
             },
             { status: 500 }
           );
         }
 
+        // Return appropriate fields based on output type
+        if (output.type === "video") {
+          // Check if data is a URL (for large videos) or base64
+          const isUrl = output.data.startsWith("http");
+          return NextResponse.json<GenerateResponse>({
+            success: true,
+            video: isUrl ? undefined : output.data,
+            videoUrl: isUrl ? output.data : undefined,
+            contentType: "video",
+          });
+        }
+
         return NextResponse.json<GenerateResponse>({
           success: true,
-          image: outputImage,
+          image: output.data,
+          contentType: "image",
         });
       } finally {
         // Clean up uploaded images
@@ -689,21 +760,34 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // Return first output image
-        const outputImage = result.outputs?.[0]?.data;
-        if (!outputImage) {
+        // Return first output (image or video)
+        const output = result.outputs?.[0];
+        if (!output?.data) {
           return NextResponse.json<GenerateResponse>(
             {
               success: false,
-              error: "No image in generation output",
+              error: "No output in generation result",
             },
             { status: 500 }
           );
         }
 
+        // Return appropriate fields based on output type
+        if (output.type === "video") {
+          // Check if data is a URL (for large videos) or base64
+          const isUrl = output.data.startsWith("http");
+          return NextResponse.json<GenerateResponse>({
+            success: true,
+            video: isUrl ? undefined : output.data,
+            videoUrl: isUrl ? output.data : undefined,
+            contentType: "video",
+          });
+        }
+
         return NextResponse.json<GenerateResponse>({
           success: true,
-          image: outputImage,
+          image: output.data,
+          contentType: "image",
         });
       } finally {
         // Clean up uploaded images
