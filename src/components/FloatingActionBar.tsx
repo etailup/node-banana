@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect, useMemo } from "react";
 import { useWorkflowStore } from "@/store/workflowStore";
-import { NodeType } from "@/types";
+import { NodeType, ProviderType } from "@/types";
 import { useReactFlow } from "@xyflow/react";
 
 // Get the center of the React Flow pane in screen coordinates
@@ -141,6 +141,28 @@ function GenerateComboButton() {
   );
 }
 
+function ProviderIconButton({ provider, onClick }: { provider: ProviderType; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      title={`Browse ${provider === "replicate" ? "Replicate" : "fal.ai"} models`}
+      className="p-1.5 text-neutral-400 hover:text-neutral-100 hover:bg-neutral-700 rounded transition-colors"
+    >
+      {provider === "replicate" ? (
+        // Replicate icon - stylized "R"
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M4 4h8c2.2 0 4 1.8 4 4s-1.8 4-4 4H8v8H4V4zm4 4v4h4c1.1 0 2-.9 2-2s-.9-2-2-2H8zm4 8l6 4V12l-6 4z" />
+        </svg>
+      ) : (
+        // fal.ai icon - lightning bolt
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
 export function FloatingActionBar() {
   const {
     nodes,
@@ -151,6 +173,9 @@ export function FloatingActionBar() {
     validateWorkflow,
     edgeStyle,
     setEdgeStyle,
+    providerSettings,
+    setModelSearchOpen,
+    modelSearchOpen,
   } = useWorkflowStore();
   const [runMenuOpen, setRunMenuOpen] = useState(false);
   const runMenuRef = useRef<HTMLDivElement>(null);
@@ -214,6 +239,22 @@ export function FloatingActionBar() {
         <NodeButton type="prompt" label="Prompt" />
         <GenerateComboButton />
         <NodeButton type="output" label="Output" />
+
+        {/* Provider model browser icons */}
+        <div className="w-px h-5 bg-neutral-600 mx-1.5" />
+
+        {/* Replicate icon - only show if API key is configured */}
+        {providerSettings.providers.replicate?.apiKey && (
+          <ProviderIconButton
+            provider="replicate"
+            onClick={() => setModelSearchOpen(true, "replicate")}
+          />
+        )}
+        {/* fal.ai icon - always show (works without key but rate limited) */}
+        <ProviderIconButton
+          provider="fal"
+          onClick={() => setModelSearchOpen(true, "fal")}
+        />
 
         <div className="w-px h-5 bg-neutral-600 mx-1.5" />
 

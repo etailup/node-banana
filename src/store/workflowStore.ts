@@ -160,6 +160,13 @@ interface WorkflowStore {
   updateProviderSettings: (settings: ProviderSettings) => void;
   updateProviderApiKey: (providerId: ProviderType, apiKey: string | null) => void;
   toggleProvider: (providerId: ProviderType, enabled: boolean) => void;
+
+  // Model search dialog state
+  modelSearchOpen: boolean;
+  modelSearchProvider: ProviderType | null;
+
+  // Model search dialog actions
+  setModelSearchOpen: (open: boolean, provider?: ProviderType | null) => void;
 }
 
 const createDefaultNodeData = (type: NodeType): WorkflowNodeData => {
@@ -405,6 +412,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
   // Provider settings initial state
   providerSettings: getProviderSettings(),
+
+  // Model search dialog initial state
+  modelSearchOpen: false,
+  modelSearchProvider: null,
 
   setEdgeStyle: (style: EdgeStyle) => {
     set({ edgeStyle: style });
@@ -2181,5 +2192,13 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     };
     set({ providerSettings: updated });
     saveProviderSettings(updated);
+  },
+
+  // Model search dialog actions
+  setModelSearchOpen: (open: boolean, provider?: ProviderType | null) => {
+    set({
+      modelSearchOpen: open,
+      modelSearchProvider: provider ?? null,
+    });
   },
 }));
