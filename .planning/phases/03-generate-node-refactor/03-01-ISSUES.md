@@ -30,12 +30,12 @@
 **Fix:** Added headers with X-Replicate-Key and X-Fal-Key to fetch request
 
 ### UAT-004: Replicate shows incomplete model list
-**Resolved:** 2026-01-09 - By design
-**Note:** Replicate API returns paginated results (~25 per page). First page is sufficient for initial use. Full pagination can be added as enhancement.
+**Resolved:** 2026-01-09 - Fixed in commit 69217d9
+**Fix:** Added pagination to fetch up to 5 pages (~125 models) from Replicate API
 
 ### UAT-005: fal.ai shows video models in image-only dropdown
-**Resolved:** 2026-01-09 - Fixed in commit f2895c3
-**Fix:** Added capabilities filtering to /api/models endpoint. Models now filtered by ?capabilities param.
+**Resolved:** 2026-01-09 - Fixed in commits f2895c3, 69217d9
+**Fix:** Added capabilities filtering to /api/models endpoint. Also added pagination (up to 10 pages) for complete model list.
 
 ---
 
