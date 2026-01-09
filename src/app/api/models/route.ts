@@ -138,31 +138,43 @@ type ModelsResponse = ModelsSuccessResponse | ModelsErrorResponse;
 // ============ Replicate Helpers ============
 
 function inferReplicateCapabilities(model: ReplicateModel): ModelCapability[] {
-  const capabilities: ModelCapability[] = ["text-to-image"];
-
+  const capabilities: ModelCapability[] = [];
   const searchText = `${model.name} ${model.description ?? ""}`.toLowerCase();
 
-  if (
-    searchText.includes("img2img") ||
-    searchText.includes("image-to-image") ||
-    searchText.includes("inpaint") ||
-    searchText.includes("controlnet")
-  ) {
-    capabilities.push("image-to-image");
-  }
-
-  if (
+  // Check for video-related keywords first
+  const isVideoModel =
     searchText.includes("video") ||
     searchText.includes("animate") ||
-    searchText.includes("motion")
-  ) {
+    searchText.includes("motion") ||
+    searchText.includes("luma") ||
+    searchText.includes("kling") ||
+    searchText.includes("minimax");
+
+  if (isVideoModel) {
+    // Video model - determine video capability type
     if (
       searchText.includes("img2vid") ||
-      searchText.includes("image-to-video")
+      searchText.includes("image-to-video") ||
+      searchText.includes("i2v")
     ) {
       capabilities.push("image-to-video");
     } else {
       capabilities.push("text-to-video");
+    }
+  } else {
+    // Image model - default to text-to-image
+    capabilities.push("text-to-image");
+
+    // Check for image-to-image capability
+    if (
+      searchText.includes("img2img") ||
+      searchText.includes("image-to-image") ||
+      searchText.includes("inpaint") ||
+      searchText.includes("controlnet") ||
+      searchText.includes("upscale") ||
+      searchText.includes("restore")
+    ) {
+      capabilities.push("image-to-image");
     }
   }
 
