@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 ## Current Position
 
-Phase: 4 of 6 (Model Search Dialog) - COMPLETE
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-01-09 - Completed 04-02-PLAN.md (Model search dialog)
+Phase: 5 of 6 (Image URL Server)
+Plan: 1 of 2 in current phase
+Status: In progress
+Last activity: 2026-01-09 - Completed 05-01-PLAN.md (Image serving endpoint)
 
-Progress: [=================================================================] 67% (10/15 plans)
+Progress: [=====================================================================] 73% (11/15 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
-- Average duration: 5.6 min
-- Total execution time: 0.93 hours
+- Total plans completed: 11
+- Average duration: 5.4 min
+- Total execution time: 0.98 hours
 
 **By Phase:**
 
@@ -31,10 +31,11 @@ Progress: [=================================================================] 67
 | 2. Model Discovery | 3/3 | 14 min | 4.7 min |
 | 3. Generate Node Refactor | 3/3 | 13 min | 4.3 min |
 | 4. Model Search Dialog | 2/2 | 17 min | 8.5 min |
+| 5. Image URL Server | 1/2 | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 5 min, 3 min, 2 min, 15 min
-- Trend: stable (04-02 included UAT refinements)
+- Last 5 plans: 3 min, 2 min, 15 min, 3 min
+- Trend: fast (05-01 was infrastructure only)
 
 ## Accumulated Context
 
@@ -67,6 +68,8 @@ Recent decisions affecting current work:
 - Client-side search filtering for Replicate (their search API unreliable)
 - Show all capability badges to differentiate similar models
 - Extract variant suffix from fal.ai model IDs for display name
+- No TTL for image store - explicit cleanup pattern (callers delete after use)
+- 256KB threshold for shouldUseImageUrl (Replicate recommendation)
 
 ### Deferred Issues
 
@@ -79,6 +82,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-09
-Stopped at: Completed Phase 4 (Model Search Dialog)
+Stopped at: Completed 05-01-PLAN.md (Image serving endpoint)
 Resume file: None
-Next action: Plan Phase 5 (Image URL Server)
+Next action: Execute 05-02-PLAN.md (Integration with generate node)

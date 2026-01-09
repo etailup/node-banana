@@ -73,7 +73,7 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 05-01: Image serving endpoint and URL generation
+- [x] 05-01: Image serving endpoint and URL generation
 - [ ] 05-02: Integration with generate node for URL-based providers
 
 ### Phase 6: Video & Polish
@@ -100,5 +100,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 2. Model Discovery | 3/3 | Complete | 2026-01-09 |
 | 3. Generate Node Refactor | 3/3 | Complete | 2026-01-09 |
 | 4. Model Search Dialog | 2/2 | Complete | 2026-01-09 |
-| 5. Image URL Server | 0/2 | Not started | - |
+| 5. Image URL Server | 1/2 | In progress | - |
 | 6. Video & Polish | 0/4 | Not started | - |
