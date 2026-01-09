@@ -505,7 +505,7 @@ export function ModelSearchDialog({
 
                     {/* Model ID with link to provider page */}
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-[10px] text-neutral-500 truncate font-mono">
+                      <span className="text-xs text-neutral-500 truncate font-mono">
                         {model.id}
                       </span>
                       <a
