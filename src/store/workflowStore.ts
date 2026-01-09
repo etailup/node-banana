@@ -1030,6 +1030,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
             try {
               const nodeData = node.data as NanoBananaNodeData;
+              const providerSettingsState = get().providerSettings;
 
               const requestPayload = {
                 images,
@@ -1038,11 +1039,30 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 resolution: nodeData.resolution,
                 model: nodeData.model,
                 useGoogleSearch: nodeData.useGoogleSearch,
+                selectedModel: nodeData.selectedModel,
               };
 
-              logger.info('api.gemini', 'Calling Gemini API for image generation', {
+              // Build headers with API keys for external providers
+              const headers: Record<string, string> = {
+                "Content-Type": "application/json",
+              };
+              if (nodeData.selectedModel?.provider === "replicate") {
+                const replicateConfig = providerSettingsState.providers.replicate;
+                if (replicateConfig?.apiKey) {
+                  headers["X-Replicate-API-Key"] = replicateConfig.apiKey;
+                }
+              } else if (nodeData.selectedModel?.provider === "fal") {
+                const falConfig = providerSettingsState.providers.fal;
+                if (falConfig?.apiKey) {
+                  headers["X-Fal-API-Key"] = falConfig.apiKey;
+                }
+              }
+
+              const provider = nodeData.selectedModel?.provider || "gemini";
+              logger.info('node.execution', `Calling ${provider} API for image generation`, {
                 nodeId: node.id,
-                model: nodeData.model,
+                provider,
+                model: nodeData.selectedModel?.modelId || nodeData.model,
                 aspectRatio: nodeData.aspectRatio,
                 resolution: nodeData.resolution,
                 imageCount: images.length,
@@ -1051,9 +1071,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
               const response = await fetch("/api/generate", {
                 method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
+                headers,
                 body: JSON.stringify(requestPayload),
               });
 
@@ -1067,8 +1085,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   if (errorText) errorMessage += ` - ${errorText.substring(0, 200)}`;
                 }
 
-                logger.error('api.error', 'Gemini API request failed', {
+                logger.error('api.error', `${provider} API request failed`, {
                   nodeId: node.id,
+                  provider,
                   status: response.status,
                   statusText: response.statusText,
                   errorMessage,
@@ -1137,8 +1156,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   });
                 }
               } else {
-                logger.error('api.error', 'Gemini API generation failed', {
+                logger.error('api.error', `${provider} API generation failed`, {
                   nodeId: node.id,
+                  provider,
                   error: result.error,
                 });
                 updateNodeData(node.id, {
@@ -1161,8 +1181,11 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 errorMessage = error.message;
               }
 
-              logger.error('node.error', 'nanoBanana node execution failed', {
+              const nodeData = node.data as NanoBananaNodeData;
+              const errorProvider = nodeData.selectedModel?.provider || "gemini";
+              logger.error('node.error', 'Generate node execution failed', {
                 nodeId: node.id,
+                provider: errorProvider,
                 errorMessage,
               }, error instanceof Error ? error : undefined);
 
@@ -1439,15 +1462,18 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     try {
       if (node.type === "nanoBanana") {
         const nodeData = node.data as NanoBananaNodeData;
+        const providerSettingsState = get().providerSettings;
+        const provider = nodeData.selectedModel?.provider || "gemini";
 
         // Always get fresh connected inputs first, fall back to stored inputs only if not connected
         const inputs = getConnectedInputs(nodeId);
-        let images = inputs.images.length > 0 ? inputs.images : nodeData.inputImages;
-        let text = inputs.text ?? nodeData.inputPrompt;
+        const images = inputs.images.length > 0 ? inputs.images : nodeData.inputImages;
+        const text = inputs.text ?? nodeData.inputPrompt;
 
         if (!text) {
-          logger.error('node.error', 'nanoBanana regeneration failed: missing text input', {
+          logger.error('node.error', 'Generate node regeneration failed: missing text input', {
             nodeId,
+            provider,
           });
           updateNodeData(nodeId, {
             status: "error",
@@ -1463,9 +1489,26 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           error: null,
         });
 
-        logger.info('api.gemini', 'Calling Gemini API for node regeneration', {
+        // Build headers with API keys for external providers
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (nodeData.selectedModel?.provider === "replicate") {
+          const replicateConfig = providerSettingsState.providers.replicate;
+          if (replicateConfig?.apiKey) {
+            headers["X-Replicate-API-Key"] = replicateConfig.apiKey;
+          }
+        } else if (nodeData.selectedModel?.provider === "fal") {
+          const falConfig = providerSettingsState.providers.fal;
+          if (falConfig?.apiKey) {
+            headers["X-Fal-API-Key"] = falConfig.apiKey;
+          }
+        }
+
+        logger.info('node.execution', `Calling ${provider} API for node regeneration`, {
           nodeId,
-          model: nodeData.model,
+          provider,
+          model: nodeData.selectedModel?.modelId || nodeData.model,
           aspectRatio: nodeData.aspectRatio,
           resolution: nodeData.resolution,
           imageCount: images.length,
@@ -1474,7 +1517,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
         const response = await fetch("/api/generate", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({
             images,
             prompt: text,
@@ -1482,6 +1525,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             resolution: nodeData.resolution,
             model: nodeData.model,
             useGoogleSearch: nodeData.useGoogleSearch,
+            selectedModel: nodeData.selectedModel,
           }),
         });
 
@@ -1494,8 +1538,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           } catch {
             if (errorText) errorMessage += ` - ${errorText.substring(0, 200)}`;
           }
-          logger.error('api.error', 'Gemini API regeneration failed', {
+          logger.error('api.error', `${provider} API regeneration failed`, {
             nodeId,
+            provider,
             status: response.status,
             errorMessage,
           });
