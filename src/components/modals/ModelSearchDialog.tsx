@@ -227,6 +227,21 @@ export function ModelSearchDialog({
     }
   };
 
+  // Get display name with suffix for fal.ai models to differentiate variants
+  const getDisplayName = (model: ProviderModel): string => {
+    if (model.provider === "fal") {
+      // Extract the last segment of the ID (e.g., "effects" from "kling-video/v1.6/pro/effects")
+      const segments = model.id.split("/");
+      const lastSegment = segments[segments.length - 1];
+
+      // Only add suffix if it's not already in the name (case-insensitive)
+      if (lastSegment && !model.name.toLowerCase().includes(lastSegment.toLowerCase())) {
+        return `${model.name} - ${lastSegment}`;
+      }
+    }
+    return model.name;
+  };
+
   // Get model page URL for the provider's website
   const getModelUrl = (model: ProviderModel): string => {
     if (model.provider === "replicate") {
@@ -483,9 +498,9 @@ export function ModelSearchDialog({
 
                   {/* Model Info */}
                   <div className="flex-1 min-w-0">
-                    {/* Model name */}
+                    {/* Model name with variant suffix for fal.ai */}
                     <div className="font-medium text-neutral-100 text-sm truncate">
-                      {model.name}
+                      {getDisplayName(model)}
                     </div>
 
                     {/* Model ID with link to provider page */}
