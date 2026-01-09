@@ -833,6 +833,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           } else if (sourceNode.type === "nanoBanana") {
             const sourceImage = (sourceNode.data as NanoBananaNodeData).outputImage;
             if (sourceImage) images.push(sourceImage);
+          } else if (sourceNode.type === "generateVideo") {
+            // Video output can be used as input to downstream nodes
+            const sourceVideo = (sourceNode.data as GenerateVideoNodeData).outputVideo;
+            if (sourceVideo) images.push(sourceVideo);
           }
         }
 
@@ -1579,9 +1583,27 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
           case "output": {
             const { images } = getConnectedInputs(node.id);
-            const image = images[0] || null;
-            if (image) {
-              updateNodeData(node.id, { image });
+            const content = images[0] || null;
+            if (content) {
+              // Detect if content is video (data URL or URL extension)
+              const isVideoContent =
+                content.startsWith("data:video/") ||
+                content.includes(".mp4") ||
+                content.includes(".webm");
+
+              if (isVideoContent) {
+                updateNodeData(node.id, {
+                  image: content,
+                  video: content,
+                  contentType: "video"
+                });
+              } else {
+                updateNodeData(node.id, {
+                  image: content,
+                  video: null,
+                  contentType: "image"
+                });
+              }
             }
             break;
           }
