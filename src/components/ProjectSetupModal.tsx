@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { generateWorkflowId, useWorkflowStore } from "@/store/workflowStore";
+import { ProviderType, ProviderSettings } from "@/types";
 
 interface ProjectSetupModalProps {
   isOpen: boolean;
@@ -16,8 +17,20 @@ export function ProjectSetupModal({
   onSave,
   mode,
 }: ProjectSetupModalProps) {
-  const { workflowName, saveDirectoryPath, useExternalImageStorage, setUseExternalImageStorage } = useWorkflowStore();
+  const {
+    workflowName,
+    saveDirectoryPath,
+    useExternalImageStorage,
+    setUseExternalImageStorage,
+    providerSettings,
+    updateProviderApiKey,
+    toggleProvider,
+  } = useWorkflowStore();
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState<"project" | "providers">("project");
+
+  // Project tab state
   const [name, setName] = useState("");
   const [directoryPath, setDirectoryPath] = useState("");
   const [externalStorage, setExternalStorage] = useState(true);
@@ -25,18 +38,38 @@ export function ProjectSetupModal({
   const [isBrowsing, setIsBrowsing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Provider tab state
+  const [localProviders, setLocalProviders] = useState<ProviderSettings>(providerSettings);
+  const [showApiKey, setShowApiKey] = useState<Record<ProviderType, boolean>>({
+    gemini: false,
+    replicate: false,
+    fal: false,
+  });
+
   // Pre-fill when opening in settings mode
   useEffect(() => {
-    if (isOpen && mode === "settings") {
-      setName(workflowName || "");
-      setDirectoryPath(saveDirectoryPath || "");
-      setExternalStorage(useExternalImageStorage);
-    } else if (isOpen && mode === "new") {
-      setName("");
-      setDirectoryPath("");
-      setExternalStorage(true);
+    if (isOpen) {
+      // Reset to project tab when opening
+      if (mode === "new") {
+        setActiveTab("project");
+      }
+
+      if (mode === "settings") {
+        setName(workflowName || "");
+        setDirectoryPath(saveDirectoryPath || "");
+        setExternalStorage(useExternalImageStorage);
+      } else if (mode === "new") {
+        setName("");
+        setDirectoryPath("");
+        setExternalStorage(true);
+      }
+
+      // Sync local providers state
+      setLocalProviders(providerSettings);
+      setShowApiKey({ gemini: false, replicate: false, fal: false });
+      setError(null);
     }
-  }, [isOpen, mode, workflowName, saveDirectoryPath, useExternalImageStorage]);
+  }, [isOpen, mode, workflowName, saveDirectoryPath, useExternalImageStorage, providerSettings]);
 
   const handleBrowse = async () => {
     setIsBrowsing(true);
@@ -67,7 +100,7 @@ export function ProjectSetupModal({
     }
   };
 
-  const handleSave = async () => {
+  const handleSaveProject = async () => {
     if (!name.trim()) {
       setError("Project name is required");
       return;
@@ -113,6 +146,34 @@ export function ProjectSetupModal({
     }
   };
 
+  const handleSaveProviders = () => {
+    // Save each provider's settings
+    const providerIds: ProviderType[] = ["gemini", "replicate", "fal"];
+    for (const providerId of providerIds) {
+      const local = localProviders.providers[providerId];
+      const current = providerSettings.providers[providerId];
+
+      // Update enabled state if changed
+      if (local.enabled !== current.enabled) {
+        toggleProvider(providerId, local.enabled);
+      }
+
+      // Update API key if changed
+      if (local.apiKey !== current.apiKey) {
+        updateProviderApiKey(providerId, local.apiKey);
+      }
+    }
+    onClose();
+  };
+
+  const handleSave = () => {
+    if (activeTab === "project") {
+      handleSaveProject();
+    } else {
+      handleSaveProviders();
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !isValidating && !isBrowsing) {
       handleSave();
@@ -120,6 +181,21 @@ export function ProjectSetupModal({
     if (e.key === "Escape") {
       onClose();
     }
+  };
+
+  const updateLocalProvider = (
+    providerId: ProviderType,
+    updates: { enabled?: boolean; apiKey?: string | null }
+  ) => {
+    setLocalProviders((prev) => ({
+      providers: {
+        ...prev.providers,
+        [providerId]: {
+          ...prev.providers[providerId],
+          ...updates,
+        },
+      },
+    }));
   };
 
   if (!isOpen) return null;
@@ -134,66 +210,190 @@ export function ProjectSetupModal({
           {mode === "new" ? "New Project" : "Project Settings"}
         </h2>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm text-neutral-400 mb-1">
-              Project Name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="my-project"
-              autoFocus
-              className="w-full px-3 py-2 bg-neutral-900 border border-neutral-600 rounded text-neutral-100 text-sm focus:outline-none focus:border-neutral-500"
-            />
-          </div>
+        {/* Tab Bar */}
+        <div className="flex gap-4 border-b border-neutral-700 mb-4">
+          <button
+            onClick={() => setActiveTab("project")}
+            className={`pb-2 text-sm ${activeTab === "project" ? "text-neutral-100 border-b-2 border-white" : "text-neutral-400"}`}
+          >
+            Project
+          </button>
+          <button
+            onClick={() => setActiveTab("providers")}
+            className={`pb-2 text-sm ${activeTab === "providers" ? "text-neutral-100 border-b-2 border-white" : "text-neutral-400"}`}
+          >
+            Providers
+          </button>
+        </div>
 
-          <div>
-            <label className="block text-sm text-neutral-400 mb-1">
-              Project Directory
-            </label>
-            <div className="flex gap-2">
+        {/* Project Tab Content */}
+        {activeTab === "project" && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm text-neutral-400 mb-1">
+                Project Name
+              </label>
               <input
                 type="text"
-                value={directoryPath}
-                onChange={(e) => setDirectoryPath(e.target.value)}
-                placeholder="/Users/username/projects/my-project"
-                className="flex-1 px-3 py-2 bg-neutral-900 border border-neutral-600 rounded text-neutral-100 text-sm focus:outline-none focus:border-neutral-500"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="my-project"
+                autoFocus
+                className="w-full px-3 py-2 bg-neutral-900 border border-neutral-600 rounded text-neutral-100 text-sm focus:outline-none focus:border-neutral-500"
               />
-              <button
-                type="button"
-                onClick={handleBrowse}
-                disabled={isBrowsing}
-                className="px-3 py-2 bg-neutral-700 hover:bg-neutral-600 disabled:bg-neutral-700 disabled:opacity-50 text-neutral-200 text-sm rounded transition-colors"
-              >
-                {isBrowsing ? "..." : "Browse"}
-              </button>
             </div>
-            <p className="text-xs text-neutral-500 mt-1">
-              Workflow files and images will be saved here. Subfolders for inputs and generations will be auto-created.
+
+            <div>
+              <label className="block text-sm text-neutral-400 mb-1">
+                Project Directory
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={directoryPath}
+                  onChange={(e) => setDirectoryPath(e.target.value)}
+                  placeholder="/Users/username/projects/my-project"
+                  className="flex-1 px-3 py-2 bg-neutral-900 border border-neutral-600 rounded text-neutral-100 text-sm focus:outline-none focus:border-neutral-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleBrowse}
+                  disabled={isBrowsing}
+                  className="px-3 py-2 bg-neutral-700 hover:bg-neutral-600 disabled:bg-neutral-700 disabled:opacity-50 text-neutral-200 text-sm rounded transition-colors"
+                >
+                  {isBrowsing ? "..." : "Browse"}
+                </button>
+              </div>
+              <p className="text-xs text-neutral-500 mt-1">
+                Workflow files and images will be saved here. Subfolders for inputs and generations will be auto-created.
+              </p>
+            </div>
+
+            <div className="pt-2 border-t border-neutral-700">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!externalStorage}
+                  onChange={(e) => setExternalStorage(!e.target.checked)}
+                  className="w-4 h-4 rounded border-neutral-600 bg-neutral-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-neutral-800"
+                />
+                <div>
+                  <span className="text-sm text-neutral-200">Embed images as base64</span>
+                  <p className="text-xs text-neutral-500">
+                    Embeds all images in workflow, larger workflow files. Can hit memory limits on very large workflows.
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            {error && <p className="text-sm text-red-400">{error}</p>}
+          </div>
+        )}
+
+        {/* Providers Tab Content */}
+        {activeTab === "providers" && (
+          <div className="space-y-4">
+            {/* Gemini Provider */}
+            <div className="p-4 bg-neutral-900 rounded-lg border border-neutral-700">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-neutral-100">
+                    {localProviders.providers.gemini.name}
+                  </span>
+                  <span className="px-2 py-0.5 text-xs bg-green-900/50 text-green-400 rounded">
+                    Default
+                  </span>
+                </div>
+                <span className="text-xs text-green-400">Enabled</span>
+              </div>
+              <p className="text-xs text-neutral-500">
+                Configured via GEMINI_API_KEY environment variable
+              </p>
+            </div>
+
+            {/* Replicate Provider */}
+            <div className="p-4 bg-neutral-900 rounded-lg border border-neutral-700">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-neutral-100">
+                  {localProviders.providers.replicate.name}
+                </span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={localProviders.providers.replicate.enabled}
+                    onChange={(e) => updateLocalProvider("replicate", { enabled: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-neutral-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+              {localProviders.providers.replicate.enabled && (
+                <div className="space-y-2">
+                  <label className="block text-xs text-neutral-400">API Key</label>
+                  <div className="flex gap-2">
+                    <input
+                      type={showApiKey.replicate ? "text" : "password"}
+                      value={localProviders.providers.replicate.apiKey || ""}
+                      onChange={(e) => updateLocalProvider("replicate", { apiKey: e.target.value || null })}
+                      placeholder="r8_..."
+                      className="flex-1 px-3 py-2 bg-neutral-800 border border-neutral-600 rounded text-neutral-100 text-sm focus:outline-none focus:border-neutral-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey((prev) => ({ ...prev, replicate: !prev.replicate }))}
+                      className="px-3 py-2 bg-neutral-700 hover:bg-neutral-600 text-neutral-300 text-sm rounded transition-colors"
+                    >
+                      {showApiKey.replicate ? "Hide" : "Show"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* fal.ai Provider */}
+            <div className="p-4 bg-neutral-900 rounded-lg border border-neutral-700">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-neutral-100">
+                  {localProviders.providers.fal.name}
+                </span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={localProviders.providers.fal.enabled}
+                    onChange={(e) => updateLocalProvider("fal", { enabled: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-neutral-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+              {localProviders.providers.fal.enabled && (
+                <div className="space-y-2">
+                  <label className="block text-xs text-neutral-400">API Key</label>
+                  <div className="flex gap-2">
+                    <input
+                      type={showApiKey.fal ? "text" : "password"}
+                      value={localProviders.providers.fal.apiKey || ""}
+                      onChange={(e) => updateLocalProvider("fal", { apiKey: e.target.value || null })}
+                      placeholder="fal_..."
+                      className="flex-1 px-3 py-2 bg-neutral-800 border border-neutral-600 rounded text-neutral-100 text-sm focus:outline-none focus:border-neutral-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey((prev) => ({ ...prev, fal: !prev.fal }))}
+                      className="px-3 py-2 bg-neutral-700 hover:bg-neutral-600 text-neutral-300 text-sm rounded transition-colors"
+                    >
+                      {showApiKey.fal ? "Hide" : "Show"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <p className="text-xs text-neutral-500">
+              API keys are stored locally in your browser and never sent to our servers.
             </p>
           </div>
-
-          <div className="pt-2 border-t border-neutral-700">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={!externalStorage}
-                onChange={(e) => setExternalStorage(!e.target.checked)}
-                className="w-4 h-4 rounded border-neutral-600 bg-neutral-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-neutral-800"
-              />
-              <div>
-                <span className="text-sm text-neutral-200">Embed images as base64</span>
-                <p className="text-xs text-neutral-500">
-                  Embeds all images in workflow, larger workflow files. Can hit memory limits on very large workflows.
-                </p>
-              </div>
-            </label>
-          </div>
-
-          {error && <p className="text-sm text-red-400">{error}</p>}
-        </div>
+        )}
 
         <div className="flex justify-end gap-2 mt-6">
           <button
@@ -204,10 +404,13 @@ export function ProjectSetupModal({
           </button>
           <button
             onClick={handleSave}
-            disabled={isValidating || isBrowsing}
+            disabled={activeTab === "project" && (isValidating || isBrowsing)}
             className="px-4 py-2 text-sm bg-white text-neutral-900 rounded hover:bg-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {isValidating ? "Validating..." : mode === "new" ? "Create" : "Save"}
+            {activeTab === "project"
+              ? (isValidating ? "Validating..." : mode === "new" ? "Create" : "Save")
+              : "Save"
+            }
           </button>
         </div>
       </div>
