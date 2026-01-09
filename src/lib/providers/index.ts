@@ -20,10 +20,13 @@
  */
 
 import { ProviderType } from "@/types";
-import { ProviderInterface } from "./types";
+import { ProviderInterface, ProviderModel } from "./types";
 
 // Re-export all types for convenient imports
 export * from "./types";
+
+// Re-export cache utilities for convenient imports
+export * from "./cache";
 
 /**
  * Provider registry - populated by provider implementations when they are imported.
@@ -88,3 +91,110 @@ export function getAllProviders(): ProviderInterface[] {
     (p): p is ProviderInterface => p !== undefined
   );
 }
+
+// ============ Multi-Provider Helpers ============
+
+/**
+ * API keys object for multi-provider operations.
+ * Keys are provider IDs, values are API keys.
+ */
+export interface ApiKeys {
+  replicate?: string;
+  fal?: string;
+  gemini?: string;
+}
+
+/**
+ * List models from all registered providers.
+ *
+ * Note: This function calls provider.listModels() which may use localStorage
+ * for API keys (client-side only). For server-side usage, use the API routes
+ * at /api/models or /api/providers/[provider]/models instead.
+ *
+ * @param _apiKeys - API keys object (currently unused, reserved for future use)
+ * @returns Combined array of models from all registered providers
+ *
+ * @example
+ * // Client-side usage (providers get keys from localStorage)
+ * const models = await listAllModels({});
+ */
+export async function listAllModels(
+  _apiKeys: ApiKeys = {}
+): Promise<ProviderModel[]> {
+  const providers = getAllProviders();
+  const results = await Promise.allSettled(
+    providers.map((p) => p.listModels())
+  );
+
+  const allModels: ProviderModel[] = [];
+  for (const result of results) {
+    if (result.status === "fulfilled") {
+      allModels.push(...result.value);
+    }
+  }
+
+  // Sort by provider, then by name
+  allModels.sort((a, b) => {
+    if (a.provider !== b.provider) {
+      return a.provider.localeCompare(b.provider);
+    }
+    return a.name.localeCompare(b.name);
+  });
+
+  return allModels;
+}
+
+/**
+ * Search for models across all registered providers.
+ *
+ * Note: This function calls provider.searchModels() which may use localStorage
+ * for API keys (client-side only). For server-side usage, use the API routes
+ * at /api/models?search=query or /api/providers/[provider]/models?search=query.
+ *
+ * @param query - Search query string
+ * @param _apiKeys - API keys object (currently unused, reserved for future use)
+ * @returns Combined array of matching models from all registered providers
+ *
+ * @example
+ * // Client-side usage (providers get keys from localStorage)
+ * const models = await searchAllModels("flux", {});
+ */
+export async function searchAllModels(
+  query: string,
+  _apiKeys: ApiKeys = {}
+): Promise<ProviderModel[]> {
+  const providers = getAllProviders();
+  const results = await Promise.allSettled(
+    providers.map((p) => p.searchModels(query))
+  );
+
+  const allModels: ProviderModel[] = [];
+  for (const result of results) {
+    if (result.status === "fulfilled") {
+      allModels.push(...result.value);
+    }
+  }
+
+  // Sort by provider, then by name
+  allModels.sort((a, b) => {
+    if (a.provider !== b.provider) {
+      return a.provider.localeCompare(b.provider);
+    }
+    return a.name.localeCompare(b.name);
+  });
+
+  return allModels;
+}
+
+// ============ Provider Auto-Registration ============
+
+/**
+ * Provider modules self-register when imported:
+ *
+ *   import "@/lib/providers/replicate";  // Registers Replicate provider
+ *   import "@/lib/providers/fal";        // Registers fal.ai provider
+ *
+ * The unified API route at /api/models handles fetching directly without
+ * needing to import provider modules (to avoid client-side localStorage
+ * dependencies on the server).
+ */
