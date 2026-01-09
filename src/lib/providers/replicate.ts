@@ -68,6 +68,20 @@ interface ReplicateModel {
 }
 
 /**
+ * Prediction schema from Replicate API
+ */
+interface ReplicatePrediction {
+  id: string;
+  status: "starting" | "processing" | "succeeded" | "failed" | "canceled";
+  output?: string | string[];
+  error?: string;
+  urls?: {
+    get: string;
+    cancel: string;
+  };
+}
+
+/**
  * Get API key from localStorage (client-side only)
  * Returns null when running on server or if not configured
  */
@@ -248,12 +262,188 @@ const replicateProvider: ProviderInterface = {
     }
   },
 
-  async generate(_input: GenerationInput): Promise<GenerationOutput> {
-    // Generation will be implemented in Phase 3
-    return {
-      success: false,
-      error: "Not implemented - generation support coming in Phase 3",
-    };
+  async generate(input: GenerationInput): Promise<GenerationOutput> {
+    const apiKey = input.model.provider === "replicate" ? getApiKeyFromStorage() : null;
+    if (!apiKey) {
+      return {
+        success: false,
+        error: "Replicate API key not configured",
+      };
+    }
+
+    try {
+      // Get the latest version of the model
+      const modelId = input.model.id;
+      const [owner, name] = modelId.split("/");
+
+      // First, get the model to find the latest version
+      const modelResponse = await fetch(
+        `${REPLICATE_API_BASE}/models/${owner}/${name}`,
+        {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+          },
+        }
+      );
+
+      if (!modelResponse.ok) {
+        return {
+          success: false,
+          error: `Failed to get model info: ${modelResponse.status}`,
+        };
+      }
+
+      const modelData: ReplicateModel = await modelResponse.json();
+      const version = modelData.latest_version?.id;
+
+      if (!version) {
+        return {
+          success: false,
+          error: "Model has no available version",
+        };
+      }
+
+      // Build input for the prediction
+      // Most image models expect "prompt" as input
+      const predictionInput: Record<string, unknown> = {
+        prompt: input.prompt,
+        ...input.parameters,
+      };
+
+      // Note: Image inputs are skipped for now (Phase 5 adds URL server)
+      // input.images would need to be converted to URLs for Replicate
+
+      // Create a prediction
+      const createResponse = await fetch(`${REPLICATE_API_BASE}/predictions`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          version,
+          input: predictionInput,
+        }),
+      });
+
+      if (!createResponse.ok) {
+        const errorText = await createResponse.text();
+        return {
+          success: false,
+          error: `Failed to create prediction: ${createResponse.status} - ${errorText}`,
+        };
+      }
+
+      const prediction: ReplicatePrediction = await createResponse.json();
+
+      // Poll for completion
+      const maxWaitTime = 5 * 60 * 1000; // 5 minutes
+      const pollInterval = 1000; // 1 second
+      const startTime = Date.now();
+
+      let currentPrediction = prediction;
+
+      while (
+        currentPrediction.status !== "succeeded" &&
+        currentPrediction.status !== "failed" &&
+        currentPrediction.status !== "canceled"
+      ) {
+        if (Date.now() - startTime > maxWaitTime) {
+          return {
+            success: false,
+            error: "Prediction timed out after 5 minutes",
+          };
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+
+        const pollResponse = await fetch(
+          `${REPLICATE_API_BASE}/predictions/${currentPrediction.id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+            },
+          }
+        );
+
+        if (!pollResponse.ok) {
+          return {
+            success: false,
+            error: `Failed to poll prediction: ${pollResponse.status}`,
+          };
+        }
+
+        currentPrediction = await pollResponse.json();
+      }
+
+      if (currentPrediction.status === "failed") {
+        return {
+          success: false,
+          error: currentPrediction.error || "Prediction failed",
+        };
+      }
+
+      if (currentPrediction.status === "canceled") {
+        return {
+          success: false,
+          error: "Prediction was canceled",
+        };
+      }
+
+      // Extract output image(s)
+      const output = currentPrediction.output;
+      if (!output) {
+        return {
+          success: false,
+          error: "No output from prediction",
+        };
+      }
+
+      // Output can be a single URL string or an array of URLs
+      const outputUrls: string[] = Array.isArray(output) ? output : [output];
+
+      if (outputUrls.length === 0) {
+        return {
+          success: false,
+          error: "No output images from prediction",
+        };
+      }
+
+      // Fetch the first output image and convert to base64
+      const imageUrl = outputUrls[0];
+      const imageResponse = await fetch(imageUrl);
+
+      if (!imageResponse.ok) {
+        return {
+          success: false,
+          error: `Failed to fetch output image: ${imageResponse.status}`,
+        };
+      }
+
+      const imageArrayBuffer = await imageResponse.arrayBuffer();
+      const imageBase64 = Buffer.from(imageArrayBuffer).toString("base64");
+
+      // Determine MIME type from URL or response
+      const contentType =
+        imageResponse.headers.get("content-type") || "image/png";
+
+      return {
+        success: true,
+        outputs: [
+          {
+            type: "image",
+            data: `data:${contentType};base64,${imageBase64}`,
+            url: imageUrl,
+          },
+        ],
+      };
+    } catch (error) {
+      console.error("[Replicate] Generation failed:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Generation failed",
+      };
+    }
   },
 
   isConfigured(): boolean {
