@@ -125,7 +125,8 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
           modelId: nodeData.model || "nano-banana-pro",
           displayName: GEMINI_IMAGE_MODELS.find(m => m.value === (nodeData.model || "nano-banana-pro"))?.label || "Nano Banana Pro",
         };
-        updateNodeData(id, { selectedModel: newSelectedModel });
+        // Clear parameters when switching providers (different providers have different schemas)
+        updateNodeData(id, { selectedModel: newSelectedModel, parameters: {} });
       } else {
         // Set placeholder for external provider
         const newSelectedModel: SelectedModel = {
@@ -133,7 +134,8 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
           modelId: "",
           displayName: "Select model...",
         };
-        updateNodeData(id, { selectedModel: newSelectedModel });
+        // Clear parameters when switching providers
+        updateNodeData(id, { selectedModel: newSelectedModel, parameters: {} });
       }
     },
     [id, nodeData.model, updateNodeData]
@@ -150,7 +152,8 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
           modelId: model.id,
           displayName: model.name,
         };
-        updateNodeData(id, { selectedModel: newSelectedModel });
+        // Clear parameters when changing models (different models have different schemas)
+        updateNodeData(id, { selectedModel: newSelectedModel, parameters: {} });
       }
     },
     [id, currentProvider, externalModels, updateNodeData]
