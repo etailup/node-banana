@@ -86,7 +86,7 @@ Plans:
 Plans:
 - [x] 06-01: GenerateVideo node with video-capable model selector
 - [x] 06-02: Video playback in output node
-- [ ] 06-03: Custom model parameters from provider schemas
+- [x] 06-03: Custom model parameters from provider schemas
 - [ ] 06-04: Edge case handling and final polish
 
 ## Progress
@@ -101,4 +101,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Generate Node Refactor | 3/3 | Complete | 2026-01-09 |
 | 4. Model Search Dialog | 2/2 | Complete | 2026-01-09 |
 | 5. Image URL Server | 2/2 | Complete | 2026-01-09 |
-| 6. Video & Polish | 2/4 | In progress | - |
+| 6. Video & Polish | 3/4 | In progress | - |

@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 ## Current Position
 
 Phase: 6 of 6 (Video & Polish)
-Plan: 2 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: In progress
-Last activity: 2026-01-09 - Completed 06-02-PLAN.md (Video playback in output node)
+Last activity: 2026-01-10 - Completed 06-03-PLAN.md (Custom model parameters)
 
-Progress: [====================================================================================] 93% (14/15 plans)
+Progress: [======================================================================================] 100% (15/15 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 14
-- Average duration: 7.1 min
-- Total execution time: 1.65 hours
+- Total plans completed: 15
+- Average duration: 6.9 min
+- Total execution time: 1.73 hours
 
 **By Phase:**
 
@@ -32,11 +32,11 @@ Progress: [=====================================================================
 | 3. Generate Node Refactor | 3/3 | 13 min | 4.3 min |
 | 4. Model Search Dialog | 2/2 | 17 min | 8.5 min |
 | 5. Image URL Server | 2/2 | 5 min | 2.5 min |
-| 6. Video & Polish | 2/4 | 38 min | 19 min |
+| 6. Video & Polish | 3/4 | 43 min | 14.3 min |
 
 **Recent Trend:**
-- Last 5 plans: 15 min, 3 min, 2 min, 10 min, 28 min
-- Trend: increased (human verification checkpoint)
+- Last 5 plans: 3 min, 2 min, 10 min, 28 min, 5 min
+- Trend: returned to normal after human verification checkpoint
 
 ## Accumulated Context
 
@@ -73,10 +73,14 @@ Recent decisions affecting current work:
 - 256KB threshold for shouldUseImageUrl (Replicate recommendation)
 - Gemini excluded from video node (doesn't support video generation)
 - Large videos (>20MB) return URL instead of base64 to avoid memory issues
+- Fetch schema from provider API at model selection time with 10-min cache
+- Filter internal params, prioritize user-relevant ones (seed, steps, guidance)
+- Collapsible parameters section to keep node UI compact
 
 ### Deferred Issues
 
 - UAT-001: Provider icons should use real logos (minor, cosmetic)
+- ISS-001: Resolved - Generate nodes now adapt to model requirements via dynamic parameters
 
 ### Blockers/Concerns
 
@@ -84,7 +88,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-01-09
-Stopped at: Completed 06-02-PLAN.md (Video playback in output node)
+Last session: 2026-01-10
+Stopped at: Completed 06-03-PLAN.md (Custom model parameters)
 Resume file: None
-Next action: Execute 06-03-PLAN.md (Custom model parameters)
+Next action: Execute 06-04-PLAN.md (Final polish and cleanup)
