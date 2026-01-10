@@ -87,7 +87,8 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
         modelId: "",
         displayName: "Select model...",
       };
-      updateNodeData(id, { selectedModel: newSelectedModel });
+      // Clear parameters when switching providers (different providers have different schemas)
+      updateNodeData(id, { selectedModel: newSelectedModel, parameters: {} });
     },
     [id, updateNodeData]
   );
@@ -103,7 +104,8 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
           modelId: model.id,
           displayName: model.name,
         };
-        updateNodeData(id, { selectedModel: newSelectedModel });
+        // Clear parameters when changing models (different models have different schemas)
+        updateNodeData(id, { selectedModel: newSelectedModel, parameters: {} });
       }
     },
     [id, currentProvider, externalModels, updateNodeData]

@@ -227,8 +227,24 @@ function ParameterInput({ param, value, onChange }: ParameterInputProps) {
   }
 
   if (param.type === "number" || param.type === "integer") {
-    // Number: render as number input
+    // Number: render as number input with validation
     const numValue = value !== undefined ? Number(value) : "";
+    const hasMin = param.minimum !== undefined;
+    const hasMax = param.maximum !== undefined;
+
+    // Validate current value against constraints
+    let validationError: string | null = null;
+    if (value !== undefined && value !== "" && !isNaN(Number(value))) {
+      const num = Number(value);
+      if (hasMin && num < param.minimum!) {
+        validationError = `Min: ${param.minimum}`;
+      } else if (hasMax && num > param.maximum!) {
+        validationError = `Max: ${param.maximum}`;
+      } else if (param.type === "integer" && !Number.isInteger(num)) {
+        validationError = "Must be integer";
+      }
+    }
+
     return (
       <div className="flex flex-col gap-0.5">
         <label
@@ -236,7 +252,7 @@ function ParameterInput({ param, value, onChange }: ParameterInputProps) {
           title={param.description || undefined}
         >
           {displayName}
-          {param.minimum !== undefined && param.maximum !== undefined && (
+          {hasMin && hasMax && (
             <span className="text-neutral-500">
               ({param.minimum}-{param.maximum})
             </span>
@@ -258,8 +274,15 @@ function ParameterInput({ param, value, onChange }: ParameterInputProps) {
             }
           }}
           placeholder={param.default !== undefined ? `Default: ${param.default}` : undefined}
-          className="w-full text-[9px] py-0.5 px-1 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300 placeholder:text-neutral-600"
+          className={`w-full text-[9px] py-0.5 px-1 border rounded bg-neutral-900/50 focus:outline-none focus:ring-1 text-neutral-300 placeholder:text-neutral-600 ${
+            validationError
+              ? "border-red-500 focus:ring-red-500"
+              : "border-neutral-700 focus:ring-neutral-600"
+          }`}
         />
+        {validationError && (
+          <span className="text-[8px] text-red-400">{validationError}</span>
+        )}
       </div>
     );
   }
