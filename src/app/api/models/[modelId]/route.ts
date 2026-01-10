@@ -204,9 +204,16 @@ async function fetchFalSchema(
   }
 
   // Fetch OpenAPI spec from /api endpoint
+  // Note: Not all fal.ai models expose this endpoint, so 404 is expected for some
   const response = await fetch(`https://fal.run/${modelId}/api`, { headers });
 
   if (!response.ok) {
+    // 404 is common - many fal.ai models don't expose OpenAPI schema
+    // Return empty params rather than error so generation can still work
+    if (response.status === 404) {
+      console.log(`[fetchFalSchema] Model ${modelId} does not expose OpenAPI schema (404)`);
+      return [];
+    }
     throw new Error(`fal.ai API error: ${response.status}`);
   }
 
