@@ -19,6 +19,7 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
   const providerSettings = useWorkflowStore((state) => state.providerSettings);
   const [externalModels, setExternalModels] = useState<ProviderModel[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const [modelsFetchError, setModelsFetchError] = useState<string | null>(null);
 
   // Get the current selected provider (default to fal since Gemini doesn't do video)
   const currentProvider: ProviderType = nodeData.selectedModel?.provider || "fal";
@@ -36,35 +37,45 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
   }, [providerSettings]);
 
   // Fetch models from external providers when provider changes
-  useEffect(() => {
-    const fetchModels = async () => {
-      setIsLoadingModels(true);
-      try {
-        const capabilities = VIDEO_CAPABILITIES.join(",");
-        const headers: HeadersInit = {};
-        if (providerSettings.providers.replicate?.apiKey) {
-          headers["X-Replicate-Key"] = providerSettings.providers.replicate.apiKey;
-        }
-        if (providerSettings.providers.fal?.apiKey) {
-          headers["X-Fal-Key"] = providerSettings.providers.fal.apiKey;
-        }
-        const response = await fetch(`/api/models?provider=${currentProvider}&capabilities=${capabilities}`, { headers });
-        if (response.ok) {
-          const data = await response.json();
-          setExternalModels(data.models || []);
-        } else {
-          setExternalModels([]);
-        }
-      } catch (error) {
-        console.error("Failed to fetch video models:", error);
-        setExternalModels([]);
-      } finally {
-        setIsLoadingModels(false);
+  const fetchModels = useCallback(async () => {
+    setIsLoadingModels(true);
+    setModelsFetchError(null);
+    try {
+      const capabilities = VIDEO_CAPABILITIES.join(",");
+      const headers: HeadersInit = {};
+      if (providerSettings.providers.replicate?.apiKey) {
+        headers["X-Replicate-Key"] = providerSettings.providers.replicate.apiKey;
       }
-    };
-
-    fetchModels();
+      if (providerSettings.providers.fal?.apiKey) {
+        headers["X-Fal-Key"] = providerSettings.providers.fal.apiKey;
+      }
+      const response = await fetch(`/api/models?provider=${currentProvider}&capabilities=${capabilities}`, { headers });
+      if (response.ok) {
+        const data = await response.json();
+        setExternalModels(data.models || []);
+        setModelsFetchError(null);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMsg = errorData.error || `Failed to load models (${response.status})`;
+        setExternalModels([]);
+        setModelsFetchError(
+          currentProvider === "replicate" && response.status === 401
+            ? "Invalid Replicate API key. Check your settings."
+            : errorMsg
+        );
+      }
+    } catch (error) {
+      console.error("Failed to fetch video models:", error);
+      setExternalModels([]);
+      setModelsFetchError("Failed to load models. Check your connection.");
+    } finally {
+      setIsLoadingModels(false);
+    }
   }, [currentProvider, providerSettings]);
+
+  useEffect(() => {
+    fetchModels();
+  }, [fetchModels]);
 
   // Handle provider change
   const handleProviderChange = useCallback(
@@ -250,30 +261,42 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
         )}
 
         {/* Model selector */}
-        <select
-          value={nodeData.selectedModel?.modelId || ""}
-          onChange={handleModelChange}
-          disabled={isLoadingModels}
-          className="w-full text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300 shrink-0 disabled:opacity-50"
-        >
-          {isLoadingModels ? (
-            <option value="">Loading models...</option>
-          ) : externalModels.length === 0 ? (
-            <option value="">No video models available</option>
-          ) : (
-            <>
-              <option value="">Select model...</option>
-              {externalModels.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </>
-          )}
-        </select>
+        {modelsFetchError ? (
+          <div className="flex flex-col gap-1 shrink-0">
+            <span className="text-[9px] text-red-400">{modelsFetchError}</span>
+            <button
+              onClick={fetchModels}
+              className="text-[9px] px-2 py-0.5 bg-neutral-800 hover:bg-neutral-700 rounded text-neutral-300 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        ) : (
+          <select
+            value={nodeData.selectedModel?.modelId || ""}
+            onChange={handleModelChange}
+            disabled={isLoadingModels}
+            className="w-full text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300 shrink-0 disabled:opacity-50"
+          >
+            {isLoadingModels ? (
+              <option value="">Loading models...</option>
+            ) : externalModels.length === 0 ? (
+              <option value="">No video models available</option>
+            ) : (
+              <>
+                <option value="">Select model...</option>
+                {externalModels.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </>
+            )}
+          </select>
+        )}
 
         {/* Model-specific parameters */}
-        {nodeData.selectedModel?.modelId && (
+        {nodeData.selectedModel?.modelId && !modelsFetchError && (
           <ModelParameters
             modelId={nodeData.selectedModel.modelId}
             provider={currentProvider}

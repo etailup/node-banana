@@ -307,9 +307,25 @@ async function generateWithReplicate(
 
   if (!createResponse.ok) {
     const errorText = await createResponse.text();
+    let errorDetail = errorText;
+    try {
+      const errorJson = JSON.parse(errorText);
+      errorDetail = errorJson.detail || errorJson.message || errorJson.error || errorText;
+    } catch {
+      // Keep original text if not JSON
+    }
+
+    // Handle rate limits
+    if (createResponse.status === 429) {
+      return {
+        success: false,
+        error: `${input.model.name}: Rate limit exceeded. Try again in a moment.`,
+      };
+    }
+
     return {
       success: false,
-      error: `Failed to create prediction: ${createResponse.status} - ${errorText}`,
+      error: `${input.model.name}: ${errorDetail}`,
     };
   }
 
@@ -330,7 +346,7 @@ async function generateWithReplicate(
     if (Date.now() - startTime > maxWaitTime) {
       return {
         success: false,
-        error: "Prediction timed out after 5 minutes",
+        error: `${input.model.name}: Generation timed out after 5 minutes. Video models may take longer - try again.`,
       };
     }
 
@@ -357,9 +373,11 @@ async function generateWithReplicate(
   }
 
   if (currentPrediction.status === "failed") {
+    const failureReason = currentPrediction.error || "Prediction failed";
+    console.error(`[API:${requestId}] Replicate prediction failed: ${failureReason}`);
     return {
       success: false,
-      error: currentPrediction.error || "Prediction failed",
+      error: `${input.model.name}: ${failureReason}`,
     };
   }
 
@@ -496,9 +514,25 @@ async function generateWithFal(
 
   if (!response.ok) {
     const errorText = await response.text();
+    let errorDetail = errorText;
+    try {
+      const errorJson = JSON.parse(errorText);
+      errorDetail = errorJson.detail || errorJson.message || errorJson.error || errorText;
+    } catch {
+      // Keep original text if not JSON
+    }
+
+    // Handle rate limits
+    if (response.status === 429) {
+      return {
+        success: false,
+        error: `${input.model.name}: Rate limit exceeded. ${apiKey ? "Try again in a moment." : "Add an API key in settings for higher limits."}`,
+      };
+    }
+
     return {
       success: false,
-      error: `fal.ai API error: ${response.status} - ${errorText}`,
+      error: `${input.model.name}: ${errorDetail}`,
     };
   }
 
