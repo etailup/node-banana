@@ -3,6 +3,7 @@
 import { useCallback, useState, useEffect, useMemo } from "react";
 import { Handle, Position, NodeProps, Node } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
+import { ModelParameters } from "./ModelParameters";
 import { useWorkflowStore } from "@/store/workflowStore";
 import { GenerateVideoNodeData, ProviderType, SelectedModel } from "@/types";
 import { ProviderModel, ModelCapability } from "@/lib/providers/types";
@@ -100,6 +101,13 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
   const handleClearVideo = useCallback(() => {
     updateNodeData(id, { outputVideo: null, status: "idle", error: null });
   }, [id, updateNodeData]);
+
+  const handleParametersChange = useCallback(
+    (parameters: Record<string, unknown>) => {
+      updateNodeData(id, { parameters });
+    },
+    [id, updateNodeData]
+  );
 
   const regenerateNode = useWorkflowStore((state) => state.regenerateNode);
   const isRunning = useWorkflowStore((state) => state.isRunning);
@@ -263,6 +271,16 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
             </>
           )}
         </select>
+
+        {/* Model-specific parameters */}
+        {nodeData.selectedModel?.modelId && (
+          <ModelParameters
+            modelId={nodeData.selectedModel.modelId}
+            provider={currentProvider}
+            parameters={nodeData.parameters || {}}
+            onParametersChange={handleParametersChange}
+          />
+        )}
       </div>
     </BaseNode>
   );

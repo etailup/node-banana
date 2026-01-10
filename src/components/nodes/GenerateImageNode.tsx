@@ -3,6 +3,7 @@
 import { useCallback, useState, useEffect, useMemo } from "react";
 import { Handle, Position, NodeProps, Node } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
+import { ModelParameters } from "./ModelParameters";
 import { useWorkflowStore, saveNanoBananaDefaults } from "@/store/workflowStore";
 import { NanoBananaNodeData, AspectRatio, Resolution, ModelType, ProviderType, SelectedModel } from "@/types";
 import { ProviderModel, ModelCapability } from "@/lib/providers/types";
@@ -183,6 +184,13 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
       const useGoogleSearch = e.target.checked;
       updateNodeData(id, { useGoogleSearch });
       saveNanoBananaDefaults({ useGoogleSearch });
+    },
+    [id, updateNodeData]
+  );
+
+  const handleParametersChange = useCallback(
+    (parameters: Record<string, unknown>) => {
+      updateNodeData(id, { parameters });
     },
     [id, updateNodeData]
   );
@@ -472,27 +480,39 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
             ))}
           </select>
         ) : (
-          <select
-            value={nodeData.selectedModel?.modelId || ""}
-            onChange={handleExternalModelChange}
-            disabled={isLoadingModels}
-            className="w-full text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300 shrink-0 disabled:opacity-50"
-          >
-            {isLoadingModels ? (
-              <option value="">Loading models...</option>
-            ) : externalModels.length === 0 ? (
-              <option value="">No models available</option>
-            ) : (
-              <>
-                <option value="">Select model...</option>
-                {externalModels.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </>
+          <>
+            <select
+              value={nodeData.selectedModel?.modelId || ""}
+              onChange={handleExternalModelChange}
+              disabled={isLoadingModels}
+              className="w-full text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300 shrink-0 disabled:opacity-50"
+            >
+              {isLoadingModels ? (
+                <option value="">Loading models...</option>
+              ) : externalModels.length === 0 ? (
+                <option value="">No models available</option>
+              ) : (
+                <>
+                  <option value="">Select model...</option>
+                  {externalModels.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </>
+              )}
+            </select>
+
+            {/* Model-specific parameters for external providers */}
+            {nodeData.selectedModel?.modelId && (
+              <ModelParameters
+                modelId={nodeData.selectedModel.modelId}
+                provider={currentProvider}
+                parameters={nodeData.parameters || {}}
+                onParametersChange={handleParametersChange}
+              />
             )}
-          </select>
+          </>
         )}
 
         {/* Aspect ratio and resolution row - only for Gemini */}

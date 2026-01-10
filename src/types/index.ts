@@ -145,6 +145,7 @@ export interface NanoBananaNodeData extends BaseNodeData {
   model: ModelType;
   selectedModel?: SelectedModel;  // Multi-provider model selection (optional for backward compat)
   useGoogleSearch: boolean; // Only available for Nano Banana Pro
+  parameters?: Record<string, unknown>;  // Model-specific parameters for external providers
   status: NodeStatus;
   error: string | null;
   imageHistory: CarouselImageItem[]; // Carousel history (IDs only)
@@ -159,6 +160,7 @@ export interface GenerateVideoNodeData extends BaseNodeData {
   outputVideo: string | null;  // Video data URL or URL
   outputVideoRef?: string;  // External video reference for storage optimization
   selectedModel?: SelectedModel;  // Required for video generation (no legacy fallback)
+  parameters?: Record<string, unknown>;  // Model-specific parameters
   status: NodeStatus;
   error: string | null;
 }
