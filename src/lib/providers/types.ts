@@ -18,6 +18,20 @@ export type ModelCapability =
   | "image-to-video";
 
 /**
+ * Model parameter schema for dynamic UI generation
+ */
+export interface ModelParameter {
+  name: string;
+  type: "string" | "number" | "integer" | "boolean" | "array";
+  description?: string;
+  default?: unknown;
+  minimum?: number;
+  maximum?: number;
+  enum?: unknown[];
+  required?: boolean;
+}
+
+/**
  * Represents a model from any provider with normalized metadata
  */
 export interface ProviderModel {
