@@ -192,7 +192,8 @@ async function fetchReplicateSchema(
 }
 
 /**
- * Fetch and parse schema from fal.ai
+ * Fetch and parse schema from fal.ai using Model Search API
+ * Uses: GET https://api.fal.ai/v1/models?endpoint_id={modelId}&expand=openapi-3.0
  */
 async function fetchFalSchema(
   modelId: string,
@@ -203,32 +204,58 @@ async function fetchFalSchema(
     headers["Authorization"] = `Key ${apiKey}`;
   }
 
-  // Fetch OpenAPI spec from /api endpoint
-  // Note: Not all fal.ai models expose this endpoint, so 404 is expected for some
-  const response = await fetch(`https://fal.run/${modelId}/api`, { headers });
+  // Use fal.ai Model Search API with OpenAPI expansion
+  const url = `https://api.fal.ai/v1/models?endpoint_id=${encodeURIComponent(modelId)}&expand=openapi-3.0`;
+  console.log(`[fetchFalSchema] Fetching schema from: ${url}`);
+
+  const response = await fetch(url, { headers });
 
   if (!response.ok) {
-    // 404 is common - many fal.ai models don't expose OpenAPI schema
-    // Return empty params rather than error so generation can still work
-    if (response.status === 404) {
-      console.log(`[fetchFalSchema] Model ${modelId} does not expose OpenAPI schema (404)`);
-      return [];
-    }
-    throw new Error(`fal.ai API error: ${response.status}`);
+    // Return empty params if API fails so generation still works
+    console.log(`[fetchFalSchema] Model Search API returned ${response.status}`);
+    return [];
   }
 
-  const spec = await response.json();
+  const data = await response.json();
+
+  // Response is { data: [{ openapi: {...}, ... }] }
+  const modelData = data.data?.[0];
+  if (!modelData?.openapi) {
+    console.log(`[fetchFalSchema] No OpenAPI schema in response for ${modelId}`);
+    return [];
+  }
+
+  const spec = modelData.openapi;
 
   // Navigate to request body schema
   // Path: paths["/"]["post"].requestBody.content["application/json"].schema
   const requestBodySchema = spec.paths?.["/"]?.post?.requestBody?.content?.["application/json"]?.schema;
 
   if (!requestBodySchema) {
-    return [];
+    // Try alternate path structure
+    const postPath = Object.values(spec.paths || {})[0] as Record<string, unknown> | undefined;
+    const postOp = postPath?.post as Record<string, unknown> | undefined;
+    const reqBody = postOp?.requestBody as Record<string, unknown> | undefined;
+    const content = reqBody?.content as Record<string, Record<string, unknown>> | undefined;
+    const jsonContent = content?.["application/json"];
+
+    if (!jsonContent?.schema) {
+      console.log(`[fetchFalSchema] Could not find request body schema in OpenAPI spec`);
+      return [];
+    }
+
+    return extractParametersFromSchema(jsonContent.schema as Record<string, unknown>);
   }
 
-  const properties = requestBodySchema.properties as Record<string, Record<string, unknown>> | undefined;
-  const required = (requestBodySchema.required as string[]) || [];
+  return extractParametersFromSchema(requestBodySchema as Record<string, unknown>);
+}
+
+/**
+ * Extract ModelParameters from an OpenAPI schema object
+ */
+function extractParametersFromSchema(schema: Record<string, unknown>): ModelParameter[] {
+  const properties = schema.properties as Record<string, Record<string, unknown>> | undefined;
+  const required = (schema.required as string[]) || [];
 
   if (!properties) {
     return [];
