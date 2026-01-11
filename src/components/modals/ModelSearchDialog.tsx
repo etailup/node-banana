@@ -34,12 +34,18 @@ interface ModelSearchDialogProps {
   isOpen: boolean;
   onClose: () => void;
   initialProvider?: ProviderType | null;
+  /** When provided, calls this callback instead of creating a new node */
+  onModelSelected?: (model: ProviderModel) => void;
+  /** Initial capability filter - 'image' for image nodes, 'video' for video nodes */
+  initialCapabilityFilter?: CapabilityFilter;
 }
 
 export function ModelSearchDialog({
   isOpen,
   onClose,
   initialProvider,
+  onModelSelected,
+  initialCapabilityFilter,
 }: ModelSearchDialogProps) {
   const {
     providerSettings,
@@ -56,7 +62,7 @@ export function ModelSearchDialog({
     initialProvider || "all"
   );
   const [capabilityFilter, setCapabilityFilter] =
-    useState<CapabilityFilter>("all");
+    useState<CapabilityFilter>(initialCapabilityFilter || "all");
   const [models, setModels] = useState<ProviderModel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -169,6 +175,14 @@ export function ModelSearchDialog({
   // Handle model selection
   const handleSelectModel = useCallback(
     (model: ProviderModel) => {
+      // If onModelSelected is provided, use it to update an existing node
+      if (onModelSelected) {
+        onModelSelected(model);
+        onClose();
+        return;
+      }
+
+      // Otherwise, create a new node
       const center = getPaneCenter();
       const position = screenToFlowPosition({
         x: center.x + Math.random() * 100 - 50,
@@ -192,7 +206,7 @@ export function ModelSearchDialog({
 
       onClose();
     },
-    [screenToFlowPosition, addNode, onClose]
+    [screenToFlowPosition, addNode, onClose, onModelSelected]
   );
 
   // Handle escape key

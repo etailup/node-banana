@@ -642,74 +642,63 @@ export function WorkflowCanvas() {
     setConnectionDrop(null);
   }, []);
 
-  // Custom wheel handler for macOS trackpad support
-  const handleWheel = useCallback((event: React.WheelEvent) => {
-    // Check if scrolling over a scrollable element (e.g., textarea, scrollable div)
-    const target = event.target as HTMLElement;
-    const scrollableElement = findScrollableAncestor(target, event.deltaX, event.deltaY);
-
-    if (scrollableElement) {
-      // Let the element handle its own scroll - don't prevent default or manipulate viewport
-      return;
-    }
-
-    // Pinch gesture (ctrlKey) always zooms
-    if (event.ctrlKey) {
-      event.preventDefault();
-      if (event.deltaY < 0) zoomIn();
-      else zoomOut();
-      return;
-    }
-
-    // On macOS, differentiate trackpad from mouse
-    if (isMacOS) {
-      const nativeEvent = event.nativeEvent;
-      if (isMouseWheel(nativeEvent)) {
-        // Mouse wheel → zoom
-        event.preventDefault();
-        if (event.deltaY < 0) zoomIn();
-        else zoomOut();
-      } else {
-        // Trackpad scroll → pan
-        event.preventDefault();
-        const viewport = getViewport();
-        setViewport({
-          x: viewport.x - event.deltaX,
-          y: viewport.y - event.deltaY,
-          zoom: viewport.zoom,
-        });
-      }
-      return;
-    }
-
-    // Non-macOS: default zoom behavior
-    event.preventDefault();
-    if (event.deltaY < 0) zoomIn();
-    else zoomOut();
-  }, [zoomIn, zoomOut, getViewport, setViewport]);
-
   // Get copy/paste functions and clipboard from store
   const { copySelectedNodes, pasteNodes, clearClipboard, clipboard } = useWorkflowStore();
 
-  // Add non-passive wheel listener to prevent Chrome swipe navigation on macOS
+  // Add non-passive wheel listener to handle zoom/pan and prevent browser navigation
+  // This replaces the onWheel prop which is passive by default and can't preventDefault
   useEffect(() => {
-    const handleWheelCapture = (event: WheelEvent) => {
-      // Always preventDefault on horizontal wheel to block browser back/forward navigation
-      // But let the event propagate so React Flow and other handlers can still process it
-      if (event.deltaX !== 0) {
+    const wrapper = reactFlowWrapper.current;
+    if (!wrapper) return;
+
+    const handleWheelNonPassive = (event: WheelEvent) => {
+      // Skip if modal is open
+      if (isModalOpen) return;
+
+      // Check if scrolling over a scrollable element
+      const target = event.target as HTMLElement;
+      const scrollableElement = findScrollableAncestor(target, event.deltaX, event.deltaY);
+      if (scrollableElement) return;
+
+      // Pinch gesture (ctrlKey) always zooms
+      if (event.ctrlKey) {
         event.preventDefault();
+        if (event.deltaY < 0) zoomIn();
+        else zoomOut();
+        return;
       }
+
+      // On macOS, differentiate trackpad from mouse
+      if (isMacOS) {
+        if (isMouseWheel(event)) {
+          // Mouse wheel → zoom
+          event.preventDefault();
+          if (event.deltaY < 0) zoomIn();
+          else zoomOut();
+        } else {
+          // Trackpad scroll → pan (also prevent horizontal swipe navigation)
+          event.preventDefault();
+          const viewport = getViewport();
+          setViewport({
+            x: viewport.x - event.deltaX,
+            y: viewport.y - event.deltaY,
+            zoom: viewport.zoom,
+          });
+        }
+        return;
+      }
+
+      // Non-macOS: default zoom behavior
+      event.preventDefault();
+      if (event.deltaY < 0) zoomIn();
+      else zoomOut();
     };
 
-    // Add listener with passive: false and capture phase to catch events early
-    const wrapper = reactFlowWrapper.current;
-    if (wrapper && isMacOS) {
-      wrapper.addEventListener('wheel', handleWheelCapture, { passive: false, capture: true });
-      return () => {
-        wrapper.removeEventListener('wheel', handleWheelCapture, true);
-      };
-    }
-  }, []);
+    wrapper.addEventListener('wheel', handleWheelNonPassive, { passive: false });
+    return () => {
+      wrapper.removeEventListener('wheel', handleWheelNonPassive);
+    };
+  }, [isModalOpen, zoomIn, zoomOut, getViewport, setViewport]);
 
   // Keyboard shortcuts for copy/paste and stacking selected nodes
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
@@ -1167,7 +1156,6 @@ export function WorkflowCanvas() {
         maxZoom={4}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         panActivationKeyCode={isModalOpen ? null : "Space"}
-        onWheel={isModalOpen ? undefined : handleWheel}
         nodesDraggable={!isModalOpen}
         nodesConnectable={!isModalOpen}
         elementsSelectable={!isModalOpen}

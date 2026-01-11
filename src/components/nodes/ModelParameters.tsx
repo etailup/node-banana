@@ -30,7 +30,7 @@ export function ModelParameters({
   const [schema, setSchema] = useState<ModelParameter[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const providerSettings = useWorkflowStore((state) => state.providerSettings);
 
   // Fetch schema when modelId changes
@@ -66,7 +66,8 @@ export function ModelParameters({
         }
 
         const data = await response.json();
-        setSchema(data.parameters || []);
+        const params = data.parameters || [];
+        setSchema(params);
 
         // Pass inputs to parent for dynamic handle rendering
         if (data.inputs && onInputsLoaded) {
@@ -83,6 +84,13 @@ export function ModelParameters({
 
     fetchSchema();
   }, [modelId, provider, providerSettings, onInputsLoaded]);
+
+  // Notify parent to resize node when schema loads and panel is expanded
+  useEffect(() => {
+    if (isExpanded && schema.length > 0 && onExpandChange) {
+      onExpandChange(true, schema.length);
+    }
+  }, [schema, isExpanded, onExpandChange]);
 
   const handleParameterChange = useCallback(
     (name: string, value: unknown) => {
@@ -223,6 +231,9 @@ function ParameterInput({ param, value, onChange }: ParameterInputProps) {
   }
 
   if (param.type === "boolean") {
+    // Use schema default when value not explicitly set
+    const effectiveValue = value !== undefined ? Boolean(value) : Boolean(param.default);
+
     // Boolean: render as checkbox
     return (
       <label
@@ -231,8 +242,8 @@ function ParameterInput({ param, value, onChange }: ParameterInputProps) {
       >
         <input
           type="checkbox"
-          checked={Boolean(value)}
-          onChange={(e) => onChange(e.target.checked ? true : undefined)}
+          checked={effectiveValue}
+          onChange={(e) => onChange(e.target.checked)}
           className="w-2.5 h-2.5 rounded border-neutral-700 bg-neutral-900/50 text-neutral-600 focus:ring-1 focus:ring-neutral-600 focus:ring-offset-0"
         />
         <span>{displayName}</span>

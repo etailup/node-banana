@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useState, useEffect, useMemo } from "react";
+import React, { useCallback, useState, useEffect, useMemo } from "react";
 import { Handle, Position, NodeProps, Node, useReactFlow } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
 import { ModelParameters } from "./ModelParameters";
 import { useWorkflowStore, saveNanoBananaDefaults } from "@/store/workflowStore";
 import { NanoBananaNodeData, AspectRatio, Resolution, ModelType, ProviderType, SelectedModel, ModelInputDef } from "@/types";
 import { ProviderModel, ModelCapability } from "@/lib/providers/types";
+import { ModelSearchDialog } from "@/components/modals/ModelSearchDialog";
 
 // All 10 aspect ratios supported by both models
 const ASPECT_RATIOS: AspectRatio[] = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"];
@@ -34,6 +35,7 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
   const [externalModels, setExternalModels] = useState<ProviderModel[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [modelsFetchError, setModelsFetchError] = useState<string | null>(null);
+  const [isBrowseDialogOpen, setIsBrowseDialogOpen] = useState(false);
 
   // Get the current selected provider (default to gemini)
   const currentProvider: ProviderType = nodeData.selectedModel?.provider || "gemini";
@@ -52,6 +54,17 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
     }
     return providers;
   }, [providerSettings]);
+
+  // Check if external providers (Replicate/Fal) are enabled
+  const hasExternalProviders = useMemo(() => {
+    const hasReplicate = providerSettings.providers.replicate?.enabled &&
+                         providerSettings.providers.replicate?.apiKey;
+    const hasFal = providerSettings.providers.fal?.enabled &&
+                   providerSettings.providers.fal?.apiKey;
+    return !!(hasReplicate || hasFal);
+  }, [providerSettings]);
+
+  const isGeminiOnly = !hasExternalProviders;
 
   // Migrate legacy data: derive selectedModel from model field if missing
   useEffect(() => {
@@ -318,14 +331,65 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
     }
   }, [id, nodeData.imageHistory, nodeData.selectedHistoryIndex, isLoadingCarouselImage, loadImageById, updateNodeData]);
 
+  // Handle model selection from browse dialog
+  const handleBrowseModelSelect = useCallback((model: ProviderModel) => {
+    const newSelectedModel: SelectedModel = {
+      provider: model.provider,
+      modelId: model.id,
+      displayName: model.name,
+    };
+    updateNodeData(id, { selectedModel: newSelectedModel, parameters: {} });
+    setIsBrowseDialogOpen(false);
+  }, [id, updateNodeData]);
+
   const isGeminiProvider = currentProvider === "gemini";
+
+  // Dynamic title based on selected model
+  const displayTitle = useMemo(() => {
+    if (isGeminiOnly) {
+      // Gemini-only mode: just "Generate", model shown in inline dropdown
+      return "Generate";
+    } else if (nodeData.selectedModel?.displayName && nodeData.selectedModel.modelId) {
+      // External provider with model selected: append model name
+      return `Generate - ${nodeData.selectedModel.displayName}`;
+    }
+    return "Generate";
+  }, [isGeminiOnly, nodeData.selectedModel?.displayName, nodeData.selectedModel?.modelId]);
+
+  // Header action element based on provider mode
+  const headerAction = useMemo(() => {
+    if (isGeminiOnly) {
+      // Gemini-only: inline dropdown for 2 models
+      return (
+        <select
+          value={nodeData.model}
+          onChange={handleModelChange}
+          className="nodrag nopan text-[10px] py-0.5 px-1 bg-transparent border border-neutral-600 rounded text-neutral-300 cursor-pointer hover:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-500"
+        >
+          <option value="nano-banana">Nano Banana</option>
+          <option value="nano-banana-pro">Nano Banana Pro</option>
+        </select>
+      );
+    } else {
+      // External providers: browse button
+      return (
+        <button
+          onClick={() => setIsBrowseDialogOpen(true)}
+          className="nodrag nopan text-[10px] py-0.5 px-1.5 bg-neutral-700 hover:bg-neutral-600 border border-neutral-600 rounded text-neutral-300 transition-colors"
+        >
+          Browse
+        </button>
+      );
+    }
+  }, [isGeminiOnly, nodeData.model, handleModelChange]);
   const isNanoBananaPro = isGeminiProvider && nodeData.model === "nano-banana-pro";
   const hasCarouselImages = (nodeData.imageHistory || []).length > 1;
 
   return (
+    <>
     <BaseNode
       id={id}
-      title="Generate"
+      title={displayTitle}
       customTitle={nodeData.customTitle}
       comment={nodeData.comment}
       onCustomTitleChange={(title) => updateNodeData(id, { customTitle: title || undefined })}
@@ -334,6 +398,7 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
       selected={selected}
       isExecuting={isRunning}
       hasError={nodeData.status === "error"}
+      headerAction={headerAction}
     >
       {/* Dynamic input handles based on model schema (external providers only) */}
       {!isGeminiProvider && nodeData.inputSchema && nodeData.inputSchema.length > 0 ? (
@@ -355,28 +420,28 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
             const isImage = input.type === "image";
 
             return (
-              <div key={input.name}>
+              <React.Fragment key={input.name}>
                 <Handle
                   type="target"
                   position={Position.Left}
                   id={input.name}
-                  style={{ top: `calc(${topPercent}% - 5px)` }}
+                  style={{ top: `${topPercent}%` }}
                   data-handletype={input.type}
                   isConnectable={true}
                   title={input.description || input.label}
                 />
-                {/* Handle label - positioned outside node, colored to match handle */}
+                {/* Handle label - positioned outside node, above the connector */}
                 <div
                   className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none text-right"
                   style={{
-                    right: `calc(100% + 14px)`,
-                    top: `calc(${topPercent}% - 7px)`,
+                    right: `calc(100% + 8px)`,
+                    top: `calc(${topPercent}% - 18px)`,
                     color: isImage ? "var(--handle-color-image)" : "var(--handle-color-text)",
                   }}
                 >
                   {input.label}
                 </div>
-              </div>
+              </React.Fragment>
             );
           });
         })()
@@ -387,7 +452,7 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
             type="target"
             position={Position.Left}
             id="image"
-            style={{ top: "calc(35% - 5px)" }}
+            style={{ top: "35%" }}
             data-handletype="image"
             isConnectable={true}
           />
@@ -395,8 +460,8 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
           <div
             className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none text-right"
             style={{
-              right: `calc(100% + 14px)`,
-              top: "calc(35% - 7px)",
+              right: `calc(100% + 8px)`,
+              top: "calc(35% - 18px)",
               color: "var(--handle-color-image)",
             }}
           >
@@ -406,15 +471,15 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
             type="target"
             position={Position.Left}
             id="text"
-            style={{ top: "calc(65% - 5px)" }}
+            style={{ top: "65%" }}
             data-handletype="text"
           />
           {/* Default text label */}
           <div
             className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none text-right"
             style={{
-              right: `calc(100% + 14px)`,
-              top: "calc(65% - 7px)",
+              right: `calc(100% + 8px)`,
+              top: "calc(65% - 18px)",
               color: "var(--handle-color-text)",
             }}
           >
@@ -427,15 +492,15 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
         type="source"
         position={Position.Right}
         id="image"
-        style={{ top: "calc(50% - 5px)" }}
+        style={{ top: "50%" }}
         data-handletype="image"
       />
       {/* Output label */}
       <div
         className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none"
         style={{
-          left: `calc(100% + 14px)`,
-          top: "calc(50% - 7px)",
+          left: `calc(100% + 8px)`,
+          top: "calc(50% - 18px)",
           color: "var(--handle-color-image)",
         }}
       >
@@ -576,87 +641,20 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
           </div>
         )}
 
-        {/* Provider selector - only show if multiple providers are enabled */}
-        {enabledProviders.length > 1 && (
-          <select
-            value={currentProvider}
-            onChange={handleProviderChange}
-            className="w-full text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300 shrink-0"
-          >
-            {enabledProviders.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+        {/* Model-specific parameters for external providers */}
+        {!isGeminiOnly && nodeData.selectedModel?.modelId && (
+          <ModelParameters
+            modelId={nodeData.selectedModel.modelId}
+            provider={currentProvider}
+            parameters={nodeData.parameters || {}}
+            onParametersChange={handleParametersChange}
+            onExpandChange={handleParametersExpandChange}
+            onInputsLoaded={handleInputsLoaded}
+          />
         )}
 
-        {/* Model selector */}
-        {isGeminiProvider ? (
-          <select
-            value={nodeData.model}
-            onChange={handleModelChange}
-            className="w-full text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300 shrink-0"
-          >
-            {GEMINI_IMAGE_MODELS.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <>
-            {/* Error state with retry button */}
-            {modelsFetchError ? (
-              <div className="flex flex-col gap-1 shrink-0">
-                <span className="text-[9px] text-red-400">{modelsFetchError}</span>
-                <button
-                  onClick={fetchModels}
-                  className="text-[9px] px-2 py-0.5 bg-neutral-800 hover:bg-neutral-700 rounded text-neutral-300 transition-colors"
-                >
-                  Retry
-                </button>
-              </div>
-            ) : (
-              <select
-                value={nodeData.selectedModel?.modelId || ""}
-                onChange={handleExternalModelChange}
-                disabled={isLoadingModels}
-                className="w-full text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300 shrink-0 disabled:opacity-50"
-              >
-                {isLoadingModels ? (
-                  <option value="">Loading models...</option>
-                ) : externalModels.length === 0 ? (
-                  <option value="">No models available</option>
-                ) : (
-                  <>
-                    <option value="">Select model...</option>
-                    {externalModels.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name}
-                      </option>
-                    ))}
-                  </>
-                )}
-              </select>
-            )}
-
-            {/* Model-specific parameters for external providers */}
-            {nodeData.selectedModel?.modelId && !modelsFetchError && (
-              <ModelParameters
-                modelId={nodeData.selectedModel.modelId}
-                provider={currentProvider}
-                parameters={nodeData.parameters || {}}
-                onParametersChange={handleParametersChange}
-                onExpandChange={handleParametersExpandChange}
-                onInputsLoaded={handleInputsLoaded}
-              />
-            )}
-          </>
-        )}
-
-        {/* Aspect ratio and resolution row - only for Gemini */}
-        {isGeminiProvider && (
+        {/* Aspect ratio and resolution row - only for Gemini-only mode */}
+        {isGeminiOnly && (
           <div className="flex gap-1.5 shrink-0">
             <select
               value={nodeData.aspectRatio}
@@ -685,8 +683,8 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
           </div>
         )}
 
-        {/* Google Search toggle - only for Nano Banana Pro */}
-        {isNanoBananaPro && (
+        {/* Google Search toggle - only for Nano Banana Pro in Gemini-only mode */}
+        {isGeminiOnly && isNanoBananaPro && (
           <label className="flex items-center gap-1.5 text-[10px] text-neutral-300 shrink-0 cursor-pointer">
             <input
               type="checkbox"
@@ -699,6 +697,17 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
         )}
       </div>
     </BaseNode>
+
+    {/* Model browser dialog for external providers */}
+    {isBrowseDialogOpen && (
+      <ModelSearchDialog
+        isOpen={isBrowseDialogOpen}
+        onClose={() => setIsBrowseDialogOpen(false)}
+        onModelSelected={handleBrowseModelSelect}
+        initialCapabilityFilter="image"
+      />
+    )}
+    </>
   );
 }
 

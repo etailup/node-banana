@@ -65,23 +65,20 @@ body {
   right: -5px;
 }
 
-/* Image handles - cyan/teal */
+/* Image handles - soft green */
 .react-flow__handle[data-handletype="image"] {
-  background: #22d3ee;
-  border-color: #22d3ee;
+  background: #10b981;
 }
 
-/* Text/prompt handles - magenta/pink */
-.react-flow__handle[data-handletype="text"],
+/* Prompt/text handles - soft blue */
 .react-flow__handle[data-handletype="prompt"] {
-  background: #d946ef;
-  border-color: #d946ef;
+  background: #3b82f6;
 }
 
 /* CSS variables for handle colors (used by labels) */
 :root {
-  --handle-color-image: #22d3ee;
-  --handle-color-text: #d946ef;
+  --handle-color-image: #10b981;
+  --handle-color-text: #a3a3a3;
 }
 
 .react-flow__edge-path {

@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useState, useEffect, useMemo } from "react";
+import React, { useCallback, useState, useEffect, useMemo } from "react";
 import { Handle, Position, NodeProps, Node, useReactFlow } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
 import { ModelParameters } from "./ModelParameters";
 import { useWorkflowStore } from "@/store/workflowStore";
 import { GenerateVideoNodeData, ProviderType, SelectedModel, ModelInputDef } from "@/types";
 import { ProviderModel, ModelCapability } from "@/lib/providers/types";
+import { ModelSearchDialog } from "@/components/modals/ModelSearchDialog";
 
 // Video generation capabilities
 const VIDEO_CAPABILITIES: ModelCapability[] = ["text-to-video", "image-to-video"];
@@ -20,6 +21,7 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
   const [externalModels, setExternalModels] = useState<ProviderModel[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [modelsFetchError, setModelsFetchError] = useState<string | null>(null);
+  const [isBrowseDialogOpen, setIsBrowseDialogOpen] = useState(false);
 
   // Get the current selected provider (default to fal since Gemini doesn't do video)
   const currentProvider: ProviderType = nodeData.selectedModel?.provider || "fal";
@@ -157,10 +159,40 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
     regenerateNode(id);
   }, [id, regenerateNode]);
 
+  // Handle model selection from browse dialog
+  const handleBrowseModelSelect = useCallback((model: ProviderModel) => {
+    const newSelectedModel: SelectedModel = {
+      provider: model.provider,
+      modelId: model.id,
+      displayName: model.name,
+    };
+    updateNodeData(id, { selectedModel: newSelectedModel, parameters: {} });
+    setIsBrowseDialogOpen(false);
+  }, [id, updateNodeData]);
+
+  // Dynamic title based on selected model
+  const displayTitle = useMemo(() => {
+    if (nodeData.selectedModel?.displayName && nodeData.selectedModel.modelId) {
+      return `Video - ${nodeData.selectedModel.displayName}`;
+    }
+    return "Generate Video";
+  }, [nodeData.selectedModel?.displayName, nodeData.selectedModel?.modelId]);
+
+  // Header action element - browse button
+  const headerAction = useMemo(() => (
+    <button
+      onClick={() => setIsBrowseDialogOpen(true)}
+      className="nodrag nopan text-[10px] py-0.5 px-1.5 bg-neutral-700 hover:bg-neutral-600 border border-neutral-600 rounded text-neutral-300 transition-colors"
+    >
+      Browse
+    </button>
+  ), []);
+
   return (
+    <>
     <BaseNode
       id={id}
-      title="Generate Video"
+      title={displayTitle}
       customTitle={nodeData.customTitle}
       comment={nodeData.comment}
       onCustomTitleChange={(title) => updateNodeData(id, { customTitle: title || undefined })}
@@ -169,6 +201,7 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
       selected={selected}
       isExecuting={isRunning}
       hasError={nodeData.status === "error"}
+      headerAction={headerAction}
     >
       {/* Dynamic input handles based on model schema */}
       {nodeData.inputSchema && nodeData.inputSchema.length > 0 ? (
@@ -190,28 +223,28 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
             const isImage = input.type === "image";
 
             return (
-              <div key={input.name}>
+              <React.Fragment key={input.name}>
                 <Handle
                   type="target"
                   position={Position.Left}
                   id={input.name}
-                  style={{ top: `calc(${topPercent}% - 5px)` }}
+                  style={{ top: `${topPercent}%` }}
                   data-handletype={input.type}
                   isConnectable={true}
                   title={input.description || input.label}
                 />
-                {/* Handle label - positioned outside node, colored to match handle */}
+                {/* Handle label - positioned outside node, above the connector */}
                 <div
                   className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none text-right"
                   style={{
-                    right: `calc(100% + 14px)`,
-                    top: `calc(${topPercent}% - 7px)`,
+                    right: `calc(100% + 8px)`,
+                    top: `calc(${topPercent}% - 18px)`,
                     color: isImage ? "var(--handle-color-image)" : "var(--handle-color-text)",
                   }}
                 >
                   {input.label}
                 </div>
-              </div>
+              </React.Fragment>
             );
           });
         })()
@@ -222,7 +255,7 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
             type="target"
             position={Position.Left}
             id="image"
-            style={{ top: "calc(35% - 5px)" }}
+            style={{ top: "35%" }}
             data-handletype="image"
             isConnectable={true}
           />
@@ -230,8 +263,8 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
           <div
             className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none text-right"
             style={{
-              right: `calc(100% + 14px)`,
-              top: "calc(35% - 7px)",
+              right: `calc(100% + 8px)`,
+              top: "calc(35% - 18px)",
               color: "var(--handle-color-image)",
             }}
           >
@@ -241,15 +274,15 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
             type="target"
             position={Position.Left}
             id="text"
-            style={{ top: "calc(65% - 5px)" }}
+            style={{ top: "65%" }}
             data-handletype="text"
           />
           {/* Default text label */}
           <div
             className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none text-right"
             style={{
-              right: `calc(100% + 14px)`,
-              top: "calc(65% - 7px)",
+              right: `calc(100% + 8px)`,
+              top: "calc(65% - 18px)",
               color: "var(--handle-color-text)",
             }}
           >
@@ -262,15 +295,14 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
         type="source"
         position={Position.Right}
         id="image"
-        style={{ top: "calc(50% - 5px)" }}
         data-handletype="image"
       />
       {/* Output label */}
       <div
         className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none"
         style={{
-          left: `calc(100% + 14px)`,
-          top: "calc(50% - 7px)",
+          left: `calc(100% + 8px)`,
+          top: "calc(50% - 18px)",
           color: "var(--handle-color-image)",
         }}
       >
@@ -284,6 +316,9 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
             <video
               src={nodeData.outputVideo}
               controls
+              autoPlay
+              loop
+              muted
               className="w-full h-full object-contain rounded"
               playsInline
             />
@@ -357,58 +392,8 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
           </div>
         )}
 
-        {/* Provider selector - only show if multiple providers are enabled */}
-        {enabledProviders.length > 1 && (
-          <select
-            value={currentProvider}
-            onChange={handleProviderChange}
-            className="w-full text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300 shrink-0"
-          >
-            {enabledProviders.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        )}
-
-        {/* Model selector */}
-        {modelsFetchError ? (
-          <div className="flex flex-col gap-1 shrink-0">
-            <span className="text-[9px] text-red-400">{modelsFetchError}</span>
-            <button
-              onClick={fetchModels}
-              className="text-[9px] px-2 py-0.5 bg-neutral-800 hover:bg-neutral-700 rounded text-neutral-300 transition-colors"
-            >
-              Retry
-            </button>
-          </div>
-        ) : (
-          <select
-            value={nodeData.selectedModel?.modelId || ""}
-            onChange={handleModelChange}
-            disabled={isLoadingModels}
-            className="w-full text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300 shrink-0 disabled:opacity-50"
-          >
-            {isLoadingModels ? (
-              <option value="">Loading models...</option>
-            ) : externalModels.length === 0 ? (
-              <option value="">No video models available</option>
-            ) : (
-              <>
-                <option value="">Select model...</option>
-                {externalModels.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </>
-            )}
-          </select>
-        )}
-
         {/* Model-specific parameters */}
-        {nodeData.selectedModel?.modelId && !modelsFetchError && (
+        {nodeData.selectedModel?.modelId && (
           <ModelParameters
             modelId={nodeData.selectedModel.modelId}
             provider={currentProvider}
@@ -420,5 +405,16 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
         )}
       </div>
     </BaseNode>
+
+    {/* Model browser dialog */}
+    {isBrowseDialogOpen && (
+      <ModelSearchDialog
+        isOpen={isBrowseDialogOpen}
+        onClose={() => setIsBrowseDialogOpen(false)}
+        onModelSelected={handleBrowseModelSelect}
+        initialCapabilityFilter="video"
+      />
+    )}
+    </>
   );
 }
