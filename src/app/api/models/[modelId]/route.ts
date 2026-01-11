@@ -218,8 +218,8 @@ async function fetchFalSchema(
 
   const data = await response.json();
 
-  // Response is { data: [{ openapi: {...}, ... }] }
-  const modelData = data.data?.[0];
+  // Response is { models: [{ openapi: {...}, ... }] }
+  const modelData = data.models?.[0];
   if (!modelData?.openapi) {
     console.log(`[fetchFalSchema] No OpenAPI schema in response for ${modelId}`);
     return [];
@@ -227,27 +227,39 @@ async function fetchFalSchema(
 
   const spec = modelData.openapi;
 
-  // Navigate to request body schema
-  // Path: paths["/"]["post"].requestBody.content["application/json"].schema
-  const requestBodySchema = spec.paths?.["/"]?.post?.requestBody?.content?.["application/json"]?.schema;
+  // Find POST endpoint with requestBody - paths are keyed by full endpoint path
+  let inputSchema: Record<string, unknown> | null = null;
 
-  if (!requestBodySchema) {
-    // Try alternate path structure
-    const postPath = Object.values(spec.paths || {})[0] as Record<string, unknown> | undefined;
-    const postOp = postPath?.post as Record<string, unknown> | undefined;
+  for (const pathObj of Object.values(spec.paths || {})) {
+    const postOp = (pathObj as Record<string, unknown>)?.post as Record<string, unknown> | undefined;
     const reqBody = postOp?.requestBody as Record<string, unknown> | undefined;
     const content = reqBody?.content as Record<string, Record<string, unknown>> | undefined;
     const jsonContent = content?.["application/json"];
 
-    if (!jsonContent?.schema) {
-      console.log(`[fetchFalSchema] Could not find request body schema in OpenAPI spec`);
-      return [];
-    }
+    if (jsonContent?.schema) {
+      const schema = jsonContent.schema as Record<string, unknown>;
 
-    return extractParametersFromSchema(jsonContent.schema as Record<string, unknown>);
+      // Handle $ref - resolve from components.schemas
+      if (schema.$ref && typeof schema.$ref === "string") {
+        const refPath = schema.$ref.replace("#/components/schemas/", "");
+        const resolvedSchema = spec.components?.schemas?.[refPath] as Record<string, unknown> | undefined;
+        if (resolvedSchema) {
+          inputSchema = resolvedSchema;
+          break;
+        }
+      } else if (schema.properties) {
+        inputSchema = schema;
+        break;
+      }
+    }
   }
 
-  return extractParametersFromSchema(requestBodySchema as Record<string, unknown>);
+  if (!inputSchema) {
+    console.log(`[fetchFalSchema] Could not find input schema in OpenAPI spec`);
+    return [];
+  }
+
+  return extractParametersFromSchema(inputSchema);
 }
 
 /**
