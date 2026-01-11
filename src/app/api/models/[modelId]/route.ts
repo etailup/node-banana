@@ -20,11 +20,29 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { ProviderType } from "@/types";
-import { ModelParameter } from "@/lib/providers/types";
+import { ModelParameter, ModelInput } from "@/lib/providers/types";
 
 // Cache for model schemas (10 minute TTL)
-const schemaCache = new Map<string, { parameters: ModelParameter[]; timestamp: number }>();
+const schemaCache = new Map<string, { parameters: ModelParameter[]; inputs: ModelInput[]; timestamp: number }>();
 const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+// Image input property patterns
+const IMAGE_INPUT_PATTERNS = [
+  "image_url",
+  "image",
+  "first_frame",
+  "last_frame",
+  "tail_image_url",
+  "start_image",
+  "end_image",
+  "reference_image",
+  "init_image",
+  "mask_image",
+  "control_image",
+];
+
+// Text input properties
+const TEXT_INPUT_NAMES = ["prompt", "negative_prompt"];
 
 // Parameters to filter out (internal/system params)
 const EXCLUDED_PARAMS = new Set([
@@ -61,6 +79,7 @@ const PRIORITY_PARAMS = new Set([
 interface SchemaSuccessResponse {
   success: true;
   parameters: ModelParameter[];
+  inputs: ModelInput[];
   cached: boolean;
 }
 
@@ -70,6 +89,32 @@ interface SchemaErrorResponse {
 }
 
 type SchemaResponse = SchemaSuccessResponse | SchemaErrorResponse;
+
+/**
+ * Convert property name to human-readable label
+ */
+function toLabel(name: string): string {
+  return name
+    .replace(/_url$/, "")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/**
+ * Check if property is an image input
+ */
+function isImageInput(name: string): boolean {
+  return IMAGE_INPUT_PATTERNS.some(
+    (pattern) => name === pattern || name.endsWith("_" + pattern) || name.includes("image")
+  );
+}
+
+/**
+ * Check if property is a text input
+ */
+function isTextInput(name: string): boolean {
+  return TEXT_INPUT_NAMES.includes(name);
+}
 
 /**
  * Convert OpenAPI schema property to ModelParameter
@@ -124,13 +169,18 @@ function convertSchemaProperty(
   return parameter;
 }
 
+interface ExtractedSchema {
+  parameters: ModelParameter[];
+  inputs: ModelInput[];
+}
+
 /**
  * Fetch and parse schema from Replicate
  */
 async function fetchReplicateSchema(
   modelId: string,
   apiKey: string
-): Promise<ModelParameter[]> {
+): Promise<ExtractedSchema> {
   const [owner, name] = modelId.split("/");
 
   const response = await fetch(
@@ -151,44 +201,16 @@ async function fetchReplicateSchema(
   // Extract schema from latest_version.openapi_schema
   const openApiSchema = data.latest_version?.openapi_schema;
   if (!openApiSchema) {
-    return [];
+    return { parameters: [], inputs: [] };
   }
 
   // Navigate to Input schema
   const inputSchema = openApiSchema.components?.schemas?.Input;
   if (!inputSchema || typeof inputSchema !== "object") {
-    return [];
+    return { parameters: [], inputs: [] };
   }
 
-  const properties = (inputSchema as Record<string, unknown>).properties as Record<string, Record<string, unknown>> | undefined;
-  const required = ((inputSchema as Record<string, unknown>).required as string[]) || [];
-
-  if (!properties) {
-    return [];
-  }
-
-  const parameters: ModelParameter[] = [];
-
-  for (const [name, prop] of Object.entries(properties)) {
-    // Skip prompt as it's handled separately
-    if (name === "prompt") continue;
-
-    const param = convertSchemaProperty(name, prop, required);
-    if (param) {
-      parameters.push(param);
-    }
-  }
-
-  // Sort: priority params first, then alphabetically
-  parameters.sort((a, b) => {
-    const aIsPriority = PRIORITY_PARAMS.has(a.name);
-    const bIsPriority = PRIORITY_PARAMS.has(b.name);
-    if (aIsPriority && !bIsPriority) return -1;
-    if (!aIsPriority && bIsPriority) return 1;
-    return a.name.localeCompare(b.name);
-  });
-
-  return parameters;
+  return extractParametersFromSchema(inputSchema as Record<string, unknown>);
 }
 
 /**
@@ -198,7 +220,7 @@ async function fetchReplicateSchema(
 async function fetchFalSchema(
   modelId: string,
   apiKey: string | null
-): Promise<ModelParameter[]> {
+): Promise<ExtractedSchema> {
   const headers: Record<string, string> = {};
   if (apiKey) {
     headers["Authorization"] = `Key ${apiKey}`;
@@ -213,7 +235,7 @@ async function fetchFalSchema(
   if (!response.ok) {
     // Return empty params if API fails so generation still works
     console.log(`[fetchFalSchema] Model Search API returned ${response.status}`);
-    return [];
+    return { parameters: [], inputs: [] };
   }
 
   const data = await response.json();
@@ -222,7 +244,7 @@ async function fetchFalSchema(
   const modelData = data.models?.[0];
   if (!modelData?.openapi) {
     console.log(`[fetchFalSchema] No OpenAPI schema in response for ${modelId}`);
-    return [];
+    return { parameters: [], inputs: [] };
   }
 
   const spec = modelData.openapi;
@@ -256,36 +278,58 @@ async function fetchFalSchema(
 
   if (!inputSchema) {
     console.log(`[fetchFalSchema] Could not find input schema in OpenAPI spec`);
-    return [];
+    return { parameters: [], inputs: [] };
   }
 
   return extractParametersFromSchema(inputSchema);
 }
 
 /**
- * Extract ModelParameters from an OpenAPI schema object
+ * Extract ModelParameters and ModelInputs from an OpenAPI schema object
  */
-function extractParametersFromSchema(schema: Record<string, unknown>): ModelParameter[] {
+function extractParametersFromSchema(schema: Record<string, unknown>): ExtractedSchema {
   const properties = schema.properties as Record<string, Record<string, unknown>> | undefined;
   const required = (schema.required as string[]) || [];
 
   if (!properties) {
-    return [];
+    return { parameters: [], inputs: [] };
   }
 
   const parameters: ModelParameter[] = [];
+  const inputs: ModelInput[] = [];
 
   for (const [name, prop] of Object.entries(properties)) {
-    // Skip prompt and image_url as they're handled separately
-    if (name === "prompt" || name === "image_url") continue;
+    // Check if this is a connectable input (image or text)
+    if (isImageInput(name)) {
+      inputs.push({
+        name,
+        type: "image",
+        required: required.includes(name),
+        label: toLabel(name),
+        description: prop.description as string | undefined,
+      });
+      continue;
+    }
 
+    if (isTextInput(name)) {
+      inputs.push({
+        name,
+        type: "text",
+        required: required.includes(name),
+        label: toLabel(name),
+        description: prop.description as string | undefined,
+      });
+      continue;
+    }
+
+    // Otherwise it's a parameter
     const param = convertSchemaProperty(name, prop, required);
     if (param) {
       parameters.push(param);
     }
   }
 
-  // Sort: priority params first, then alphabetically
+  // Sort parameters: priority params first, then alphabetically
   parameters.sort((a, b) => {
     const aIsPriority = PRIORITY_PARAMS.has(a.name);
     const bIsPriority = PRIORITY_PARAMS.has(b.name);
@@ -294,7 +338,14 @@ function extractParametersFromSchema(schema: Record<string, unknown>): ModelPara
     return a.name.localeCompare(b.name);
   });
 
-  return parameters;
+  // Sort inputs: required first, then by type (image before text), then alphabetically
+  inputs.sort((a, b) => {
+    if (a.required !== b.required) return a.required ? -1 : 1;
+    if (a.type !== b.type) return a.type === "image" ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  return { parameters, inputs };
 }
 
 export async function GET(
@@ -324,16 +375,17 @@ export async function GET(
   const cacheKey = `${provider}:${decodedModelId}`;
   const cached = schemaCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    console.log(`[ModelSchema:${requestId}] Cache hit, returning ${cached.parameters.length} parameters`);
+    console.log(`[ModelSchema:${requestId}] Cache hit, returning ${cached.parameters.length} parameters, ${cached.inputs.length} inputs`);
     return NextResponse.json<SchemaSuccessResponse>({
       success: true,
       parameters: cached.parameters,
+      inputs: cached.inputs,
       cached: true,
     });
   }
 
   try {
-    let parameters: ModelParameter[];
+    let result: ExtractedSchema;
 
     if (provider === "replicate") {
       const apiKey = request.headers.get("X-Replicate-Key");
@@ -346,19 +398,20 @@ export async function GET(
           { status: 401 }
         );
       }
-      parameters = await fetchReplicateSchema(decodedModelId, apiKey);
+      result = await fetchReplicateSchema(decodedModelId, apiKey);
     } else {
       const apiKey = request.headers.get("X-Fal-Key");
-      parameters = await fetchFalSchema(decodedModelId, apiKey);
+      result = await fetchFalSchema(decodedModelId, apiKey);
     }
 
     // Cache the result
-    schemaCache.set(cacheKey, { parameters, timestamp: Date.now() });
+    schemaCache.set(cacheKey, { ...result, timestamp: Date.now() });
 
-    console.log(`[ModelSchema:${requestId}] Returning ${parameters.length} parameters`);
+    console.log(`[ModelSchema:${requestId}] Returning ${result.parameters.length} parameters, ${result.inputs.length} inputs`);
     return NextResponse.json<SchemaSuccessResponse>({
       success: true,
-      parameters,
+      parameters: result.parameters,
+      inputs: result.inputs,
       cached: false,
     });
   } catch (error) {

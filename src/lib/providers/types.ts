@@ -32,6 +32,23 @@ export interface ModelParameter {
 }
 
 /**
+ * Connectable model input - for dynamic handle generation
+ * These are inputs that can receive connections from other nodes
+ */
+export interface ModelInput {
+  /** Property name from schema (e.g., "image_url", "tail_image_url", "prompt") */
+  name: string;
+  /** Handle type for connections */
+  type: "image" | "text";
+  /** Whether this input is required */
+  required: boolean;
+  /** Human-readable label for the handle */
+  label: string;
+  /** Optional description from schema */
+  description?: string;
+}
+
+/**
  * Represents a model from any provider with normalized metadata
  */
 export interface ProviderModel {
