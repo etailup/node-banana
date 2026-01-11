@@ -96,25 +96,25 @@ Plans:
 
 **Milestone Goal:** Fix connection issues, improve error visibility, add video history, auto-size nodes, and polish UI
 
-#### Phase 7: Video Connections
+#### Phase 7: Video Connections ✅
 
 **Goal**: Fix video handle connections to only allow valid targets (generateVideo, output)
 **Depends on**: Phase 6
 **Research**: Unlikely (internal connection validation patterns)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 07-01: TBD (run /gsd:plan-phase 7 to break down)
+- [x] 07-01: Add video handle type and connection validation
 
-#### Phase 8: Error Display
+#### Phase 8: Error Display ✅
 
 **Goal**: Better error visibility with overlay display, not hidden by previous output
 **Depends on**: Phase 7
 **Research**: Unlikely (internal UI patterns)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 08-01: TBD (run /gsd:plan-phase 8 to break down)
+- [x] 08-01: Error notifications with persistent toast and node overlays
 
 #### Phase 9: Video History
 
@@ -170,8 +170,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 4. Model Search Dialog | v1.0 | 2/2 | Complete | 2026-01-09 |
 | 5. Image URL Server | v1.0 | 2/2 | Complete | 2026-01-09 |
 | 6. Video & Polish | v1.0 | 4/4 | Complete | 2026-01-11 |
-| 7. Video Connections | v1.1 | 0/? | Not started | - |
-| 8. Error Display | v1.1 | 0/? | Not started | - |
+| 7. Video Connections | v1.1 | 1/1 | Complete | 2026-01-12 |
+| 8. Error Display | v1.1 | 1/1 | Complete | 2026-01-12 |
 | 9. Video History | v1.1 | 0/? | Not started | - |
 | 10. Node Autosizing | v1.1 | 0/? | Not started | - |
 | 11. UI Polish | v1.1 | 0/? | Not started | - |
