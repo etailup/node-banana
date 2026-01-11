@@ -19,6 +19,8 @@ const MODEL_MAP: Record<ModelType, string> = {
 interface MultiProviderGenerateRequest extends GenerateRequest {
   selectedModel?: SelectedModel;
   parameters?: Record<string, unknown>;
+  /** Dynamic inputs from schema-based connections (e.g., image_url, tail_image_url, prompt) */
+  dynamicInputs?: Record<string, string>;
 }
 
 /**
@@ -272,23 +274,33 @@ async function generateWithReplicate(
     };
   }
 
+  const hasDynamicInputs = input.dynamicInputs && Object.keys(input.dynamicInputs).length > 0;
+
   // Build input for the prediction
   const predictionInput: Record<string, unknown> = {
-    prompt: input.prompt,
     ...input.parameters,
   };
+
+  // Add dynamic inputs if provided (these come from schema-mapped connections)
+  if (hasDynamicInputs) {
+    Object.assign(predictionInput, input.dynamicInputs);
+    console.log(`[API:${requestId}] Using dynamic inputs:`, Object.keys(input.dynamicInputs!).join(", "));
+  } else {
+    // Fallback to legacy behavior
+    predictionInput.prompt = input.prompt;
+
+    // Add image input if provided (for img2img workflows)
+    // Note: Different Replicate models use different parameter names
+    // Using 'image' as it's most common for img2img models
+    if (input.images && input.images.length > 0) {
+      predictionInput.image = input.images[0];
+      console.log(`[API:${requestId}] Added image input to prediction (${input.images[0].substring(0, 50)}...)`);
+    }
+  }
 
   // Log parameters being passed
   if (input.parameters && Object.keys(input.parameters).length > 0) {
     console.log(`[API:${requestId}] Custom parameters:`, JSON.stringify(input.parameters));
-  }
-
-  // Add image input if provided (for img2img workflows)
-  // Note: Different Replicate models use different parameter names
-  // Using 'image' as it's most common for img2img models
-  if (input.images && input.images.length > 0) {
-    predictionInput.image = input.images[0];
-    console.log(`[API:${requestId}] Added image input to prediction (${input.images[0].substring(0, 50)}...)`);
   }
 
   // Create a prediction
@@ -474,26 +486,37 @@ async function generateWithFal(
   console.log(`[API:${requestId}]   - Model: ${input.model.id}`);
   console.log(`[API:${requestId}]   - Prompt length: ${input.prompt.length} chars`);
   console.log(`[API:${requestId}]   - Images count: ${input.images?.length || 0}`);
+  console.log(`[API:${requestId}]   - Dynamic inputs: ${input.dynamicInputs ? Object.keys(input.dynamicInputs).join(", ") : "none"}`);
   console.log(`[API:${requestId}]   - API key: ${apiKey ? "provided" : "not provided (using rate-limited access)"}`);
 
   const modelId = input.model.id;
+  const hasDynamicInputs = input.dynamicInputs && Object.keys(input.dynamicInputs).length > 0;
 
   // Build request body
+  // If we have dynamic inputs, they take precedence (they already contain prompt, image_url, etc.)
   const requestBody: Record<string, unknown> = {
-    prompt: input.prompt,
     ...input.parameters,
   };
+
+  // Add dynamic inputs if provided (these come from schema-mapped connections)
+  if (hasDynamicInputs) {
+    Object.assign(requestBody, input.dynamicInputs);
+    console.log(`[API:${requestId}] Using dynamic inputs:`, Object.keys(input.dynamicInputs!).join(", "));
+  } else {
+    // Fallback to legacy behavior: use prompt and images array
+    requestBody.prompt = input.prompt;
+
+    // Add image_url if provided (for img2img workflows)
+    // fal.ai accepts both URLs and data URIs in this field
+    if (input.images && input.images.length > 0) {
+      requestBody.image_url = input.images[0];
+      console.log(`[API:${requestId}] Added image_url to request (${input.images[0].substring(0, 50)}...)`);
+    }
+  }
 
   // Log parameters being passed
   if (input.parameters && Object.keys(input.parameters).length > 0) {
     console.log(`[API:${requestId}] Custom parameters:`, JSON.stringify(input.parameters));
-  }
-
-  // Add image_url if provided (for img2img workflows)
-  // fal.ai accepts both URLs and data URIs in this field
-  if (input.images && input.images.length > 0) {
-    requestBody.image_url = input.images[0];
-    console.log(`[API:${requestId}] Added image_url to request (${input.images[0].substring(0, 50)}...)`);
   }
 
   // Build headers
@@ -639,9 +662,12 @@ export async function POST(request: NextRequest) {
       useGoogleSearch,
       selectedModel,
       parameters,
+      dynamicInputs,
     } = body;
 
-    if (!prompt) {
+    // Prompt is required unless provided via dynamicInputs
+    const hasPrompt = prompt || (dynamicInputs && dynamicInputs.prompt);
+    if (!hasPrompt) {
       console.error(`[API:${requestId}] Validation failed: missing prompt`);
       return NextResponse.json<GenerateResponse>(
         {
@@ -689,6 +715,31 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Process dynamicInputs: convert large images in image-type inputs to URLs
+      const processedDynamicInputs: Record<string, string> | undefined = dynamicInputs
+        ? { ...dynamicInputs }
+        : undefined;
+
+      if (processedDynamicInputs) {
+        // Image input names that might contain base64 data
+        const imageInputNames = ["image", "image_url", "tail_image_url", "first_frame", "last_frame",
+          "start_image", "end_image", "reference_image", "init_image", "mask_image", "control_image"];
+
+        for (const key of Object.keys(processedDynamicInputs)) {
+          const value = processedDynamicInputs[key];
+          // Check if this is an image input with base64 data
+          if (imageInputNames.some(name => key.toLowerCase().includes(name.toLowerCase())) &&
+              value && value.startsWith("data:image")) {
+            if (shouldUseImageUrl(value)) {
+              const { url, id } = uploadImageForUrl(value, baseUrl);
+              uploadedImageIds.push(id);
+              processedDynamicInputs[key] = url;
+              console.log(`[API:${requestId}] Converted large dynamic input '${key}' to URL: ${url}`);
+            }
+          }
+        }
+      }
+
       try {
         // Build generation input
         const genInput: GenerationInput = {
@@ -699,9 +750,10 @@ export async function POST(request: NextRequest) {
             capabilities: ["text-to-image"],
             description: null,
           },
-          prompt,
+          prompt: prompt || "",
           images: processedImages,
           parameters,
+          dynamicInputs: processedDynamicInputs,
         };
 
         const result = await generateWithReplicate(requestId, replicateApiKey, genInput);
@@ -777,6 +829,31 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Process dynamicInputs: convert large images in image-type inputs to URLs
+      const processedDynamicInputs: Record<string, string> | undefined = dynamicInputs
+        ? { ...dynamicInputs }
+        : undefined;
+
+      if (processedDynamicInputs) {
+        // Image input names that might contain base64 data
+        const imageInputNames = ["image_url", "tail_image_url", "first_frame", "last_frame",
+          "start_image", "end_image", "reference_image", "init_image", "mask_image", "control_image"];
+
+        for (const key of Object.keys(processedDynamicInputs)) {
+          const value = processedDynamicInputs[key];
+          // Check if this is an image input with base64 data
+          if (imageInputNames.some(name => key.toLowerCase().includes(name.toLowerCase())) &&
+              value && value.startsWith("data:image")) {
+            if (shouldUseImageUrl(value)) {
+              const { url, id } = uploadImageForUrl(value, baseUrl);
+              uploadedImageIds.push(id);
+              processedDynamicInputs[key] = url;
+              console.log(`[API:${requestId}] Converted large dynamic input '${key}' to URL: ${url}`);
+            }
+          }
+        }
+      }
+
       try {
         // Build generation input
         const genInput: GenerationInput = {
@@ -787,9 +864,10 @@ export async function POST(request: NextRequest) {
             capabilities: ["text-to-image"],
             description: null,
           },
-          prompt,
+          prompt: prompt || "",
           images: processedImages,
           parameters,
+          dynamicInputs: processedDynamicInputs,
         };
 
         const result = await generateWithFal(requestId, falApiKey, genInput);

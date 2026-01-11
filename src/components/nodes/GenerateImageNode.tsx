@@ -335,23 +335,54 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
       isExecuting={isRunning}
       hasError={nodeData.status === "error"}
     >
-      {/* Image input - accepts multiple connections */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        id="image"
-        style={{ top: "35%" }}
-        data-handletype="image"
-        isConnectable={true}
-      />
-      {/* Text input - single connection */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        id="text"
-        style={{ top: "65%" }}
-        data-handletype="text"
-      />
+      {/* Dynamic input handles based on model schema (external providers only) */}
+      {!isGeminiProvider && nodeData.inputSchema && nodeData.inputSchema.length > 0 ? (
+        // Render handles from schema
+        nodeData.inputSchema.map((input, index) => {
+          const total = nodeData.inputSchema!.length;
+          const topPercent = ((index + 1) / (total + 1)) * 100;
+          return (
+            <div key={input.name}>
+              <Handle
+                type="target"
+                position={Position.Left}
+                id={input.name}
+                style={{ top: `${topPercent}%` }}
+                data-handletype={input.type}
+                isConnectable={true}
+                title={input.description || input.label}
+              />
+              {/* Handle label */}
+              <div
+                className="absolute text-[8px] text-neutral-500 whitespace-nowrap pointer-events-none"
+                style={{ left: 12, top: `calc(${topPercent}% - 6px)` }}
+              >
+                {input.label}
+                {input.required && <span className="text-red-400">*</span>}
+              </div>
+            </div>
+          );
+        })
+      ) : (
+        // Default handles for Gemini or when no schema
+        <>
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="image"
+            style={{ top: "35%" }}
+            data-handletype="image"
+            isConnectable={true}
+          />
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="text"
+            style={{ top: "65%" }}
+            data-handletype="text"
+          />
+        </>
+      )}
       {/* Image output */}
       <Handle
         type="source"

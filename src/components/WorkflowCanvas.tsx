@@ -57,14 +57,32 @@ const edgeTypes: EdgeTypes = {
 // Connection validation rules
 // - Image handles (green) can only connect to image handles
 // - Text handles (blue) can only connect to text handles
+// Helper to determine handle type from handle ID
+// For dynamic handles, we use naming convention: image inputs contain "image", text inputs are "prompt" or "negative_prompt"
+const getHandleType = (handleId: string | null | undefined): "image" | "text" | null => {
+  if (!handleId) return null;
+  // Standard handles
+  if (handleId === "image" || handleId === "text") return handleId;
+  // Dynamic handles - check naming patterns
+  if (handleId.includes("image") || handleId.includes("frame")) return "image";
+  if (handleId === "prompt" || handleId === "negative_prompt" || handleId.includes("prompt")) return "text";
+  return null;
+};
+
+// Connection validation: ensures type matching between source and target handles
+// - Image handles can connect to image handles
+// - Text handles can connect to text handles
 // - NanoBanana image input accepts multiple connections
 // - All other inputs accept only one connection
 const isValidConnection = (connection: Edge | Connection): boolean => {
   const sourceHandle = connection.sourceHandle;
   const targetHandle = connection.targetHandle;
 
+  const sourceType = getHandleType(sourceHandle);
+  const targetType = getHandleType(targetHandle);
+
   // Strict type matching: image <-> image, text <-> text
-  if (sourceHandle === "image" && targetHandle !== "image") {
+  if (sourceType === "image" && targetType !== "image") {
     logger.warn('connection.validation', 'Connection validation failed: type mismatch', {
       source: connection.source,
       target: connection.target,
@@ -74,7 +92,7 @@ const isValidConnection = (connection: Edge | Connection): boolean => {
     });
     return false;
   }
-  if (sourceHandle === "text" && targetHandle !== "text") {
+  if (sourceType === "text" && targetType !== "text") {
     logger.warn('connection.validation', 'Connection validation failed: type mismatch', {
       source: connection.source,
       target: connection.target,

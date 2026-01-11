@@ -115,7 +115,7 @@ interface WorkflowStore {
 
   // Helpers
   getNodeById: (id: string) => WorkflowNode | undefined;
-  getConnectedInputs: (nodeId: string) => { images: string[]; text: string | null };
+  getConnectedInputs: (nodeId: string) => { images: string[]; text: string | null; dynamicInputs: Record<string, string> };
   validateWorkflow: () => { valid: boolean; errors: string[] };
 
   // Global Image History
@@ -816,6 +816,37 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     const { edges, nodes } = get();
     const images: string[] = [];
     let text: string | null = null;
+    const dynamicInputs: Record<string, string> = {};
+
+    // Helper to determine if a handle ID is an image type
+    const isImageHandle = (handleId: string | null | undefined): boolean => {
+      if (!handleId) return false;
+      return handleId === "image" || handleId.includes("image") || handleId.includes("frame");
+    };
+
+    // Helper to determine if a handle ID is a text type
+    const isTextHandle = (handleId: string | null | undefined): boolean => {
+      if (!handleId) return false;
+      return handleId === "text" || handleId.includes("prompt");
+    };
+
+    // Helper to extract output from source node
+    const getSourceOutput = (sourceNode: WorkflowNode): { type: "image" | "text"; value: string | null } => {
+      if (sourceNode.type === "imageInput") {
+        return { type: "image", value: (sourceNode.data as ImageInputNodeData).image };
+      } else if (sourceNode.type === "annotation") {
+        return { type: "image", value: (sourceNode.data as AnnotationNodeData).outputImage };
+      } else if (sourceNode.type === "nanoBanana") {
+        return { type: "image", value: (sourceNode.data as NanoBananaNodeData).outputImage };
+      } else if (sourceNode.type === "generateVideo") {
+        return { type: "image", value: (sourceNode.data as GenerateVideoNodeData).outputVideo };
+      } else if (sourceNode.type === "prompt") {
+        return { type: "text", value: (sourceNode.data as PromptNodeData).prompt };
+      } else if (sourceNode.type === "llmGenerate") {
+        return { type: "text", value: (sourceNode.data as LLMGenerateNodeData).outputText };
+      }
+      return { type: "image", value: null };
+    };
 
     edges
       .filter((edge) => edge.target === nodeId)
@@ -824,35 +855,24 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         if (!sourceNode) return;
 
         const handleId = edge.targetHandle;
+        const { value } = getSourceOutput(sourceNode);
 
-        if (handleId === "image" || !handleId) {
-          // Get image from source node - collect all connected images
-          if (sourceNode.type === "imageInput") {
-            const sourceImage = (sourceNode.data as ImageInputNodeData).image;
-            if (sourceImage) images.push(sourceImage);
-          } else if (sourceNode.type === "annotation") {
-            const sourceImage = (sourceNode.data as AnnotationNodeData).outputImage;
-            if (sourceImage) images.push(sourceImage);
-          } else if (sourceNode.type === "nanoBanana") {
-            const sourceImage = (sourceNode.data as NanoBananaNodeData).outputImage;
-            if (sourceImage) images.push(sourceImage);
-          } else if (sourceNode.type === "generateVideo") {
-            // Video output can be used as input to downstream nodes
-            const sourceVideo = (sourceNode.data as GenerateVideoNodeData).outputVideo;
-            if (sourceVideo) images.push(sourceVideo);
-          }
+        if (!value) return;
+
+        // Store in dynamic inputs if handle ID is specific (not just "image" or "text")
+        if (handleId && handleId !== "image" && handleId !== "text") {
+          dynamicInputs[handleId] = value;
         }
 
-        if (handleId === "text") {
-          if (sourceNode.type === "prompt") {
-            text = (sourceNode.data as PromptNodeData).prompt;
-          } else if (sourceNode.type === "llmGenerate") {
-            text = (sourceNode.data as LLMGenerateNodeData).outputText;
-          }
+        // Also populate legacy arrays for backward compatibility
+        if (isImageHandle(handleId) || !handleId) {
+          images.push(value);
+        } else if (isTextHandle(handleId)) {
+          text = value;
         }
       });
 
-    return { images, text };
+    return { images, text, dynamicInputs };
   },
 
   validateWorkflow: () => {
@@ -1041,9 +1061,11 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             break;
 
           case "nanoBanana": {
-            const { images, text } = getConnectedInputs(node.id);
+            const { images, text, dynamicInputs } = getConnectedInputs(node.id);
 
-            if (!text) {
+            // For dynamic inputs, check if we have at least a prompt
+            const promptText = text || dynamicInputs.prompt || null;
+            if (!promptText) {
               logger.error('node.error', 'nanoBanana node missing text input', {
                 nodeId: node.id,
               });
@@ -1058,7 +1080,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
             updateNodeData(node.id, {
               inputImages: images,
-              inputPrompt: text,
+              inputPrompt: promptText,
               status: "loading",
               error: null,
             });
@@ -1069,13 +1091,14 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
               const requestPayload = {
                 images,
-                prompt: text,
+                prompt: promptText,
                 aspectRatio: nodeData.aspectRatio,
                 resolution: nodeData.resolution,
                 model: nodeData.model,
                 useGoogleSearch: nodeData.useGoogleSearch,
                 selectedModel: nodeData.selectedModel,
                 parameters: nodeData.parameters,
+                dynamicInputs,  // Pass dynamic inputs for schema-mapped connections
               };
 
               // Build headers with API keys for external providers
@@ -1102,7 +1125,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 aspectRatio: nodeData.aspectRatio,
                 resolution: nodeData.resolution,
                 imageCount: images.length,
-                prompt: text,
+                prompt: promptText,
               });
 
               const response = await fetch("/api/generate", {
@@ -1148,7 +1171,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 get().addToGlobalHistory({
                   image: result.image,
                   timestamp,
-                  prompt: text,
+                  prompt: promptText,
                   aspectRatio: nodeData.aspectRatio,
                   model: nodeData.model,
                 });
@@ -1157,7 +1180,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 const newHistoryItem = {
                   id: imageId,
                   timestamp,
-                  prompt: text,
+                  prompt: promptText,
                   aspectRatio: nodeData.aspectRatio,
                   model: nodeData.model,
                 };
@@ -1237,15 +1260,17 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           }
 
           case "generateVideo": {
-            const { images, text } = getConnectedInputs(node.id);
+            const { images, text, dynamicInputs } = getConnectedInputs(node.id);
 
-            if (!text) {
-              logger.error('node.error', 'generateVideo node missing text input', {
+            // For dynamic inputs, check if we have at least a prompt
+            const hasPrompt = text || dynamicInputs.prompt || dynamicInputs.negative_prompt;
+            if (!hasPrompt && images.length === 0) {
+              logger.error('node.error', 'generateVideo node missing inputs', {
                 nodeId: node.id,
               });
               updateNodeData(node.id, {
                 status: "error",
-                error: "Missing text input",
+                error: "Missing required inputs",
               });
               set({ isRunning: false, currentNodeId: null });
               await logger.endSession();
@@ -1282,6 +1307,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 prompt: text,
                 selectedModel: nodeData.selectedModel,
                 parameters: nodeData.parameters,
+                dynamicInputs,  // Pass dynamic inputs for schema-mapped connections
               };
 
               // Build headers with API keys for external providers
