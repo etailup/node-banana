@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Provider infrastructure that dynamically discovers models from external APIs, enabling users to access hundreds of image/video generation models without hardcoding schemas.
-**Current focus:** Phase 6 - Video & Polish
+**Current focus:** Phase 7 - Video Connections
 
 ## Current Position
 
-Phase: 6 of 6 (Video & Polish)
-Plan: 3 of 4 in current phase
-Status: In progress
-Last activity: 2026-01-10 - Completed 06-03-PLAN.md (Custom model parameters)
+Phase: 7 of 12 (Video Connections)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-01-12 - Milestone v1.1 Improvements created
 
-Progress: [======================================================================================] 100% (15/15 plans)
+Progress: ░░░░░░░░░░ 0%
 
 ## Performance Metrics
 
@@ -32,7 +32,7 @@ Progress: [=====================================================================
 | 3. Generate Node Refactor | 3/3 | 13 min | 4.3 min |
 | 4. Model Search Dialog | 2/2 | 17 min | 8.5 min |
 | 5. Image URL Server | 2/2 | 5 min | 2.5 min |
-| 6. Video & Polish | 3/4 | 43 min | 14.3 min |
+| 6. Video & Polish | 4/4 | 43 min | 14.3 min |
 
 **Recent Trend:**
 - Last 5 plans: 3 min, 2 min, 10 min, 28 min, 5 min
@@ -86,9 +86,14 @@ Recent decisions affecting current work:
 
 - Pre-existing lint configuration issue (ESLint not configured). Not blocking development.
 
+### Roadmap Evolution
+
+- v1.0 Multi-Provider Support shipped: 6 phases (Phase 1-6), 15 plans
+- Milestone v1.1 Improvements created: 6 phases (Phase 7-12), improvements and polish
+
 ## Session Continuity
 
-Last session: 2026-01-10
-Stopped at: Completed 06-03-PLAN.md (Custom model parameters)
+Last session: 2026-01-12
+Stopped at: Milestone v1.1 Improvements initialization
 Resume file: None
-Next action: Execute 06-04-PLAN.md (Final polish and cleanup)
+Next action: Plan Phase 7 (Video Connections)
