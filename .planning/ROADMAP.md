@@ -121,10 +121,10 @@ Plans:
 **Goal**: Add history carousel for generated videos matching image history pattern
 **Depends on**: Phase 8
 **Research**: Unlikely (existing image history pattern)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 09-01: TBD (run /gsd:plan-phase 9 to break down)
+- [ ] 09-01: Video history types, store support, load API, and carousel UI
 
 #### Phase 10: Node Autosizing
 
@@ -172,7 +172,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 6. Video & Polish | v1.0 | 4/4 | Complete | 2026-01-11 |
 | 7. Video Connections | v1.1 | 1/1 | Complete | 2026-01-12 |
 | 8. Error Display | v1.1 | 1/1 | Complete | 2026-01-12 |
-| 9. Video History | v1.1 | 0/? | Not started | - |
+| 9. Video History | v1.1 | 0/1 | Planned | - |
 | 10. Node Autosizing | v1.1 | 0/? | Not started | - |
 | 11. UI Polish | v1.1 | 0/? | Not started | - |
 | 12. Model Improvements | v1.1 | 0/? | Not started | - |
