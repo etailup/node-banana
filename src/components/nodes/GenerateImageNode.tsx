@@ -337,32 +337,49 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
     >
       {/* Dynamic input handles based on model schema (external providers only) */}
       {!isGeminiProvider && nodeData.inputSchema && nodeData.inputSchema.length > 0 ? (
-        // Render handles from schema
-        nodeData.inputSchema.map((input, index) => {
-          const total = nodeData.inputSchema!.length;
-          const topPercent = ((index + 1) / (total + 1)) * 100;
-          return (
-            <div key={input.name}>
-              <Handle
-                type="target"
-                position={Position.Left}
-                id={input.name}
-                style={{ top: `${topPercent}%` }}
-                data-handletype={input.type}
-                isConnectable={true}
-                title={input.description || input.label}
-              />
-              {/* Handle label */}
-              <div
-                className="absolute text-[8px] text-neutral-500 whitespace-nowrap pointer-events-none"
-                style={{ left: 12, top: `calc(${topPercent}% - 6px)` }}
-              >
-                {input.label}
-                {input.required && <span className="text-red-400">*</span>}
+        // Render handles from schema, sorted by type (images first, text second)
+        (() => {
+          const imageInputs = nodeData.inputSchema!.filter(i => i.type === "image");
+          const textInputs = nodeData.inputSchema!.filter(i => i.type === "text");
+          const sortedInputs = [...imageInputs, ...textInputs];
+
+          // Calculate positions with gap between image and text groups
+          const imageCount = imageInputs.length;
+          const textCount = textInputs.length;
+          const totalSlots = imageCount + textCount + (imageCount > 0 && textCount > 0 ? 1 : 0); // +1 for gap
+
+          return sortedInputs.map((input, index) => {
+            // Add 1 to index for text inputs if there are image inputs (to account for gap)
+            const adjustedIndex = input.type === "text" && imageCount > 0 ? index + 1 : index;
+            const topPercent = ((adjustedIndex + 1) / (totalSlots + 1)) * 100;
+            const isImage = input.type === "image";
+
+            return (
+              <div key={input.name}>
+                <Handle
+                  type="target"
+                  position={Position.Left}
+                  id={input.name}
+                  style={{ top: `${topPercent}%` }}
+                  data-handletype={input.type}
+                  isConnectable={true}
+                  title={input.description || input.label}
+                />
+                {/* Handle label - positioned outside node, colored to match handle */}
+                <div
+                  className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none text-right"
+                  style={{
+                    right: `calc(100% + 14px)`,
+                    top: `calc(${topPercent}% - 7px)`,
+                    color: isImage ? "var(--handle-color-image)" : "var(--handle-color-text)",
+                  }}
+                >
+                  {input.label}
+                </div>
               </div>
-            </div>
-          );
-        })
+            );
+          });
+        })()
       ) : (
         // Default handles for Gemini or when no schema
         <>
@@ -374,6 +391,17 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
             data-handletype="image"
             isConnectable={true}
           />
+          {/* Default image label */}
+          <div
+            className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none text-right"
+            style={{
+              right: `calc(100% + 14px)`,
+              top: "calc(35% - 7px)",
+              color: "var(--handle-color-image)",
+            }}
+          >
+            Image
+          </div>
           <Handle
             type="target"
             position={Position.Left}
@@ -381,6 +409,17 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
             style={{ top: "65%" }}
             data-handletype="text"
           />
+          {/* Default text label */}
+          <div
+            className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none text-right"
+            style={{
+              right: `calc(100% + 14px)`,
+              top: "calc(65% - 7px)",
+              color: "var(--handle-color-text)",
+            }}
+          >
+            Prompt
+          </div>
         </>
       )}
       {/* Image output */}
@@ -388,8 +427,20 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
         type="source"
         position={Position.Right}
         id="image"
+        style={{ top: "50%" }}
         data-handletype="image"
       />
+      {/* Output label */}
+      <div
+        className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none"
+        style={{
+          left: `calc(100% + 14px)`,
+          top: "calc(50% - 7px)",
+          color: "var(--handle-color-image)",
+        }}
+      >
+        Image
+      </div>
 
       <div className="flex-1 flex flex-col min-h-0 gap-2">
         {/* Preview area */}
