@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useState, useEffect, useMemo } from "react";
+import React, { useCallback, useState, useEffect, useMemo, useRef } from "react";
 import { Handle, Position, NodeProps, Node, useReactFlow } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
 import { ModelParameters } from "./ModelParameters";
@@ -8,6 +8,7 @@ import { useWorkflowStore } from "@/store/workflowStore";
 import { GenerateVideoNodeData, ProviderType, SelectedModel, ModelInputDef } from "@/types";
 import { ProviderModel, ModelCapability } from "@/lib/providers/types";
 import { ModelSearchDialog } from "@/components/modals/ModelSearchDialog";
+import { useToast } from "@/components/Toast";
 
 // Video generation capabilities
 const VIDEO_CAPABILITIES: ModelCapability[] = ["text-to-video", "image-to-video"];
@@ -188,6 +189,17 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
     </button>
   ), []);
 
+  // Track previous status to detect error transitions
+  const prevStatusRef = useRef(nodeData.status);
+
+  // Show toast when error occurs
+  useEffect(() => {
+    if (nodeData.status === "error" && prevStatusRef.current !== "error" && nodeData.error) {
+      useToast.getState().show("Video generation failed", "error", true, nodeData.error);
+    }
+    prevStatusRef.current = nodeData.status;
+  }, [nodeData.status, nodeData.error]);
+
   return (
     <>
     <BaseNode
@@ -294,8 +306,8 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
       <Handle
         type="source"
         position={Position.Right}
-        id="image"
-        data-handletype="image"
+        id="video"
+        data-handletype="video"
       />
       {/* Output label */}
       <div
@@ -344,6 +356,22 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   />
                 </svg>
+              </div>
+            )}
+            {/* Error overlay when generation failed */}
+            {nodeData.status === "error" && (
+              <div className="absolute inset-0 bg-red-900/70 rounded flex flex-col items-center justify-center gap-1">
+                <svg
+                  className="w-6 h-6 text-red-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-red-400 text-xs font-medium">Generation failed</span>
+                <span className="text-red-400/70 text-[10px]">See toast for details</span>
               </div>
             )}
             <div className="absolute top-1 right-1">
