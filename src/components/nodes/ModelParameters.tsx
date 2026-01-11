@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ProviderType } from "@/types";
+import { ProviderType, ModelInputDef } from "@/types";
 import { ModelParameter } from "@/lib/providers/types";
 import { useWorkflowStore } from "@/store/workflowStore";
 
@@ -11,6 +11,7 @@ interface ModelParametersProps {
   parameters: Record<string, unknown>;
   onParametersChange: (parameters: Record<string, unknown>) => void;
   onExpandChange?: (expanded: boolean, parameterCount: number) => void;
+  onInputsLoaded?: (inputs: ModelInputDef[]) => void;
 }
 
 /**
@@ -24,6 +25,7 @@ export function ModelParameters({
   parameters,
   onParametersChange,
   onExpandChange,
+  onInputsLoaded,
 }: ModelParametersProps) {
   const [schema, setSchema] = useState<ModelParameter[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -35,6 +37,7 @@ export function ModelParameters({
   useEffect(() => {
     if (!modelId || provider === "gemini") {
       setSchema([]);
+      onInputsLoaded?.([]);
       return;
     }
 
@@ -64,6 +67,11 @@ export function ModelParameters({
 
         const data = await response.json();
         setSchema(data.parameters || []);
+
+        // Pass inputs to parent for dynamic handle rendering
+        if (data.inputs && onInputsLoaded) {
+          onInputsLoaded(data.inputs);
+        }
       } catch (err) {
         console.error("Failed to fetch model schema:", err);
         setError(err instanceof Error ? err.message : "Failed to fetch schema");
@@ -74,7 +82,7 @@ export function ModelParameters({
     };
 
     fetchSchema();
-  }, [modelId, provider, providerSettings]);
+  }, [modelId, provider, providerSettings, onInputsLoaded]);
 
   const handleParameterChange = useCallback(
     (name: string, value: unknown) => {

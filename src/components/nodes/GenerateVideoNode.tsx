@@ -5,7 +5,7 @@ import { Handle, Position, NodeProps, Node, useReactFlow } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
 import { ModelParameters } from "./ModelParameters";
 import { useWorkflowStore } from "@/store/workflowStore";
-import { GenerateVideoNodeData, ProviderType, SelectedModel } from "@/types";
+import { GenerateVideoNodeData, ProviderType, SelectedModel, ModelInputDef } from "@/types";
 import { ProviderModel, ModelCapability } from "@/lib/providers/types";
 
 // Video generation capabilities
@@ -118,6 +118,14 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
   const handleParametersChange = useCallback(
     (parameters: Record<string, unknown>) => {
       updateNodeData(id, { parameters });
+    },
+    [id, updateNodeData]
+  );
+
+  // Handle inputs loaded from schema
+  const handleInputsLoaded = useCallback(
+    (inputs: ModelInputDef[]) => {
+      updateNodeData(id, { inputSchema: inputs });
     },
     [id, updateNodeData]
   );
@@ -325,6 +333,7 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
             parameters={nodeData.parameters || {}}
             onParametersChange={handleParametersChange}
             onExpandChange={handleParametersExpandChange}
+            onInputsLoaded={handleInputsLoaded}
           />
         )}
       </div>

@@ -5,7 +5,7 @@ import { Handle, Position, NodeProps, Node, useReactFlow } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
 import { ModelParameters } from "./ModelParameters";
 import { useWorkflowStore, saveNanoBananaDefaults } from "@/store/workflowStore";
-import { NanoBananaNodeData, AspectRatio, Resolution, ModelType, ProviderType, SelectedModel } from "@/types";
+import { NanoBananaNodeData, AspectRatio, Resolution, ModelType, ProviderType, SelectedModel, ModelInputDef } from "@/types";
 import { ProviderModel, ModelCapability } from "@/lib/providers/types";
 
 // All 10 aspect ratios supported by both models
@@ -206,6 +206,14 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
   const handleParametersChange = useCallback(
     (parameters: Record<string, unknown>) => {
       updateNodeData(id, { parameters });
+    },
+    [id, updateNodeData]
+  );
+
+  // Handle inputs loaded from schema
+  const handleInputsLoaded = useCallback(
+    (inputs: ModelInputDef[]) => {
+      updateNodeData(id, { inputSchema: inputs });
     },
     [id, updateNodeData]
   );
@@ -559,6 +567,7 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
                 parameters={nodeData.parameters || {}}
                 onParametersChange={handleParametersChange}
                 onExpandChange={handleParametersExpandChange}
+                onInputsLoaded={handleInputsLoaded}
               />
             )}
           </>

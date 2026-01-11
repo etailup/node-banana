@@ -133,6 +133,15 @@ export interface CarouselImageItem {
   model: ModelType;
 }
 
+// Model input definition for dynamic handles
+export interface ModelInputDef {
+  name: string;
+  type: "image" | "text";
+  required: boolean;
+  label: string;
+  description?: string;
+}
+
 // Nano Banana Node Data (Image Generation)
 export interface NanoBananaNodeData extends BaseNodeData {
   inputImages: string[]; // Now supports multiple images
@@ -146,6 +155,7 @@ export interface NanoBananaNodeData extends BaseNodeData {
   selectedModel?: SelectedModel;  // Multi-provider model selection (optional for backward compat)
   useGoogleSearch: boolean; // Only available for Nano Banana Pro
   parameters?: Record<string, unknown>;  // Model-specific parameters for external providers
+  inputSchema?: ModelInputDef[];  // Model's input schema for dynamic handles
   status: NodeStatus;
   error: string | null;
   imageHistory: CarouselImageItem[]; // Carousel history (IDs only)
@@ -161,6 +171,7 @@ export interface GenerateVideoNodeData extends BaseNodeData {
   outputVideoRef?: string;  // External video reference for storage optimization
   selectedModel?: SelectedModel;  // Required for video generation (no legacy fallback)
   parameters?: Record<string, unknown>;  // Model-specific parameters
+  inputSchema?: ModelInputDef[];  // Model's input schema for dynamic handles
   status: NodeStatus;
   error: string | null;
 }
