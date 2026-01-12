@@ -2103,9 +2103,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         const providerSettingsState = get().providerSettings;
 
         // Get fresh connected inputs
-        const inputs = getConnectedInputs(nodeId);
-        const images = inputs.images.length > 0 ? inputs.images : nodeData.inputImages;
-        const text = inputs.text ?? nodeData.inputPrompt;
+        const { images: connectedImages, text: connectedText, dynamicInputs } = getConnectedInputs(nodeId);
+        const images = connectedImages.length > 0 ? connectedImages : nodeData.inputImages;
+        const text = connectedText ?? nodeData.inputPrompt;
 
         if (!text) {
           logger.error('node.error', 'generateVideo regeneration failed: missing text input', {
@@ -2176,6 +2176,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             prompt: text,
             selectedModel: nodeData.selectedModel,
             parameters: nodeData.parameters,
+            dynamicInputs,
           }),
         });
 
