@@ -22,6 +22,7 @@ interface BaseNodeProps {
   minWidth?: number;
   minHeight?: number;
   headerAction?: ReactNode;
+  titlePrefix?: ReactNode;
 }
 
 export function BaseNode({
@@ -41,6 +42,7 @@ export function BaseNode({
   minWidth = 180,
   minHeight = 100,
   headerAction,
+  titlePrefix,
 }: BaseNodeProps) {
   const currentNodeId = useWorkflowStore((state) => state.currentNodeId);
   const groups = useWorkflowStore((state) => state.groups);
@@ -201,6 +203,7 @@ export function BaseNode({
         <div className="px-3 pt-2 pb-1 flex items-center justify-between">
           {/* Title Section */}
           <div className="flex-1 min-w-0 flex items-center gap-1.5">
+            {titlePrefix}
             {isEditingTitle ? (
               <input
                 ref={titleInputRef}
