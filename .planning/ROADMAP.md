@@ -216,7 +216,7 @@ Plans:
 **Plans**: 11 plans
 
 Plans:
-- [ ] 17-01: Core Nodes (BaseNode, PromptNode, ImageInputNode)
+- [x] 17-01: Core Nodes (BaseNode, PromptNode, ImageInputNode)
 - [ ] 17-02: Display Nodes (OutputNode, SplitGridNode, GroupNode)
 - [ ] 17-03: Generate Nodes (GenerateImageNode, GenerateVideoNode)
 - [ ] 17-04: Processing Nodes (LLMGenerateNode, AnnotationNode)
@@ -281,7 +281,7 @@ Phases execute in numeric order: 1 → 2 → ... → 14 → 15 → 16 → 17 →
 | 14. Fix Drag-Connect Node Creation Bugs | v1.1 | 1/1 | Complete | 2026-01-12 |
 | 15. Test Infrastructure | v1.2 | 1/1 | Complete | 2026-01-12 |
 | 16. Store Modularization | v1.2 | 1/1 | Complete | 2026-01-12 |
-| 17. Component Tests | v1.2 | 0/11 | Planned | - |
+| 17. Component Tests | v1.2 | 1/11 | In progress | - |
 | 18. API Route Tests | v1.2 | 0/? | Not started | - |
 | 19. Type Refactoring | v1.2 | 0/? | Not started | - |
 | 20. Integration Tests | v1.2 | 0/? | Not started | - |
