@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as fs from "fs/promises";
 import * as path from "path";
+import * as crypto from "crypto";
 import { logger } from "@/utils/logger";
 
 // Helper to get file extension from MIME type
@@ -20,6 +21,29 @@ function getExtensionFromMime(mimeType: string): string {
 // Helper to detect if a string is an HTTP URL
 function isHttpUrl(str: string): boolean {
   return str.startsWith("http://") || str.startsWith("https://");
+}
+
+// Helper to compute MD5 hash of buffer content
+function computeContentHash(buffer: Buffer): string {
+  return crypto.createHash("md5").update(buffer).digest("hex");
+}
+
+// Helper to find existing file by hash prefix
+async function findExistingFileByHash(
+  directoryPath: string,
+  hash: string,
+  extension: string
+): Promise<string | null> {
+  try {
+    const files = await fs.readdir(directoryPath);
+    // Look for files starting with this hash
+    const matching = files.find(
+      (f) => f.startsWith(hash) && f.endsWith(`.${extension}`)
+    );
+    return matching || null;
+  } catch {
+    return null;
+  }
 }
 
 // POST: Save a generated image or video to the generations folder
@@ -108,22 +132,38 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate filename
-    let filename: string;
-    if (imageId) {
-      filename = `${imageId}.${extension}`;
-    } else {
-      const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-      const promptSnippet = prompt
-        ? prompt
-            .slice(0, 30)
-            .replace(/[^a-zA-Z0-9]/g, "_")
-            .replace(/_+/g, "_")
-            .replace(/^_|_$/g, "")
-            .toLowerCase()
-        : "generation";
-      filename = `${timestamp}_${promptSnippet}.${extension}`;
+    // Compute content hash for deduplication
+    const contentHash = computeContentHash(buffer);
+
+    // Check for existing file with same hash (deduplication)
+    const existingFile = await findExistingFileByHash(directoryPath, contentHash, extension);
+    if (existingFile) {
+      const existingPath = path.join(directoryPath, existingFile);
+      logger.info('file.save', 'Generation deduplicated: existing file found', {
+        contentHash,
+        existingFile,
+        filePath: existingPath,
+      });
+
+      return NextResponse.json({
+        success: true,
+        filePath: existingPath,
+        filename: existingFile,
+        imageId: existingFile.replace(`.${extension}`, ''),
+        isDuplicate: true,
+      });
     }
+
+    // Generate filename with hash prefix for fast future lookups
+    const promptSnippet = prompt
+      ? prompt
+          .slice(0, 30)
+          .replace(/[^a-zA-Z0-9]/g, "_")
+          .replace(/_+/g, "_")
+          .replace(/^_|_$/g, "")
+          .toLowerCase()
+      : "generation";
+    const filename = `${contentHash}_${promptSnippet}.${extension}`;
     const filePath = path.join(directoryPath, filename);
 
     // Write the file
@@ -134,13 +174,15 @@ export async function POST(request: NextRequest) {
       filename,
       fileSize: buffer.length,
       isVideo,
+      contentHash,
     });
 
     return NextResponse.json({
       success: true,
       filePath,
       filename,
-      imageId: imageId || filename.replace(`.${extension}`, ''),
+      imageId: filename.replace(`.${extension}`, ''),
+      isDuplicate: false,
     });
   } catch (error) {
     logger.error('file.error', 'Failed to save generation', {
