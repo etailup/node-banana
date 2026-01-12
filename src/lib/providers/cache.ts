@@ -5,7 +5,7 @@
  * Reduces API calls to external providers by caching results with TTL.
  *
  * Features:
- * - 10-minute default TTL
+ * - 1-hour default TTL
  * - Per-provider cache keys
  * - Optional search query in cache key
  * - Manual invalidation support
@@ -25,9 +25,9 @@ interface CacheEntry<T> {
 }
 
 /**
- * Default cache TTL: 10 minutes
+ * Default cache TTL: 1 hour
  */
-const DEFAULT_TTL = 10 * 60 * 1000;
+const DEFAULT_TTL = 60 * 60 * 1000;
 
 /**
  * In-memory cache storage
