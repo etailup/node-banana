@@ -157,16 +157,16 @@ Plans:
 Plans:
 - [x] 12-01: Extended cache TTL, fixed isImageInput, fixed stale node data in execution
 
-#### Phase 13: Fix Duplicate Generations
+#### Phase 13: Fix Duplicate Generations ✅
 
 **Goal**: Fix image deduplication - generations folder has duplicate images due to hashing failure
 **Depends on**: Phase 12
 **Research**: Likely (investigate current hashing implementation)
 **Research topics**: Current save-generation hashing logic, why duplicates are being created
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 13-01: TBD (run /gsd:plan-phase 13 to break down)
+- [x] 13-01: Add MD5 content hashing and deduplication to save-generation API
 
 #### Phase 14: Fix Drag-Connect Node Creation Bugs
 
@@ -198,5 +198,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 10. Node Autosizing | v1.1 | 1/1 | Complete | 2026-01-12 |
 | 11. UI Polish | v1.1 | 1/1 | Complete | 2026-01-12 |
 | 12. Model Improvements | v1.1 | 1/1 | Complete | 2026-01-12 |
-| 13. Fix Duplicate Generations | v1.1 | 0/? | Not started | - |
+| 13. Fix Duplicate Generations | v1.1 | 1/1 | Complete | 2026-01-12 |
 | 14. Fix Drag-Connect Node Creation Bugs | v1.1 | 0/? | Not started | - |

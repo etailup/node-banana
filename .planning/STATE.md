@@ -5,22 +5,22 @@
 See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Provider infrastructure that dynamically discovers models from external APIs, enabling users to access hundreds of image/video generation models without hardcoding schemas.
-**Current focus:** Phase 13 - Fix Duplicate Generations
+**Current focus:** Phase 14 - Fix Drag-Connect Node Creation Bugs
 
 ## Current Position
 
-Phase: 12 of 14 (Model Improvements)
+Phase: 13 of 14 (Fix Duplicate Generations)
 Plan: 1 of 1 complete
 Status: Phase complete
-Last activity: 2026-01-12 - Completed Phase 12 fixes
+Last activity: 2026-01-12 - Completed 13-01-PLAN.md
 
-Progress: ██████░░░░ 50%
+Progress: ███████░░░ 55%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 20
-- Average duration: 7.0 min
+- Total plans completed: 21
+- Average duration: 6.8 min
 - Total execution time: 2.4 hours
 
 **By Phase:**
@@ -38,9 +38,11 @@ Progress: ██████░░░░ 50%
 | 9. Video History | 1/1 | 12 min | 12 min |
 | 10. Node Autosizing | 1/1 | 2 min | 2 min |
 | 11. UI Polish | 1/1 | 8 min | 8 min |
+| 12. Model Improvements | 1/1 | - | - |
+| 13. Fix Duplicate Generations | 1/1 | 1 min | 1 min |
 
 **Recent Trend:**
-- Last 5 plans: 4 min, 14 min, 12 min, 2 min, 8 min
+- Last 5 plans: 14 min, 12 min, 2 min, 8 min, 1 min
 - Trend: Fast execution with established patterns
 
 ## Accumulated Context
@@ -89,6 +91,8 @@ Recent decisions affecting current work:
 - isImageInput() uses word-boundary checks (not substring) to avoid matching num_images
 - Workflow execution gets fresh node data from store (not stale captured array)
 - regenerateNode includes parameters in request body
+- MD5 content hashing for generation deduplication (fast, collision resistance not critical)
+- Hash prefix in filename for O(1) duplicate lookup
 
 ### Deferred Issues
 
@@ -109,6 +113,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-12
-Stopped at: Phase 12 Model Improvements completed
+Stopped at: Phase 13 Fix Duplicate Generations completed
 Resume file: None
-Next action: Plan Phase 13 (Fix Duplicate Generations)
+Next action: Plan Phase 14 (Fix Drag-Connect Node Creation Bugs)
