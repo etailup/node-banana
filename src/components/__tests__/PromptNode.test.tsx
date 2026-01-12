@@ -101,4 +101,38 @@ describe("PromptNode", () => {
 
     expect(screen.getByText("Prompt")).toBeInTheDocument();
   });
+
+  it("should render expand button", () => {
+    render(
+      <TestWrapper>
+        <PromptNode {...defaultProps} />
+      </TestWrapper>
+    );
+
+    expect(screen.getByTitle("Expand editor")).toBeInTheDocument();
+  });
+
+  it("should call incrementModalCount when expand button is clicked", () => {
+    render(
+      <TestWrapper>
+        <PromptNode {...defaultProps} />
+      </TestWrapper>
+    );
+
+    const expandButton = screen.getByTitle("Expand editor");
+    fireEvent.click(expandButton);
+
+    expect(mockIncrementModalCount).toHaveBeenCalled();
+  });
+
+  it("should render text output handle", () => {
+    const { container } = render(
+      <TestWrapper>
+        <PromptNode {...defaultProps} />
+      </TestWrapper>
+    );
+
+    const handle = container.querySelector('[data-handletype="text"]');
+    expect(handle).toBeInTheDocument();
+  });
 });
