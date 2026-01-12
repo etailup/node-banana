@@ -11,6 +11,27 @@ import { ModelSearchDialog } from "@/components/modals/ModelSearchDialog";
 import { useToast } from "@/components/Toast";
 import { getImageDimensions, calculateNodeSize } from "@/utils/nodeDimensions";
 
+// Provider badge component - shows small provider icon for external providers
+function ProviderBadge({ provider }: { provider: ProviderType }) {
+  if (provider === "gemini") return null;
+
+  return (
+    <span className="ml-1 text-neutral-500" title={provider === "replicate" ? "Replicate" : "fal.ai"}>
+      {provider === "replicate" ? (
+        <svg className="w-3 h-3" viewBox="0 0 1000 1000" fill="currentColor">
+          <polygon points="1000,427.6 1000,540.6 603.4,540.6 603.4,1000 477,1000 477,427.6" />
+          <polygon points="1000,213.8 1000,327 364.8,327 364.8,1000 238.4,1000 238.4,213.8" />
+          <polygon points="1000,0 1000,113.2 126.4,113.2 126.4,1000 0,1000 0,0" />
+        </svg>
+      ) : (
+        <svg className="w-3 h-3" viewBox="0 0 1855 1855" fill="currentColor">
+          <path fillRule="evenodd" clipRule="evenodd" d="M1181.65 78C1212.05 78 1236.42 101.947 1239.32 131.261C1265.25 392.744 1480.07 600.836 1750.02 625.948C1780.28 628.764 1805 652.366 1805 681.816V1174.18C1805 1203.63 1780.28 1227.24 1750.02 1230.05C1480.07 1255.16 1265.25 1463.26 1239.32 1724.74C1236.42 1754.05 1212.05 1778 1181.65 1778H673.354C642.951 1778 618.585 1754.05 615.678 1724.74C589.754 1463.26 374.927 1255.16 104.984 1230.05C74.7212 1227.24 50 1203.63 50 1174.18V681.816C50 652.366 74.7213 628.764 104.984 625.948C374.927 600.836 589.754 392.744 615.678 131.261C618.585 101.946 642.951 78 673.353 78H1181.65ZM402.377 926.561C402.377 1209.41 638.826 1438.71 930.501 1438.71C1222.18 1438.71 1458.63 1209.41 1458.63 926.561C1458.63 643.709 1222.18 414.412 930.501 414.412C638.826 414.412 402.377 643.709 402.377 926.561Z" />
+        </svg>
+      )}
+    </span>
+  );
+}
+
 // All 10 aspect ratios supported by both models
 const ASPECT_RATIOS: AspectRatio[] = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"];
 
@@ -373,17 +394,20 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
         </select>
       );
     } else {
-      // External providers: browse button
+      // External providers: badge + browse button
       return (
-        <button
-          onClick={() => setIsBrowseDialogOpen(true)}
-          className="nodrag nopan text-[10px] py-0.5 px-1.5 bg-neutral-700 hover:bg-neutral-600 border border-neutral-600 rounded text-neutral-300 transition-colors"
-        >
-          Browse
-        </button>
+        <>
+          <ProviderBadge provider={currentProvider} />
+          <button
+            onClick={() => setIsBrowseDialogOpen(true)}
+            className="nodrag nopan text-[10px] py-0.5 px-1.5 bg-neutral-700 hover:bg-neutral-600 border border-neutral-600 rounded text-neutral-300 transition-colors"
+          >
+            Browse
+          </button>
+        </>
       );
     }
-  }, [isGeminiOnly, nodeData.model, handleModelChange]);
+  }, [isGeminiOnly, nodeData.model, handleModelChange, currentProvider]);
   const isNanoBananaPro = isGeminiProvider && nodeData.model === "nano-banana-pro";
   const hasCarouselImages = (nodeData.imageHistory || []).length > 1;
 
