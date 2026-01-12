@@ -84,7 +84,7 @@ Recent decisions affecting current work:
 
 ### Deferred Issues
 
-- UAT-001: Provider icons should use real logos (minor, cosmetic)
+- UAT-001: Resolved - Provider icons now use real Replicate/fal.ai logos
 - ISS-001: Resolved - Generate nodes now adapt to model requirements via dynamic parameters
 
 ### Blockers/Concerns
