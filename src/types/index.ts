@@ -133,6 +133,14 @@ export interface CarouselImageItem {
   model: ModelType;
 }
 
+// Carousel Video Item (for per-node video history)
+export interface CarouselVideoItem {
+  id: string;
+  timestamp: number;
+  prompt: string;
+  model: string;  // Model ID for video (not ModelType since external providers)
+}
+
 // Model input definition for dynamic handles
 export interface ModelInputDef {
   name: string;
@@ -174,6 +182,8 @@ export interface GenerateVideoNodeData extends BaseNodeData {
   inputSchema?: ModelInputDef[];  // Model's input schema for dynamic handles
   status: NodeStatus;
   error: string | null;
+  videoHistory: CarouselVideoItem[];  // Carousel history (IDs only)
+  selectedVideoHistoryIndex: number;  // Currently selected video in carousel
 }
 
 // LLM Generate Node Data (Text Generation)
