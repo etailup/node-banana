@@ -19,14 +19,12 @@ import {
   GenerateVideoNodeData,
   LLMGenerateNodeData,
   SplitGridNodeData,
-  OutputNodeData,
   WorkflowNodeData,
   ImageHistoryItem,
   NodeGroup,
   GroupColor,
   ProviderType,
   ProviderSettings,
-  SelectedModel,
 } from "@/types";
 import { useToast } from "@/components/Toast";
 import { calculateGenerationCost } from "@/utils/costCalculator";
@@ -37,15 +35,16 @@ import {
   saveSaveConfig,
   loadWorkflowCostData,
   saveWorkflowCostData,
-  loadGenerateImageDefaults,
-  saveGenerateImageDefaults,
   getProviderSettings,
   saveProviderSettings,
   defaultProviderSettings,
-  generateWorkflowId,
-  // Re-export backward-compatible aliases
-  type GenerateImageDefaults,
 } from "./utils/localStorage";
+import {
+  createDefaultNodeData,
+  defaultNodeDimensions,
+  GROUP_COLORS,
+  GROUP_COLOR_ORDER,
+} from "./utils/nodeDefaults";
 
 export type EdgeStyle = "angular" | "curved";
 
@@ -182,115 +181,13 @@ interface WorkflowStore {
   setModelSearchOpen: (open: boolean, provider?: ProviderType | null) => void;
 }
 
-const createDefaultNodeData = (type: NodeType): WorkflowNodeData => {
-  switch (type) {
-    case "imageInput":
-      return {
-        image: null,
-        filename: null,
-        dimensions: null,
-      } as ImageInputNodeData;
-    case "annotation":
-      return {
-        sourceImage: null,
-        annotations: [],
-        outputImage: null,
-      } as AnnotationNodeData;
-    case "prompt":
-      return {
-        prompt: "",
-      } as PromptNodeData;
-    case "nanoBanana": {
-      const defaults = loadGenerateImageDefaults();
-      const modelDisplayName = defaults.model === "nano-banana" ? "Nano Banana" : "Nano Banana Pro";
-      const defaultSelectedModel: SelectedModel = {
-        provider: "gemini",
-        modelId: defaults.model,
-        displayName: modelDisplayName,
-      };
-      return {
-        inputImages: [],
-        inputPrompt: null,
-        outputImage: null,
-        aspectRatio: defaults.aspectRatio,
-        resolution: defaults.resolution,
-        model: defaults.model,
-        selectedModel: defaultSelectedModel,
-        useGoogleSearch: defaults.useGoogleSearch,
-        status: "idle",
-        error: null,
-        imageHistory: [],
-        selectedHistoryIndex: 0,
-      } as NanoBananaNodeData;
-    }
-    case "generateVideo":
-      return {
-        inputImages: [],
-        inputPrompt: null,
-        outputVideo: null,
-        selectedModel: undefined,
-        status: "idle",
-        error: null,
-        videoHistory: [],
-        selectedVideoHistoryIndex: 0,
-      } as GenerateVideoNodeData;
-    case "llmGenerate":
-      return {
-        inputPrompt: null,
-        inputImages: [],
-        outputText: null,
-        provider: "google",
-        model: "gemini-3-flash-preview",
-        temperature: 0.7,
-        maxTokens: 8192,
-        status: "idle",
-        error: null,
-      } as LLMGenerateNodeData;
-    case "splitGrid":
-      return {
-        sourceImage: null,
-        targetCount: 6,
-        defaultPrompt: "",
-        generateSettings: {
-          aspectRatio: "1:1",
-          resolution: "1K",
-          model: "nano-banana-pro",
-          useGoogleSearch: false,
-        },
-        childNodeIds: [],
-        gridRows: 2,
-        gridCols: 3,
-        isConfigured: false,
-        status: "idle",
-        error: null,
-      } as SplitGridNodeData;
-    case "output":
-      return {
-        image: null,
-      } as OutputNodeData;
-  }
-};
-
 let nodeIdCounter = 0;
 let groupIdCounter = 0;
 let autoSaveIntervalId: ReturnType<typeof setInterval> | null = null;
 
-// Group color palette (dark mode tints)
-export const GROUP_COLORS: Record<GroupColor, string> = {
-  neutral: "#262626",
-  blue: "#1e3a5f",
-  green: "#1a3d2e",
-  purple: "#2d2458",
-  orange: "#3d2a1a",
-  red: "#3d1a1a",
-};
-
-const GROUP_COLOR_ORDER: GroupColor[] = [
-  "neutral", "blue", "green", "purple", "orange", "red"
-];
-
 // Re-export for backward compatibility
 export { generateWorkflowId, saveGenerateImageDefaults, saveNanoBananaDefaults } from "./utils/localStorage";
+export { GROUP_COLORS } from "./utils/nodeDefaults";
 
 export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   nodes: [],
@@ -352,19 +249,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   addNode: (type: NodeType, position: XYPosition, initialData?: Partial<WorkflowNodeData>) => {
     const id = `${type}-${++nodeIdCounter}`;
 
-    // Default dimensions based on node type
-    const defaultDimensions: Record<NodeType, { width: number; height: number }> = {
-      imageInput: { width: 300, height: 280 },
-      annotation: { width: 300, height: 280 },
-      prompt: { width: 320, height: 220 },
-      nanoBanana: { width: 300, height: 300 },
-      generateVideo: { width: 300, height: 300 },
-      llmGenerate: { width: 320, height: 360 },
-      splitGrid: { width: 300, height: 320 },
-      output: { width: 320, height: 320 },
-    };
-
-    const { width, height } = defaultDimensions[type];
+    const { width, height } = defaultNodeDimensions[type];
 
     // Merge default data with initialData if provided
     const defaultData = createDefaultNodeData(type);
@@ -555,22 +440,11 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     const nodesToGroup = nodes.filter((n) => nodeIds.includes(n.id));
     if (nodesToGroup.length === 0) return "";
 
-    // Default dimensions per node type
-    const defaultNodeDimensions: Record<string, { width: number; height: number }> = {
-      imageInput: { width: 300, height: 280 },
-      annotation: { width: 300, height: 280 },
-      prompt: { width: 320, height: 220 },
-      nanoBanana: { width: 300, height: 300 },
-      llmGenerate: { width: 320, height: 360 },
-      splitGrid: { width: 300, height: 320 },
-      output: { width: 320, height: 320 },
-    };
-
     // Calculate bounding box of selected nodes
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     nodesToGroup.forEach((node) => {
       // Use measured dimensions (actual rendered size) first, then style, then type-specific defaults
-      const defaults = defaultNodeDimensions[node.type] || { width: 300, height: 280 };
+      const defaults = defaultNodeDimensions[node.type as NodeType] || { width: 300, height: 280 };
       const width = node.measured?.width || (node.style?.width as number) || defaults.width;
       const height = node.measured?.height || (node.style?.height as number) || defaults.height;
 
