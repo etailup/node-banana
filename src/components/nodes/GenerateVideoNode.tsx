@@ -19,10 +19,12 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
   const nodeData = data;
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const providerSettings = useWorkflowStore((state) => state.providerSettings);
+  const generationsPath = useWorkflowStore((state) => state.generationsPath);
   const [externalModels, setExternalModels] = useState<ProviderModel[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [modelsFetchError, setModelsFetchError] = useState<string | null>(null);
   const [isBrowseDialogOpen, setIsBrowseDialogOpen] = useState(false);
+  const [isLoadingCarouselVideo, setIsLoadingCarouselVideo] = useState(false);
 
   // Get the current selected provider (default to fal since Gemini doesn't do video)
   const currentProvider: ProviderType = nodeData.selectedModel?.provider || "fal";
@@ -160,6 +162,77 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
     regenerateNode(id);
   }, [id, regenerateNode]);
 
+  // Load video by ID from generations folder
+  const loadVideoById = useCallback(async (videoId: string) => {
+    if (!generationsPath) {
+      console.error("Generations path not configured");
+      return null;
+    }
+
+    try {
+      const response = await fetch("/api/load-generation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          directoryPath: generationsPath,
+          imageId: videoId,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error("Failed to load video:", await response.text());
+        return null;
+      }
+
+      const result = await response.json();
+      return result.success ? (result.video || result.image) : null;
+    } catch (error) {
+      console.error("Error loading video:", error);
+      return null;
+    }
+  }, [generationsPath]);
+
+  // Carousel navigation handlers
+  const handleCarouselPrevious = useCallback(async () => {
+    const history = nodeData.videoHistory || [];
+    if (history.length === 0 || isLoadingCarouselVideo) return;
+
+    const currentIndex = nodeData.selectedVideoHistoryIndex || 0;
+    const newIndex = currentIndex === 0 ? history.length - 1 : currentIndex - 1;
+    const videoItem = history[newIndex];
+
+    setIsLoadingCarouselVideo(true);
+    const video = await loadVideoById(videoItem.id);
+    setIsLoadingCarouselVideo(false);
+
+    if (video) {
+      updateNodeData(id, {
+        outputVideo: video,
+        selectedVideoHistoryIndex: newIndex,
+      });
+    }
+  }, [id, nodeData.videoHistory, nodeData.selectedVideoHistoryIndex, isLoadingCarouselVideo, loadVideoById, updateNodeData]);
+
+  const handleCarouselNext = useCallback(async () => {
+    const history = nodeData.videoHistory || [];
+    if (history.length === 0 || isLoadingCarouselVideo) return;
+
+    const currentIndex = nodeData.selectedVideoHistoryIndex || 0;
+    const newIndex = (currentIndex + 1) % history.length;
+    const videoItem = history[newIndex];
+
+    setIsLoadingCarouselVideo(true);
+    const video = await loadVideoById(videoItem.id);
+    setIsLoadingCarouselVideo(false);
+
+    if (video) {
+      updateNodeData(id, {
+        outputVideo: video,
+        selectedVideoHistoryIndex: newIndex,
+      });
+    }
+  }, [id, nodeData.videoHistory, nodeData.selectedVideoHistoryIndex, isLoadingCarouselVideo, loadVideoById, updateNodeData]);
+
   // Handle model selection from browse dialog
   const handleBrowseModelSelect = useCallback((model: ProviderModel) => {
     const newSelectedModel: SelectedModel = {
@@ -188,6 +261,8 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
       Browse
     </button>
   ), []);
+
+  const hasCarouselVideos = (nodeData.videoHistory || []).length > 1;
 
   // Track previous status to detect error transitions
   const prevStatusRef = useRef(nodeData.status);
@@ -324,6 +399,7 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
       <div className="flex-1 flex flex-col min-h-0 gap-2">
         {/* Preview area */}
         {nodeData.outputVideo ? (
+          <>
           <div className="relative w-full flex-1 min-h-0">
             <video
               src={nodeData.outputVideo}
@@ -374,6 +450,30 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
                 <span className="text-white/70 text-[10px]">See toast for details</span>
               </div>
             )}
+            {/* Loading overlay for carousel navigation */}
+            {isLoadingCarouselVideo && (
+              <div className="absolute inset-0 bg-neutral-900/50 rounded flex items-center justify-center">
+                <svg
+                  className="w-4 h-4 animate-spin text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+              </div>
+            )}
             <div className="absolute top-1 right-1">
               <button
                 onClick={handleClearVideo}
@@ -386,6 +486,36 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
               </button>
             </div>
           </div>
+
+          {/* Carousel controls - only show if there are multiple videos */}
+          {hasCarouselVideos && (
+            <div className="flex items-center justify-center gap-2 shrink-0">
+              <button
+                onClick={handleCarouselPrevious}
+                disabled={isLoadingCarouselVideo}
+                className="w-5 h-5 rounded bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-neutral-400 hover:text-white transition-colors"
+                title="Previous video"
+              >
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <span className="text-[10px] text-neutral-400 min-w-[32px] text-center">
+                {(nodeData.selectedVideoHistoryIndex || 0) + 1} / {(nodeData.videoHistory || []).length}
+              </span>
+              <button
+                onClick={handleCarouselNext}
+                disabled={isLoadingCarouselVideo}
+                className="w-5 h-5 rounded bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-neutral-400 hover:text-white transition-colors"
+                title="Next video"
+              >
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          )}
+        </>
         ) : (
           <div className="w-full flex-1 min-h-[112px] border border-dashed border-neutral-600 rounded flex flex-col items-center justify-center">
             {nodeData.status === "loading" ? (

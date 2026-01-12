@@ -227,6 +227,8 @@ function createDefaultNodeData(type: NodeType): WorkflowNodeData {
         selectedModel: undefined,
         status: "idle",
         error: null,
+        videoHistory: [],
+        selectedVideoHistoryIndex: 0,
       };
     case "llmGenerate":
       return {
