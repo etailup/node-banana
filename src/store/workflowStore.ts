@@ -219,6 +219,8 @@ const createDefaultNodeData = (type: NodeType): WorkflowNodeData => {
         selectedModel: undefined,
         status: "idle",
         error: null,
+        videoHistory: [],
+        selectedVideoHistoryIndex: 0,
       } as GenerateVideoNodeData;
     case "llmGenerate":
       return {
@@ -839,7 +841,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     };
 
     // Helper to extract output from source node
-    const getSourceOutput = (sourceNode: WorkflowNode): { type: "image" | "text"; value: string | null } => {
+    const getSourceOutput = (sourceNode: WorkflowNode): { type: "image" | "text" | "video"; value: string | null } => {
       if (sourceNode.type === "imageInput") {
         return { type: "image", value: (sourceNode.data as ImageInputNodeData).image };
       } else if (sourceNode.type === "annotation") {
@@ -847,7 +849,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       } else if (sourceNode.type === "nanoBanana") {
         return { type: "image", value: (sourceNode.data as NanoBananaNodeData).outputImage };
       } else if (sourceNode.type === "generateVideo") {
-        return { type: "image", value: (sourceNode.data as GenerateVideoNodeData).outputVideo };
+        // Return video type - generateVideo and output nodes handle this appropriately
+        return { type: "video", value: (sourceNode.data as GenerateVideoNodeData).outputVideo };
       } else if (sourceNode.type === "prompt") {
         return { type: "text", value: (sourceNode.data as PromptNodeData).prompt };
       } else if (sourceNode.type === "llmGenerate") {
@@ -1390,10 +1393,24 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
               // Handle video response (video or videoUrl field)
               const videoData = result.video || result.videoUrl;
               if (result.success && videoData) {
+                const timestamp = Date.now();
+                const videoId = `${timestamp}`;
+
+                // Add to node's video history
+                const newHistoryItem = {
+                  id: videoId,
+                  timestamp,
+                  prompt: text || '',
+                  model: nodeData.selectedModel?.modelId || '',
+                };
+                const updatedHistory = [newHistoryItem, ...(nodeData.videoHistory || [])].slice(0, 50);
+
                 updateNodeData(node.id, {
                   outputVideo: videoData,
                   status: "complete",
                   error: null,
+                  videoHistory: updatedHistory,
+                  selectedVideoHistoryIndex: 0,
                 });
 
                 // Auto-save video to generations folder if configured
@@ -1406,6 +1423,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                       directoryPath: genPath,
                       video: videoData,
                       prompt: text,
+                      imageId: videoId,
                     }),
                   }).catch((err) => {
                     console.error("Failed to save video generation:", err);
@@ -1413,10 +1431,24 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 }
               } else if (result.success && result.image) {
                 // Some models might return an image preview; treat as video for now
+                const timestamp = Date.now();
+                const videoId = `${timestamp}`;
+
+                // Add to node's video history
+                const newHistoryItem = {
+                  id: videoId,
+                  timestamp,
+                  prompt: text || '',
+                  model: nodeData.selectedModel?.modelId || '',
+                };
+                const updatedHistory = [newHistoryItem, ...(nodeData.videoHistory || [])].slice(0, 50);
+
                 updateNodeData(node.id, {
                   outputVideo: result.image,
                   status: "complete",
                   error: null,
+                  videoHistory: updatedHistory,
+                  selectedVideoHistoryIndex: 0,
                 });
 
                 // Auto-save image preview to generations folder if configured
@@ -1429,6 +1461,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                       directoryPath: genPath,
                       image: result.image,
                       prompt: text,
+                      imageId: videoId,
                     }),
                   }).catch((err) => {
                     console.error("Failed to save video generation:", err);
@@ -2134,10 +2167,24 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         const result = await response.json();
         const videoData = result.video || result.videoUrl;
         if (result.success && videoData) {
+          const timestamp = Date.now();
+          const videoId = `${timestamp}`;
+
+          // Add to node's video history
+          const newHistoryItem = {
+            id: videoId,
+            timestamp,
+            prompt: text || '',
+            model: nodeData.selectedModel?.modelId || '',
+          };
+          const updatedHistory = [newHistoryItem, ...(nodeData.videoHistory || [])].slice(0, 50);
+
           updateNodeData(nodeId, {
             outputVideo: videoData,
             status: "complete",
             error: null,
+            videoHistory: updatedHistory,
+            selectedVideoHistoryIndex: 0,
           });
 
           // Auto-save video to generations folder if configured
@@ -2150,16 +2197,31 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 directoryPath: genPath,
                 video: videoData,
                 prompt: text,
+                imageId: videoId,
               }),
             }).catch((err) => {
               console.error("Failed to save video generation:", err);
             });
           }
         } else if (result.success && result.image) {
+          const timestamp = Date.now();
+          const videoId = `${timestamp}`;
+
+          // Add to node's video history
+          const newHistoryItem = {
+            id: videoId,
+            timestamp,
+            prompt: text || '',
+            model: nodeData.selectedModel?.modelId || '',
+          };
+          const updatedHistory = [newHistoryItem, ...(nodeData.videoHistory || [])].slice(0, 50);
+
           updateNodeData(nodeId, {
             outputVideo: result.image,
             status: "complete",
             error: null,
+            videoHistory: updatedHistory,
+            selectedVideoHistoryIndex: 0,
           });
 
           // Auto-save image preview to generations folder if configured
@@ -2172,6 +2234,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 directoryPath: genPath,
                 image: result.image,
                 prompt: text,
+                imageId: videoId,
               }),
             }).catch((err) => {
               console.error("Failed to save video generation:", err);
