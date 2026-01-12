@@ -136,15 +136,15 @@ Plans:
 Plans:
 - [x] 10-01: Node dimension utility and auto-resize on output
 
-#### Phase 11: UI Polish
+#### Phase 11: UI Polish ✅
 
 **Goal**: Flora UI alignment, header UI improvements, project settings, provider logos on nodes
 **Depends on**: Phase 10
 **Research**: Unlikely (internal UI work)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 11-01: TBD (run /gsd:plan-phase 11 to break down)
+- [x] 11-01: Provider badges on nodes and header UI streamlining
 
 #### Phase 12: Model Improvements
 
@@ -174,5 +174,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 8. Error Display | v1.1 | 1/1 | Complete | 2026-01-12 |
 | 9. Video History | v1.1 | 1/1 | Complete | 2026-01-12 |
 | 10. Node Autosizing | v1.1 | 1/1 | Complete | 2026-01-12 |
-| 11. UI Polish | v1.1 | 0/? | Not started | - |
+| 11. UI Polish | v1.1 | 1/1 | Complete | 2026-01-12 |
 | 12. Model Improvements | v1.1 | 0/? | Not started | - |

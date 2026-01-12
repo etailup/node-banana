@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Provider infrastructure that dynamically discovers models from external APIs, enabling users to access hundreds of image/video generation models without hardcoding schemas.
-**Current focus:** Phase 11 - UI Polish
+**Current focus:** Phase 12 - Model Improvements
 
 ## Current Position
 
-Phase: 10 of 12 (Node Autosizing)
+Phase: 11 of 12 (UI Polish)
 Plan: 1 of 1 complete
 Status: Phase complete
-Last activity: 2026-01-12 - Completed 10-01-PLAN.md
+Last activity: 2026-01-12 - Completed 11-01-PLAN.md
 
-Progress: ████░░░░░░ 37%
+Progress: █████░░░░░ 42%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 19
-- Average duration: 7.1 min
-- Total execution time: 2.27 hours
+- Total plans completed: 20
+- Average duration: 7.0 min
+- Total execution time: 2.4 hours
 
 **By Phase:**
 
@@ -37,9 +37,10 @@ Progress: ████░░░░░░ 37%
 | 8. Error Display | 1/1 | 14 min | 14 min |
 | 9. Video History | 1/1 | 12 min | 12 min |
 | 10. Node Autosizing | 1/1 | 2 min | 2 min |
+| 11. UI Polish | 1/1 | 8 min | 8 min |
 
 **Recent Trend:**
-- Last 5 plans: 5 min, 4 min, 14 min, 12 min, 2 min
+- Last 5 plans: 4 min, 14 min, 12 min, 2 min, 8 min
 - Trend: Fast execution with established patterns
 
 ## Accumulated Context
@@ -81,6 +82,10 @@ Recent decisions affecting current work:
 - Filter internal params, prioritize user-relevant ones (seed, steps, guidance)
 - Collapsible parameters section to keep node UI compact
 - Node autosizing constraints: 200-500px width, 200-600px height, ~100px chrome
+- Provider badges prepend node title (left side) with w-4 h-4 icons
+- Node titles show only model name (no "Generate Image/Video" prefix)
+- BaseNode supports titlePrefix prop for icon prepending
+- Header aligned for saved/unsaved states with same icon layout
 
 ### Deferred Issues
 
@@ -99,6 +104,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-12
-Stopped at: Phase 10 Node Autosizing completed
+Stopped at: Phase 11 UI Polish completed
 Resume file: None
-Next action: Plan Phase 11 (UI Polish)
+Next action: Plan Phase 12 (Model Improvements)
