@@ -11,7 +11,7 @@ None
 ## Milestones
 
 - ✅ **v1.0 Multi-Provider Support** - Phases 1-6 (shipped 2026-01-11)
-- 🚧 **v1.1 Improvements** - Phases 7-12 (in progress)
+- ✅ **v1.1 Improvements** - Phases 7-14 (shipped 2026-01-12)
 
 ## Phases
 
@@ -92,7 +92,7 @@ Plans:
 
 </details>
 
-### 🚧 v1.1 Improvements (In Progress)
+### ✅ v1.1 Improvements (Shipped 2026-01-12)
 
 **Milestone Goal:** Fix connection issues, improve error visibility, add video history, auto-size nodes, and polish UI
 
@@ -168,16 +168,16 @@ Plans:
 Plans:
 - [x] 13-01: Add MD5 content hashing and deduplication to save-generation API
 
-#### Phase 14: Fix Drag-Connect Node Creation Bugs
+#### Phase 14: Fix Drag-Connect Node Creation Bugs ✅
 
 **Goal**: Fix bugs with nodes created via drag-connect: (1) connection vanishes after selecting model from browser, (2) defaults to Gemini with missing model selector in header
 **Depends on**: Phase 13
 **Research**: Unlikely (React Flow connection state, node creation flow)
 **Research topics**: Connection state during node creation, model selection callbacks, createDefaultNodeData initialization
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 14-01: TBD (run /gsd:plan-phase 14 to break down)
+- [x] 14-01: Normalize dynamic handle IDs and fix connection persistence
 
 ## Progress
 
@@ -199,4 +199,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 11. UI Polish | v1.1 | 1/1 | Complete | 2026-01-12 |
 | 12. Model Improvements | v1.1 | 1/1 | Complete | 2026-01-12 |
 | 13. Fix Duplicate Generations | v1.1 | 1/1 | Complete | 2026-01-12 |
-| 14. Fix Drag-Connect Node Creation Bugs | v1.1 | 0/? | Not started | - |
+| 14. Fix Drag-Connect Node Creation Bugs | v1.1 | 1/1 | Complete | 2026-01-12 |

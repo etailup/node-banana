@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Provider infrastructure that dynamically discovers models from external APIs, enabling users to access hundreds of image/video generation models without hardcoding schemas.
-**Current focus:** Phase 14 - Fix Drag-Connect Node Creation Bugs
+**Current focus:** Milestone v1.1 Complete
 
 ## Current Position
 
-Phase: 13 of 14 (Fix Duplicate Generations)
+Phase: 14 of 14 (Fix Drag-Connect Node Creation Bugs)
 Plan: 1 of 1 complete
-Status: Phase complete
-Last activity: 2026-01-12 - Completed 13-01-PLAN.md
+Status: Milestone complete
+Last activity: 2026-01-12 - Completed 14-01-PLAN.md
 
-Progress: ███████░░░ 55%
+Progress: ██████████ 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 21
-- Average duration: 6.8 min
-- Total execution time: 2.4 hours
+- Total plans completed: 22
+- Average duration: 6.6 min
+- Total execution time: 2.5 hours
 
 **By Phase:**
 
@@ -40,9 +40,10 @@ Progress: ███████░░░ 55%
 | 11. UI Polish | 1/1 | 8 min | 8 min |
 | 12. Model Improvements | 1/1 | - | - |
 | 13. Fix Duplicate Generations | 1/1 | 1 min | 1 min |
+| 14. Fix Drag-Connect Bugs | 1/1 | 7 min | 7 min |
 
 **Recent Trend:**
-- Last 5 plans: 14 min, 12 min, 2 min, 8 min, 1 min
+- Last 5 plans: 12 min, 2 min, 8 min, 1 min, 7 min
 - Trend: Fast execution with established patterns
 
 ## Accumulated Context
@@ -93,6 +94,9 @@ Recent decisions affecting current work:
 - regenerateNode includes parameters in request body
 - MD5 content hashing for generation deduplication (fast, collision resistance not critical)
 - Hash prefix in filename for O(1) duplicate lookup
+- Normalized handle IDs (image, text, image-0) for connection stability across model changes
+- Handle-to-schema mapping built at execution time from inputSchema
+- Placeholder handles (dimmed 30%) for input types not used by model, preserving connections
 
 ### Deferred Issues
 
@@ -113,6 +117,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-12
-Stopped at: Phase 13 Fix Duplicate Generations completed
+Stopped at: Milestone v1.1 complete
 Resume file: None
-Next action: Plan Phase 14 (Fix Drag-Connect Node Creation Bugs)
+Next action: Complete milestone (run /gsd:complete-milestone)
