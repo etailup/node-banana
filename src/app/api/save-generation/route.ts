@@ -28,7 +28,7 @@ function computeContentHash(buffer: Buffer): string {
   return crypto.createHash("md5").update(buffer).digest("hex");
 }
 
-// Helper to find existing file by hash prefix
+// Helper to find existing file by hash suffix
 async function findExistingFileByHash(
   directoryPath: string,
   hash: string,
@@ -36,10 +36,9 @@ async function findExistingFileByHash(
 ): Promise<string | null> {
   try {
     const files = await fs.readdir(directoryPath);
-    // Look for files starting with this hash
-    const matching = files.find(
-      (f) => f.startsWith(hash) && f.endsWith(`.${extension}`)
-    );
+    // Look for files ending with this hash before extension
+    const hashSuffix = `_${hash}.${extension}`;
+    const matching = files.find((f) => f.endsWith(hashSuffix));
     return matching || null;
   } catch {
     return null;
@@ -154,7 +153,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Generate filename with hash prefix for fast future lookups
+    // Generate filename with hash suffix for deduplication
     const promptSnippet = prompt
       ? prompt
           .slice(0, 30)
@@ -163,7 +162,7 @@ export async function POST(request: NextRequest) {
           .replace(/^_|_$/g, "")
           .toLowerCase()
       : "generation";
-    const filename = `${contentHash}_${promptSnippet}.${extension}`;
+    const filename = `${promptSnippet}_${contentHash}.${extension}`;
     const filePath = path.join(directoryPath, filename);
 
     // Write the file

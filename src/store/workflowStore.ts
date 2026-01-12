@@ -828,16 +828,41 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     let text: string | null = null;
     const dynamicInputs: Record<string, string> = {};
 
+    // Get the target node to check for inputSchema
+    const targetNode = nodes.find((n) => n.id === nodeId);
+    const inputSchema = (targetNode?.data as { inputSchema?: Array<{ name: string; type: string }> })?.inputSchema;
+
+    // Build mapping from normalized handle IDs to schema names if schema exists
+    // Handles use normalized IDs ("image", "image-0", "text", "text-0")
+    // but API needs schema names ("image_url", "first_frame", "prompt", etc.)
+    const handleToSchemaName: Record<string, string> = {};
+    if (inputSchema && inputSchema.length > 0) {
+      const imageInputs = inputSchema.filter(i => i.type === "image");
+      const textInputs = inputSchema.filter(i => i.type === "text");
+
+      // Map image handles to schema names
+      imageInputs.forEach((input, index) => {
+        const handleId = imageInputs.length > 1 ? `image-${index}` : "image";
+        handleToSchemaName[handleId] = input.name;
+      });
+
+      // Map text handles to schema names
+      textInputs.forEach((input, index) => {
+        const handleId = textInputs.length > 1 ? `text-${index}` : "text";
+        handleToSchemaName[handleId] = input.name;
+      });
+    }
+
     // Helper to determine if a handle ID is an image type
     const isImageHandle = (handleId: string | null | undefined): boolean => {
       if (!handleId) return false;
-      return handleId === "image" || handleId.includes("image") || handleId.includes("frame");
+      return handleId === "image" || handleId.startsWith("image-") || handleId.includes("frame");
     };
 
     // Helper to determine if a handle ID is a text type
     const isTextHandle = (handleId: string | null | undefined): boolean => {
       if (!handleId) return false;
-      return handleId === "text" || handleId.includes("prompt");
+      return handleId === "text" || handleId.startsWith("text-") || handleId.includes("prompt");
     };
 
     // Helper to extract output from source node
@@ -870,9 +895,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
         if (!value) return;
 
-        // Store in dynamic inputs if handle ID is specific (not just "image" or "text")
-        if (handleId && handleId !== "image" && handleId !== "text") {
-          dynamicInputs[handleId] = value;
+        // Map normalized handle ID to schema name for dynamicInputs
+        // This allows API to receive schema-specific parameter names
+        if (handleId && handleToSchemaName[handleId]) {
+          dynamicInputs[handleToSchemaName[handleId]] = value;
         }
 
         // Also populate legacy arrays for backward compatibility

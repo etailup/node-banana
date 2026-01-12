@@ -45,6 +45,9 @@ const IMAGE_INPUT_PATTERNS = [
 // Text input properties
 const TEXT_INPUT_NAMES = ["prompt", "negative_prompt"];
 
+// Properties that start with "image_" but are NOT image inputs
+const IMAGE_PREFIX_EXCLUSIONS = ["image_size"];
+
 // Parameters to filter out (internal/system params)
 const EXCLUDED_PARAMS = new Set([
   "webhook",
@@ -69,6 +72,7 @@ const PRIORITY_PARAMS = new Set([
   "negative_prompt",
   "width",
   "height",
+  "image_size",
   "num_outputs",
   "num_images",
   "scheduler",
@@ -108,6 +112,11 @@ function isImageInput(name: string): boolean {
   // Check explicit patterns first
   if (IMAGE_INPUT_PATTERNS.includes(name)) {
     return true;
+  }
+
+  // Check exclusions (e.g., image_size is a parameter, not an image input)
+  if (IMAGE_PREFIX_EXCLUSIONS.includes(name)) {
+    return false;
   }
 
   // Check for "image" as a word boundary:

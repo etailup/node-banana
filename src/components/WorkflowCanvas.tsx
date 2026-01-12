@@ -334,8 +334,13 @@ export function WorkflowCanvas() {
         if (nodeData.inputSchema && nodeData.inputSchema.length > 0) {
           if (needInput) {
             // Find first input handle matching the type
-            const match = nodeData.inputSchema.find(i => i.type === handleType);
-            if (match) return match.name;
+            // Count how many of this type exist to determine if we need indexed handle ID
+            const matchingInputs = nodeData.inputSchema.filter(i => i.type === handleType);
+            if (matchingInputs.length > 0) {
+              // Return normalized handle ID, not schema name
+              // Nodes use "image"/"text" for single inputs, "image-0"/"text-0" for multiple
+              return matchingInputs.length > 1 ? `${handleType}-0` : handleType;
+            }
           }
           // Output handle - check for video or image type
           if (handleType === "video") return "video";

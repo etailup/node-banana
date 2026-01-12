@@ -354,32 +354,103 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
       {/* Dynamic input handles based on model schema */}
       {nodeData.inputSchema && nodeData.inputSchema.length > 0 ? (
         // Render handles from schema, sorted by type (images first, text second)
+        // IMPORTANT: Always render "image" and "text" handles to maintain connection
+        // compatibility. Schema may only have text inputs (text-to-video models) but
+        // we still need the image handle to preserve connections made before model selection.
         (() => {
           const imageInputs = nodeData.inputSchema!.filter(i => i.type === "image");
           const textInputs = nodeData.inputSchema!.filter(i => i.type === "text");
-          const sortedInputs = [...imageInputs, ...textInputs];
 
-          // Calculate positions with gap between image and text groups
-          const imageCount = imageInputs.length;
-          const textCount = textInputs.length;
-          const totalSlots = imageCount + textCount + (imageCount > 0 && textCount > 0 ? 1 : 0); // +1 for gap
+          // Always include at least one image and one text handle for connection stability
+          const hasImageInput = imageInputs.length > 0;
+          const hasTextInput = textInputs.length > 0;
 
-          return sortedInputs.map((input, index) => {
-            // Add 1 to index for text inputs if there are image inputs (to account for gap)
-            const adjustedIndex = input.type === "text" && imageCount > 0 ? index + 1 : index;
+          // Build the handles array: schema inputs + fallback defaults if missing
+          const handles: Array<{
+            id: string;
+            type: "image" | "text";
+            label: string;
+            schemaName: string | null;
+            description: string | null;
+            isPlaceholder: boolean;
+          }> = [];
+
+          // Add image handles from schema, or a placeholder if none exist
+          if (hasImageInput) {
+            imageInputs.forEach((input, index) => {
+              handles.push({
+                id: imageInputs.length > 1 ? `image-${index}` : "image",
+                type: "image",
+                label: input.label,
+                schemaName: input.name,
+                description: input.description || null,
+                isPlaceholder: false,
+              });
+            });
+          } else {
+            // No image inputs in schema - add placeholder to preserve connections
+            handles.push({
+              id: "image",
+              type: "image",
+              label: "Image",
+              schemaName: null,
+              description: "Not used by this model",
+              isPlaceholder: true,
+            });
+          }
+
+          // Add text handles from schema, or a placeholder if none exist
+          if (hasTextInput) {
+            textInputs.forEach((input, index) => {
+              handles.push({
+                id: textInputs.length > 1 ? `text-${index}` : "text",
+                type: "text",
+                label: input.label,
+                schemaName: input.name,
+                description: input.description || null,
+                isPlaceholder: false,
+              });
+            });
+          } else {
+            // No text inputs in schema - add placeholder to preserve connections
+            handles.push({
+              id: "text",
+              type: "text",
+              label: "Prompt",
+              schemaName: null,
+              description: "Not used by this model",
+              isPlaceholder: true,
+            });
+          }
+
+          // Calculate positions
+          const imageHandles = handles.filter(h => h.type === "image");
+          const textHandles = handles.filter(h => h.type === "text");
+          const totalSlots = imageHandles.length + textHandles.length + 1; // +1 for gap
+
+          return handles.map((handle, index) => {
+            // Position: images first, then gap, then text
+            const isImage = handle.type === "image";
+            const typeIndex = isImage
+              ? imageHandles.findIndex(h => h.id === handle.id)
+              : textHandles.findIndex(h => h.id === handle.id);
+            const adjustedIndex = isImage ? typeIndex : imageHandles.length + 1 + typeIndex;
             const topPercent = ((adjustedIndex + 1) / (totalSlots + 1)) * 100;
-            const isImage = input.type === "image";
 
             return (
-              <React.Fragment key={input.name}>
+              <React.Fragment key={handle.id}>
                 <Handle
                   type="target"
                   position={Position.Left}
-                  id={input.name}
-                  style={{ top: `${topPercent}%` }}
-                  data-handletype={input.type}
+                  id={handle.id}
+                  style={{
+                    top: `${topPercent}%`,
+                    opacity: handle.isPlaceholder ? 0.3 : 1,
+                  }}
+                  data-handletype={handle.type}
+                  data-schema-name={handle.schemaName || undefined}
                   isConnectable={true}
-                  title={input.description || input.label}
+                  title={handle.description || handle.label}
                 />
                 {/* Handle label - positioned outside node, above the connector */}
                 <div
@@ -388,9 +459,10 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
                     right: `calc(100% + 8px)`,
                     top: `calc(${topPercent}% - 18px)`,
                     color: isImage ? "var(--handle-color-image)" : "var(--handle-color-text)",
+                    opacity: handle.isPlaceholder ? 0.3 : 1,
                   }}
                 >
-                  {input.label}
+                  {handle.label}
                 </div>
               </React.Fragment>
             );
