@@ -126,15 +126,15 @@ Plans:
 Plans:
 - [x] 09-01: Video history types, store support, load API, and carousel UI
 
-#### Phase 10: Node Autosizing
+#### Phase 10: Node Autosizing ✅
 
 **Goal**: Auto-size nodes to output dimensions and aspect ratio
 **Depends on**: Phase 9
 **Research**: Unlikely (React Flow node sizing)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 10-01: TBD (run /gsd:plan-phase 10 to break down)
+- [x] 10-01: Node dimension utility and auto-resize on output
 
 #### Phase 11: UI Polish
 
@@ -173,6 +173,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 7. Video Connections | v1.1 | 1/1 | Complete | 2026-01-12 |
 | 8. Error Display | v1.1 | 1/1 | Complete | 2026-01-12 |
 | 9. Video History | v1.1 | 1/1 | Complete | 2026-01-12 |
-| 10. Node Autosizing | v1.1 | 0/? | Not started | - |
+| 10. Node Autosizing | v1.1 | 1/1 | Complete | 2026-01-12 |
 | 11. UI Polish | v1.1 | 0/? | Not started | - |
 | 12. Model Improvements | v1.1 | 0/? | Not started | - |
