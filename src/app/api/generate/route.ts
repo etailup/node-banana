@@ -230,8 +230,10 @@ const INPUT_PATTERNS: Record<string, string[]> = {
 interface InputMapping {
   // Maps our generic names to model-specific parameter names
   paramMap: Record<string, string>;
-  // Track which params expect array types
+  // Track which generic params expect array types (e.g., "image")
   arrayParams: Set<string>;
+  // Track actual schema param names that expect array types (e.g., "image_urls")
+  schemaArrayParams: Set<string>;
 }
 
 /**
@@ -241,8 +243,9 @@ interface InputMapping {
 function getInputMappingFromSchema(schema: Record<string, unknown> | undefined): InputMapping {
   const paramMap: Record<string, string> = {};
   const arrayParams = new Set<string>();
+  const schemaArrayParams = new Set<string>();
 
-  if (!schema) return { paramMap, arrayParams };
+  if (!schema) return { paramMap, arrayParams, schemaArrayParams };
 
   try {
     // Navigate to input schema properties
@@ -251,7 +254,15 @@ function getInputMappingFromSchema(schema: Record<string, unknown> | undefined):
     const input = schemas?.Input as Record<string, unknown> | undefined;
     const properties = input?.properties as Record<string, unknown> | undefined;
 
-    if (!properties) return { paramMap, arrayParams };
+    if (!properties) return { paramMap, arrayParams, schemaArrayParams };
+
+    // First pass: detect all array-typed properties by their actual schema name
+    for (const [propName, prop] of Object.entries(properties)) {
+      const property = prop as Record<string, unknown>;
+      if (property?.type === "array") {
+        schemaArrayParams.add(propName);
+      }
+    }
 
     const propertyNames = Object.keys(properties);
 
@@ -289,7 +300,7 @@ function getInputMappingFromSchema(schema: Record<string, unknown> | undefined):
     // Schema parsing failed
   }
 
-  return { paramMap, arrayParams };
+  return { paramMap, arrayParams, schemaArrayParams };
 }
 
 /**
@@ -345,7 +356,20 @@ async function generateWithReplicate(
 
   // Add dynamic inputs if provided (these come from schema-mapped connections)
   if (hasDynamicInputs) {
-    Object.assign(predictionInput, input.dynamicInputs);
+    // Get schema to detect array parameters
+    const schema = modelData.latest_version?.openapi_schema as Record<string, unknown> | undefined;
+    const { schemaArrayParams } = getInputMappingFromSchema(schema);
+
+    // Apply array wrapping based on schema type
+    for (const [key, value] of Object.entries(input.dynamicInputs!)) {
+      if (value !== null && value !== undefined && value !== '') {
+        if (schemaArrayParams.has(key) && !Array.isArray(value)) {
+          predictionInput[key] = [value];  // Wrap in array
+        } else {
+          predictionInput[key] = value;
+        }
+      }
+    }
   } else {
     // Fallback: use schema to map generic input names to model-specific parameter names
     const schema = modelData.latest_version?.openapi_schema as Record<string, unknown> | undefined;
@@ -554,6 +578,7 @@ async function generateWithReplicate(
 async function getFalInputMapping(modelId: string, apiKey: string | null): Promise<InputMapping> {
   const paramMap: Record<string, string> = {};
   const arrayParams = new Set<string>();
+  const schemaArrayParams = new Set<string>();
 
   try {
     // Use fal.ai Model Search API with OpenAPI expansion
@@ -566,13 +591,13 @@ async function getFalInputMapping(modelId: string, apiKey: string | null): Promi
     const response = await fetch(url, { headers });
 
     if (!response.ok) {
-      return { paramMap, arrayParams };
+      return { paramMap, arrayParams, schemaArrayParams };
     }
 
     const data = await response.json();
     const modelData = data.models?.[0];
     if (!modelData?.openapi) {
-      return { paramMap, arrayParams };
+      return { paramMap, arrayParams, schemaArrayParams };
     }
 
     // Extract input schema from OpenAPI spec (same logic as /api/models/[modelId])
@@ -599,13 +624,22 @@ async function getFalInputMapping(modelId: string, apiKey: string | null): Promi
     }
 
     if (!inputSchema) {
-      return { paramMap, arrayParams };
+      return { paramMap, arrayParams, schemaArrayParams };
     }
 
     const properties = inputSchema.properties as Record<string, unknown> | undefined;
-    if (!properties) return { paramMap, arrayParams };
+    if (!properties) return { paramMap, arrayParams, schemaArrayParams };
 
-    // Match properties to INPUT_PATTERNS and detect array types
+    // First pass: detect all array-typed properties by their actual schema name
+    // This is used for dynamicInputs which use schema names directly
+    for (const [propName, prop] of Object.entries(properties)) {
+      const property = prop as Record<string, unknown>;
+      if (property?.type === "array") {
+        schemaArrayParams.add(propName);
+      }
+    }
+
+    // Second pass: match properties to INPUT_PATTERNS and detect array types
     const propertyNames = Object.keys(properties);
     for (const [genericName, patterns] of Object.entries(INPUT_PATTERNS)) {
       for (const pattern of patterns) {
@@ -640,7 +674,7 @@ async function getFalInputMapping(modelId: string, apiKey: string | null): Promi
     // Schema parsing failed - continue with empty mapping
   }
 
-  return { paramMap, arrayParams };
+  return { paramMap, arrayParams, schemaArrayParams };
 }
 
 /**
@@ -667,10 +701,18 @@ async function generateWithFal(
   // Add dynamic inputs if provided (these come from schema-mapped connections)
   // Filter out empty/null/undefined values to avoid sending invalid inputs to fal.ai
   if (hasDynamicInputs) {
+    // Fetch schema to know which params expect arrays
+    const { schemaArrayParams } = await getFalInputMapping(modelId, apiKey);
+
     const filteredInputs: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(input.dynamicInputs!)) {
       if (value !== null && value !== undefined && value !== '') {
-        filteredInputs[key] = value;
+        // Wrap in array if schema expects array but we have a single value
+        if (schemaArrayParams.has(key) && !Array.isArray(value)) {
+          filteredInputs[key] = [value];
+        } else {
+          filteredInputs[key] = value;
+        }
       }
     }
     Object.assign(requestBody, filteredInputs);

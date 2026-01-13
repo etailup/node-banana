@@ -46,6 +46,8 @@ export interface ModelInput {
   label: string;
   /** Optional description from schema */
   description?: string;
+  /** Whether schema expects array format (e.g., image_urls: string[] vs image_url: string) */
+  isArray?: boolean;
 }
 
 /**

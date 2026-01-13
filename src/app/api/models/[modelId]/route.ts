@@ -383,6 +383,7 @@ function extractParametersFromSchema(
         required: required.includes(name),
         label: toLabel(name),
         description: prop.description as string | undefined,
+        isArray: prop.type === "array",
       });
       continue;
     }
@@ -394,6 +395,7 @@ function extractParametersFromSchema(
         required: required.includes(name),
         label: toLabel(name),
         description: prop.description as string | undefined,
+        isArray: prop.type === "array",
       });
       continue;
     }

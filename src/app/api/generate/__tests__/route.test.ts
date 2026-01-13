@@ -1365,6 +1365,72 @@ describe("/api/generate route", () => {
       );
     });
 
+    it("should wrap Replicate dynamicInputs in array when schema type is 'array'", async () => {
+      // Model info fetch - with schema showing image_urls has type: "array"
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          latest_version: {
+            id: "version123",
+            openapi_schema: {
+              components: {
+                schemas: {
+                  Input: {
+                    properties: {
+                      image_urls: { type: "array", items: { type: "string" } },
+                      prompt: { type: "string" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        }),
+      });
+
+      // Create prediction
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          id: "prediction123",
+          status: "succeeded",
+          output: ["https://replicate.delivery/output.png"],
+        }),
+      });
+
+      // Fetch output media
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "image/png" }),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "",
+          selectedModel: {
+            provider: "replicate",
+            modelId: "some-model/with-array-input",
+            displayName: "Array Input Model",
+          },
+          dynamicInputs: {
+            prompt: "Test prompt",
+            image_urls: "data:image/png;base64,singleImage",  // Single string sent
+          },
+        },
+        { "X-Replicate-API-Key": "test-replicate-key" }
+      );
+
+      const response = await POST(request);
+      expect(response.status).toBe(200);
+
+      // Verify image_urls was wrapped in array because schema says type: "array"
+      const createPredictionCall = mockFetch.mock.calls[1];
+      const requestBody = JSON.parse(createPredictionCall[1].body);
+      expect(requestBody.input.image_urls).toEqual(["data:image/png;base64,singleImage"]);
+      expect(requestBody.input.prompt).toBe("Test prompt");
+    });
+
     it("should use env var API key when header not provided", async () => {
       process.env.REPLICATE_API_KEY = "env-replicate-key";
 
@@ -1897,6 +1963,12 @@ describe("/api/generate route", () => {
     });
 
     it("should filter empty dynamicInputs values", async () => {
+      // Schema fetch (for array type detection with dynamicInputs)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ models: [] }),
+      });
+
       // fal.run API call
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -1936,8 +2008,8 @@ describe("/api/generate route", () => {
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
 
-      // Verify request body only contains non-empty values
-      const falCall = mockFetch.mock.calls[0];
+      // Verify request body only contains non-empty values (2nd call after schema fetch)
+      const falCall = mockFetch.mock.calls[1];
       const requestBody = JSON.parse(falCall[1].body);
       expect(requestBody).toEqual({
         prompt: "Valid prompt",
@@ -1948,6 +2020,12 @@ describe("/api/generate route", () => {
     });
 
     it("should pass dynamicInputs to fal.ai request", async () => {
+      // Schema fetch (for array type detection with dynamicInputs)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ models: [] }),
+      });
+
       // fal.run API call
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -1986,8 +2064,8 @@ describe("/api/generate route", () => {
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
 
-      // Verify dynamicInputs were passed to fal.ai
-      const falCall = mockFetch.mock.calls[0];
+      // Verify dynamicInputs were passed to fal.ai (2nd call after schema fetch)
+      const falCall = mockFetch.mock.calls[1];
       const requestBody = JSON.parse(falCall[1].body);
       expect(requestBody).toEqual(
         expect.objectContaining({
@@ -2049,6 +2127,12 @@ describe("/api/generate route", () => {
     });
 
     it("should pass parameters to fal.ai request body", async () => {
+      // Schema fetch (for array type detection with dynamicInputs)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ models: [] }),
+      });
+
       // fal.run API call
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -2090,8 +2174,8 @@ describe("/api/generate route", () => {
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
 
-      // Verify parameters were passed to fal.ai
-      const falCall = mockFetch.mock.calls[0];
+      // Verify parameters were passed to fal.ai (2nd call after schema fetch)
+      const falCall = mockFetch.mock.calls[1];
       const requestBody = JSON.parse(falCall[1].body);
       expect(requestBody).toEqual(
         expect.objectContaining({
@@ -2103,6 +2187,12 @@ describe("/api/generate route", () => {
     });
 
     it("should merge parameters with dynamicInputs (dynamicInputs take precedence)", async () => {
+      // Schema fetch (for array type detection with dynamicInputs)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ models: [] }),
+      });
+
       // fal.run API call
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -2144,8 +2234,8 @@ describe("/api/generate route", () => {
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
 
-      // Verify dynamicInputs override parameters
-      const falCall = mockFetch.mock.calls[0];
+      // Verify dynamicInputs override parameters (2nd call after schema fetch)
+      const falCall = mockFetch.mock.calls[1];
       const requestBody = JSON.parse(falCall[1].body);
       expect(requestBody).toEqual(
         expect.objectContaining({
@@ -2154,6 +2244,148 @@ describe("/api/generate route", () => {
           num_inference_steps: "30", // dynamicInputs value
         })
       );
+    });
+
+    it("should wrap dynamicInputs in array when schema type is 'array'", async () => {
+      // Schema fetch - return schema showing image_urls has type: "array"
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          models: [{
+            openapi: {
+              paths: {
+                "/": {
+                  post: {
+                    requestBody: {
+                      content: {
+                        "application/json": {
+                          schema: {
+                            properties: {
+                              image_urls: { type: "array", items: { type: "string" } },
+                              prompt: { type: "string" },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          }],
+        }),
+      });
+
+      // fal.run API call
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          images: [{ url: "https://fal.media/output.png" }],
+        }),
+      });
+
+      // Fetch output media
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "image/png" }),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "Test prompt",
+          selectedModel: {
+            provider: "fal",
+            modelId: "fal-ai/flux-2/turbo/edit",
+            displayName: "Flux 2 Turbo Edit",
+          },
+          dynamicInputs: {
+            prompt: "Edit this image",
+            image_urls: "data:image/png;base64,singleImage",  // Single string sent
+          },
+        },
+        { "X-Fal-API-Key": "test-fal-key" }
+      );
+
+      const response = await POST(request);
+      expect(response.status).toBe(200);
+
+      // Verify image_urls was wrapped in array because schema says type: "array"
+      const falCall = mockFetch.mock.calls[1];
+      const requestBody = JSON.parse(falCall[1].body);
+      expect(requestBody.image_urls).toEqual(["data:image/png;base64,singleImage"]);
+      expect(requestBody.prompt).toBe("Edit this image");
+    });
+
+    it("should NOT wrap dynamicInputs when schema type is NOT 'array'", async () => {
+      // Schema fetch - return schema showing image_url has type: "string" (NOT array)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          models: [{
+            openapi: {
+              paths: {
+                "/": {
+                  post: {
+                    requestBody: {
+                      content: {
+                        "application/json": {
+                          schema: {
+                            properties: {
+                              image_url: { type: "string" },  // Single string, not array
+                              prompt: { type: "string" },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          }],
+        }),
+      });
+
+      // fal.run API call
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          images: [{ url: "https://fal.media/output.png" }],
+        }),
+      });
+
+      // Fetch output media
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "image/png" }),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "Test prompt",
+          selectedModel: {
+            provider: "fal",
+            modelId: "fal-ai/flux/schnell",
+            displayName: "Flux Schnell",
+          },
+          dynamicInputs: {
+            prompt: "Test prompt",
+            image_url: "data:image/png;base64,singleImage",  // Single string
+          },
+        },
+        { "X-Fal-API-Key": "test-fal-key" }
+      );
+
+      const response = await POST(request);
+      expect(response.status).toBe(200);
+
+      // Verify image_url remains a string (not wrapped in array)
+      const falCall = mockFetch.mock.calls[1];
+      const requestBody = JSON.parse(falCall[1].body);
+      expect(requestBody.image_url).toBe("data:image/png;base64,singleImage");
+      expect(requestBody.prompt).toBe("Test prompt");
     });
 
     it("should handle error response with error.message format", async () => {
