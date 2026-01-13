@@ -98,6 +98,8 @@ describe("GenerateImageNode", () => {
         currentNodeId: null,
         groups: {},
         nodes: [],
+        recentModels: [],
+        trackModelUsage: vi.fn(),
       };
       return selector(state);
     });

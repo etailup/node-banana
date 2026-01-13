@@ -4,7 +4,7 @@ import { GenerateRequest, GenerateResponse, ModelType, SelectedModel, ProviderTy
 import { GenerationInput, GenerationOutput, ProviderModel } from "@/lib/providers/types";
 import { uploadImageForUrl, shouldUseImageUrl, deleteImages } from "@/lib/images";
 
-export const maxDuration = 300; // 5 minute timeout for API calls
+export const maxDuration = 600; // 10 minute timeout for video generation
 export const dynamic = 'force-dynamic'; // Ensure this route is always dynamic
 
 // Map model types to Gemini model IDs
@@ -754,11 +754,13 @@ async function generateWithFal(
   }
 
   // POST to fal.run/{modelId}
+  // Use 10 minute timeout to handle long-running video generation
   console.log(`[API:${requestId}] Calling fal.ai API with inputs: ${Object.keys(requestBody).join(", ")}`);
   const response = await fetch(`https://fal.run/${modelId}`, {
     method: "POST",
     headers,
     body: JSON.stringify(requestBody),
+    signal: AbortSignal.timeout(10 * 60 * 1000), // 10 minute timeout
   });
 
   if (!response.ok) {
@@ -884,6 +886,271 @@ async function generateWithFal(
   };
 }
 
+/**
+ * Generate video using fal.ai Queue API
+ * Uses async queue submission + polling to handle long-running video generation
+ * that would otherwise timeout with the blocking fal.run endpoint
+ */
+async function generateWithFalQueue(
+  requestId: string,
+  apiKey: string | null,
+  input: GenerationInput
+): Promise<GenerationOutput> {
+  console.log(`[API:${requestId}] fal.ai queue generation - Model: ${input.model.id}, Images: ${input.images?.length || 0}, Prompt: ${input.prompt.length} chars`);
+
+  const modelId = input.model.id;
+  const hasDynamicInputs = input.dynamicInputs && Object.keys(input.dynamicInputs).length > 0;
+  console.log(`[API:${requestId}] Dynamic inputs: ${hasDynamicInputs ? Object.keys(input.dynamicInputs!).join(", ") : "none"}, API key: ${apiKey ? "yes" : "no"}`);
+
+  // Build request body (same logic as generateWithFal)
+  const requestBody: Record<string, unknown> = {
+    ...input.parameters,
+  };
+
+  if (hasDynamicInputs) {
+    const { schemaArrayParams } = await getFalInputMapping(modelId, apiKey);
+
+    const filteredInputs: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(input.dynamicInputs!)) {
+      if (value !== null && value !== undefined && value !== '') {
+        if (schemaArrayParams.has(key) && !Array.isArray(value)) {
+          filteredInputs[key] = [value];
+        } else {
+          filteredInputs[key] = value;
+        }
+      }
+    }
+    Object.assign(requestBody, filteredInputs);
+  } else {
+    const { paramMap, arrayParams } = await getFalInputMapping(modelId, apiKey);
+
+    if (input.prompt) {
+      const promptParam = paramMap.prompt || "prompt";
+      requestBody[promptParam] = input.prompt;
+    }
+
+    if (input.images && input.images.length > 0) {
+      const imageParam = paramMap.image || "image_url";
+      if (arrayParams.has("image")) {
+        requestBody[imageParam] = input.images;
+      } else {
+        requestBody[imageParam] = input.images[0];
+      }
+    }
+
+    if (input.parameters) {
+      for (const [key, value] of Object.entries(input.parameters)) {
+        const mappedKey = paramMap[key] || key;
+        requestBody[mappedKey] = value;
+      }
+    }
+  }
+
+  // Build headers
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (apiKey) {
+    headers["Authorization"] = `Key ${apiKey}`;
+  }
+
+  // Submit to queue
+  console.log(`[API:${requestId}] Submitting to fal.ai queue with inputs: ${Object.keys(requestBody).join(", ")}`);
+  const submitResponse = await fetch(`https://queue.fal.run/${modelId}`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!submitResponse.ok) {
+    const errorText = await submitResponse.text();
+    let errorDetail = errorText || `HTTP ${submitResponse.status}`;
+    try {
+      const errorJson = JSON.parse(errorText);
+      if (typeof errorJson.error === 'object' && errorJson.error?.message) {
+        errorDetail = errorJson.error.message;
+      } else if (errorJson.detail) {
+        if (Array.isArray(errorJson.detail)) {
+          errorDetail = errorJson.detail.map((d: { msg?: string; loc?: string[] }) =>
+            d.msg || JSON.stringify(d)
+          ).join('; ');
+        } else {
+          errorDetail = errorJson.detail;
+        }
+      } else if (errorJson.message) {
+        errorDetail = errorJson.message;
+      } else if (typeof errorJson.error === 'string') {
+        errorDetail = errorJson.error;
+      }
+    } catch {
+      // Keep original text if not JSON
+    }
+
+    if (submitResponse.status === 429) {
+      return {
+        success: false,
+        error: `${input.model.name}: Rate limit exceeded. ${apiKey ? "Try again in a moment." : "Add an API key in settings for higher limits."}`,
+      };
+    }
+
+    return {
+      success: false,
+      error: `${input.model.name}: ${errorDetail}`,
+    };
+  }
+
+  const submitResult = await submitResponse.json();
+  const falRequestId = submitResult.request_id;
+
+  if (!falRequestId) {
+    console.error(`[API:${requestId}] No request_id in queue submit response`);
+    return {
+      success: false,
+      error: "No request_id in queue response",
+    };
+  }
+
+  console.log(`[API:${requestId}] Queue request submitted: ${falRequestId}`);
+
+  // Poll for completion
+  const maxWaitTime = 10 * 60 * 1000; // 10 minutes for video
+  const pollInterval = 2000; // 2 seconds
+  const startTime = Date.now();
+  let lastStatus = "";
+
+  while (true) {
+    if (Date.now() - startTime > maxWaitTime) {
+      console.error(`[API:${requestId}] Queue request timed out after 10 minutes`);
+      return {
+        success: false,
+        error: `${input.model.name}: Video generation timed out after 10 minutes`,
+      };
+    }
+
+    await new Promise(resolve => setTimeout(resolve, pollInterval));
+
+    const statusResponse = await fetch(
+      `https://queue.fal.run/${modelId}/requests/${falRequestId}/status`,
+      { headers: apiKey ? { "Authorization": `Key ${apiKey}` } : {} }
+    );
+
+    if (!statusResponse.ok) {
+      console.error(`[API:${requestId}] Failed to poll status: ${statusResponse.status}`);
+      return {
+        success: false,
+        error: `Failed to poll status: ${statusResponse.status}`,
+      };
+    }
+
+    const statusResult = await statusResponse.json();
+    const status = statusResult.status;
+
+    if (status !== lastStatus) {
+      console.log(`[API:${requestId}] Queue status: ${status}`);
+      lastStatus = status;
+    }
+
+    if (status === "COMPLETED") {
+      // Fetch the result
+      const resultResponse = await fetch(
+        `https://queue.fal.run/${modelId}/requests/${falRequestId}`,
+        { headers: apiKey ? { "Authorization": `Key ${apiKey}` } : {} }
+      );
+
+      if (!resultResponse.ok) {
+        console.error(`[API:${requestId}] Failed to fetch result: ${resultResponse.status}`);
+        return {
+          success: false,
+          error: `Failed to fetch result: ${resultResponse.status}`,
+        };
+      }
+
+      const result = await resultResponse.json();
+
+      // Extract video URL from result (same logic as generateWithFal)
+      let mediaUrl: string | null = null;
+
+      if (result.video && result.video.url) {
+        mediaUrl = result.video.url;
+      } else if (result.images && Array.isArray(result.images) && result.images.length > 0) {
+        mediaUrl = result.images[0].url;
+      } else if (result.image && result.image.url) {
+        mediaUrl = result.image.url;
+      } else if (result.output && typeof result.output === "string") {
+        mediaUrl = result.output;
+      }
+
+      if (!mediaUrl) {
+        console.error(`[API:${requestId}] No media URL found in queue result`);
+        return {
+          success: false,
+          error: "No media URL in response",
+        };
+      }
+
+      // Fetch the media and convert to base64
+      console.log(`[API:${requestId}] Fetching output from: ${mediaUrl.substring(0, 80)}...`);
+      const mediaResponse = await fetch(mediaUrl);
+
+      if (!mediaResponse.ok) {
+        return {
+          success: false,
+          error: `Failed to fetch output: ${mediaResponse.status}`,
+        };
+      }
+
+      const contentType = mediaResponse.headers.get("content-type") || "video/mp4";
+      const isVideo = contentType.startsWith("video/");
+
+      const mediaArrayBuffer = await mediaResponse.arrayBuffer();
+      const mediaSizeBytes = mediaArrayBuffer.byteLength;
+      const mediaSizeMB = mediaSizeBytes / (1024 * 1024);
+
+      console.log(`[API:${requestId}] Output: ${contentType}, ${mediaSizeMB.toFixed(2)}MB`);
+
+      // For very large videos (>20MB), return URL directly instead of base64
+      if (isVideo && mediaSizeMB > 20) {
+        console.log(`[API:${requestId}] SUCCESS - Returning URL for large video`);
+        return {
+          success: true,
+          outputs: [
+            {
+              type: "video",
+              data: mediaUrl,
+              url: mediaUrl,
+            },
+          ],
+        };
+      }
+
+      const mediaBase64 = Buffer.from(mediaArrayBuffer).toString("base64");
+      console.log(`[API:${requestId}] SUCCESS - Returning ${isVideo ? "video" : "image"}`);
+
+      return {
+        success: true,
+        outputs: [
+          {
+            type: isVideo ? "video" : "image",
+            data: `data:${contentType};base64,${mediaBase64}`,
+            url: mediaUrl,
+          },
+        ],
+      };
+    }
+
+    if (status === "FAILED") {
+      const errorMessage = statusResult.error || "Video generation failed";
+      console.error(`[API:${requestId}] Queue request failed: ${errorMessage}`);
+      return {
+        success: false,
+        error: `${input.model.name}: ${errorMessage}`,
+      };
+    }
+
+    // Continue polling for IN_QUEUE, IN_PROGRESS, etc.
+  }
+}
+
 export async function POST(request: NextRequest) {
   const requestId = Math.random().toString(36).substring(7);
   console.log(`\n[API:${requestId}] ========== NEW GENERATE REQUEST ==========`);
@@ -900,6 +1167,7 @@ export async function POST(request: NextRequest) {
       selectedModel,
       parameters,
       dynamicInputs,
+      mediaType,
     } = body;
 
     // Prompt is required unless:

@@ -16,6 +16,7 @@ export interface GenerateRequest {
   resolution?: Resolution; // Only for Nano Banana Pro
   model?: ModelType;
   useGoogleSearch?: boolean; // Only for Nano Banana Pro
+  mediaType?: "image" | "video"; // Indicates expected output type for provider routing
 }
 
 export interface GenerateResponse {

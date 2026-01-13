@@ -1128,6 +1128,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 selectedModel: nodeData.selectedModel,
                 parameters: nodeData.parameters,
                 dynamicInputs,  // Pass dynamic inputs for schema-mapped connections
+                mediaType: "video" as const,  // Signal to API to use queue for long-running video generation
               };
 
               // Build headers with API keys for providers
@@ -1951,6 +1952,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             selectedModel: nodeData.selectedModel,
             parameters: nodeData.parameters,
             dynamicInputs,
+            mediaType: "video",  // Signal to API to use queue for long-running video generation
           }),
         });
 

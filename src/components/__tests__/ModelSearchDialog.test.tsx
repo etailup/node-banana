@@ -9,6 +9,7 @@ import { ProviderModel } from "@/lib/providers/types";
 const mockAddNode = vi.fn();
 const mockIncrementModalCount = vi.fn();
 const mockDecrementModalCount = vi.fn();
+const mockTrackModelUsage = vi.fn();
 const mockUseWorkflowStore = vi.fn();
 
 vi.mock("@/store/workflowStore", () => ({
@@ -107,6 +108,8 @@ describe("ModelSearchDialog", () => {
         addNode: mockAddNode,
         incrementModalCount: mockIncrementModalCount,
         decrementModalCount: mockDecrementModalCount,
+        recentModels: [],
+        trackModelUsage: mockTrackModelUsage,
       };
       return selector(state);
     });
@@ -208,18 +211,20 @@ describe("ModelSearchDialog", () => {
   });
 
   describe("Provider Filter", () => {
-    it("should render provider filter dropdown", async () => {
+    it("should render provider filter buttons", async () => {
       render(
         <TestWrapper>
           <ModelSearchDialog isOpen={true} onClose={vi.fn()} />
         </TestWrapper>
       );
 
-      const providerSelect = screen.getByDisplayValue("All Providers");
-      expect(providerSelect).toBeInTheDocument();
+      // Provider filter is now buttons - check for "All" button with title "All Providers"
+      const allButton = screen.getByTitle("All Providers");
+      expect(allButton).toBeInTheDocument();
+      expect(allButton).toHaveTextContent("All");
     });
 
-    it("should filter by provider when selected", async () => {
+    it("should filter by provider when button is clicked", async () => {
       render(
         <TestWrapper>
           <ModelSearchDialog isOpen={true} onClose={vi.fn()} />
@@ -229,8 +234,9 @@ describe("ModelSearchDialog", () => {
       await vi.advanceTimersByTimeAsync(100);
       mockFetch.mockClear();
 
-      const providerSelect = screen.getByDisplayValue("All Providers");
-      fireEvent.change(providerSelect, { target: { value: "replicate" } });
+      // Click the Replicate button (has title "Replicate")
+      const replicateButton = screen.getByTitle("Replicate");
+      fireEvent.click(replicateButton);
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalled();
