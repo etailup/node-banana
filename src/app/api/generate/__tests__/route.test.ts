@@ -1419,4 +1419,617 @@ describe("/api/generate route", () => {
       );
     });
   });
+
+  describe("fal.ai provider", () => {
+    const mockFetch = vi.fn();
+    const originalFetch = global.fetch;
+
+    beforeEach(() => {
+      global.fetch = mockFetch;
+      mockFetch.mockClear();
+    });
+
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
+
+    it("should generate image successfully via fal.ai (images array response)", async () => {
+      // Schema fetch (for input mapping when no dynamicInputs)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ models: [] }),
+      });
+
+      // fal.run API call
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          images: [{ url: "https://fal.media/output.png" }],
+        }),
+      });
+
+      // Fetch output media
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "image/png" }),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "A beautiful landscape",
+          selectedModel: {
+            provider: "fal",
+            modelId: "fal-ai/flux/schnell",
+            displayName: "Flux Schnell",
+          },
+        },
+        { "X-Fal-API-Key": "test-fal-key" }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.image).toContain("data:image/png;base64,");
+      expect(data.contentType).toBe("image");
+
+      // Verify API key was passed correctly (check fal.run call, which is the 2nd call after schema fetch)
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining("fal.run/fal-ai/flux/schnell"),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: "Key test-fal-key",
+          }),
+        })
+      );
+    });
+
+    it("should generate video successfully via fal.ai (video object response)", async () => {
+      // Schema fetch (for input mapping when no dynamicInputs)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ models: [] }),
+      });
+
+      // fal.run API call
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          video: { url: "https://fal.media/output.mp4" },
+        }),
+      });
+
+      // Fetch output media
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "video/mp4" }),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(2048)),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "A cinematic video",
+          selectedModel: {
+            provider: "fal",
+            modelId: "fal-ai/runway-gen3",
+            displayName: "Runway Gen3",
+          },
+        },
+        { "X-Fal-API-Key": "test-fal-key" }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.video).toContain("data:video/mp4;base64,");
+      expect(data.contentType).toBe("video");
+    });
+
+    it("should work without API key (fal.ai allows unauthenticated)", async () => {
+      delete process.env.FAL_API_KEY;
+
+      // Schema fetch (for input mapping when no dynamicInputs)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ models: [] }),
+      });
+
+      // fal.run API call
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          images: [{ url: "https://fal.media/output.png" }],
+        }),
+      });
+
+      // Fetch output media
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "image/png" }),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
+      });
+
+      const request = createMockPostRequest({
+        prompt: "A beautiful landscape",
+        selectedModel: {
+          provider: "fal",
+          modelId: "fal-ai/flux/schnell",
+          displayName: "Flux Schnell",
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+
+      // Verify fal.run request was made without Authorization header (2nd call)
+      const falRunCall = mockFetch.mock.calls[1];
+      expect(falRunCall[1].headers).not.toHaveProperty("Authorization");
+    });
+
+    it("should handle rate limit (429) with API key", async () => {
+      // Schema fetch (for input mapping when no dynamicInputs)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ models: [] }),
+      });
+
+      // fal.run returns 429
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        text: () => Promise.resolve(JSON.stringify({ detail: "Rate limit exceeded" })),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "Test prompt",
+          selectedModel: {
+            provider: "fal",
+            modelId: "fal-ai/flux/schnell",
+            displayName: "Flux Schnell",
+          },
+        },
+        { "X-Fal-API-Key": "test-fal-key" }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.success).toBe(false);
+      expect(data.error).toContain("Rate limit exceeded");
+      expect(data.error).toContain("Try again in a moment");
+    });
+
+    it("should handle rate limit (429) without API key", async () => {
+      delete process.env.FAL_API_KEY;
+
+      // Schema fetch (for input mapping when no dynamicInputs)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ models: [] }),
+      });
+
+      // fal.run returns 429
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        text: () => Promise.resolve(JSON.stringify({ detail: "Rate limit exceeded" })),
+      });
+
+      const request = createMockPostRequest({
+        prompt: "Test prompt",
+        selectedModel: {
+          provider: "fal",
+          modelId: "fal-ai/flux/schnell",
+          displayName: "Flux Schnell",
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.success).toBe(false);
+      expect(data.error).toContain("Rate limit exceeded");
+      expect(data.error).toContain("Add an API key");
+    });
+
+    it("should handle image object response format", async () => {
+      // Schema fetch (for input mapping when no dynamicInputs)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ models: [] }),
+      });
+
+      // fal.run API call with single image object
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          image: { url: "https://fal.media/output.png" },
+        }),
+      });
+
+      // Fetch output media
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "image/png" }),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "A beautiful landscape",
+          selectedModel: {
+            provider: "fal",
+            modelId: "fal-ai/some-model",
+            displayName: "Some Model",
+          },
+        },
+        { "X-Fal-API-Key": "test-fal-key" }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.image).toContain("data:image/png;base64,");
+    });
+
+    it("should handle output string response format", async () => {
+      // Schema fetch (for input mapping when no dynamicInputs)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ models: [] }),
+      });
+
+      // fal.run API call with output URL string
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          output: "https://fal.media/output.png",
+        }),
+      });
+
+      // Fetch output media
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "image/png" }),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "A beautiful landscape",
+          selectedModel: {
+            provider: "fal",
+            modelId: "fal-ai/another-model",
+            displayName: "Another Model",
+          },
+        },
+        { "X-Fal-API-Key": "test-fal-key" }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.image).toContain("data:image/png;base64,");
+    });
+
+    it("should return video URL for large videos (>20MB)", async () => {
+      // Schema fetch (for input mapping when no dynamicInputs)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ models: [] }),
+      });
+
+      // fal.run API call
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          video: { url: "https://fal.media/large-video.mp4" },
+        }),
+      });
+
+      // Fetch output media (large video > 20MB)
+      const largeBuffer = new ArrayBuffer(25 * 1024 * 1024); // 25MB
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "video/mp4" }),
+        arrayBuffer: () => Promise.resolve(largeBuffer),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "Generate a long video",
+          selectedModel: {
+            provider: "fal",
+            modelId: "fal-ai/runway-gen3",
+            displayName: "Runway Gen3",
+          },
+        },
+        { "X-Fal-API-Key": "test-fal-key" }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.videoUrl).toBe("https://fal.media/large-video.mp4");
+      expect(data.video).toBeUndefined();
+      expect(data.contentType).toBe("video");
+    });
+
+    it("should filter empty dynamicInputs values", async () => {
+      // fal.run API call
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          images: [{ url: "https://fal.media/output.png" }],
+        }),
+      });
+
+      // Fetch output media
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "image/png" }),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "",
+          selectedModel: {
+            provider: "fal",
+            modelId: "fal-ai/flux/schnell",
+            displayName: "Flux Schnell",
+          },
+          dynamicInputs: {
+            prompt: "Valid prompt",
+            image_url: "", // Empty - should be filtered
+            tail_image_url: "data:image/png;base64,tailData",
+            empty_field: "", // Empty - should be filtered
+          },
+        },
+        { "X-Fal-API-Key": "test-fal-key" }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+
+      // Verify request body only contains non-empty values
+      const falCall = mockFetch.mock.calls[0];
+      const requestBody = JSON.parse(falCall[1].body);
+      expect(requestBody).toEqual({
+        prompt: "Valid prompt",
+        tail_image_url: "data:image/png;base64,tailData",
+      });
+      expect(requestBody).not.toHaveProperty("image_url");
+      expect(requestBody).not.toHaveProperty("empty_field");
+    });
+
+    it("should pass dynamicInputs to fal.ai request", async () => {
+      // fal.run API call
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          images: [{ url: "https://fal.media/output.png" }],
+        }),
+      });
+
+      // Fetch output media
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "image/png" }),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "",
+          selectedModel: {
+            provider: "fal",
+            modelId: "fal-ai/flux/schnell",
+            displayName: "Flux Schnell",
+          },
+          dynamicInputs: {
+            prompt: "Dynamic prompt from connection",
+            image_url: "data:image/png;base64,testImageData",
+            num_inference_steps: "25",
+          },
+        },
+        { "X-Fal-API-Key": "test-fal-key" }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+
+      // Verify dynamicInputs were passed to fal.ai
+      const falCall = mockFetch.mock.calls[0];
+      const requestBody = JSON.parse(falCall[1].body);
+      expect(requestBody).toEqual(
+        expect.objectContaining({
+          prompt: "Dynamic prompt from connection",
+          image_url: "data:image/png;base64,testImageData",
+          num_inference_steps: "25",
+        })
+      );
+    });
+
+    it("should use env var API key when header not provided", async () => {
+      process.env.FAL_API_KEY = "env-fal-key";
+
+      // Schema fetch (for input mapping when no dynamicInputs)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ models: [] }),
+      });
+
+      // fal.run API call
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          images: [{ url: "https://fal.media/output.png" }],
+        }),
+      });
+
+      // Fetch output media
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "image/png" }),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
+      });
+
+      const request = createMockPostRequest({
+        prompt: "Test prompt",
+        selectedModel: {
+          provider: "fal",
+          modelId: "fal-ai/flux/schnell",
+          displayName: "Flux Schnell",
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+
+      // Verify env var key was used (check the fal.run call, which is the 2nd call after schema fetch)
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining("fal.run"),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: "Key env-fal-key",
+          }),
+        })
+      );
+    });
+
+    it("should handle error response with error.message format", async () => {
+      // Schema fetch (for input mapping when no dynamicInputs)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ models: [] }),
+      });
+
+      // fal.run returns error
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: () => Promise.resolve(JSON.stringify({
+          error: { message: "Invalid input parameters" },
+        })),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "Test prompt",
+          selectedModel: {
+            provider: "fal",
+            modelId: "fal-ai/flux/schnell",
+            displayName: "Flux Schnell",
+          },
+        },
+        { "X-Fal-API-Key": "test-fal-key" }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.success).toBe(false);
+      expect(data.error).toContain("Invalid input parameters");
+    });
+
+    it("should handle error response with detail array format", async () => {
+      // Schema fetch (for input mapping when no dynamicInputs)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ models: [] }),
+      });
+
+      // fal.run returns validation errors
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 422,
+        text: () => Promise.resolve(JSON.stringify({
+          detail: [
+            { msg: "Field required", loc: ["body", "prompt"] },
+            { msg: "Invalid value", loc: ["body", "steps"] },
+          ],
+        })),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "Test prompt",
+          selectedModel: {
+            provider: "fal",
+            modelId: "fal-ai/flux/schnell",
+            displayName: "Flux Schnell",
+          },
+        },
+        { "X-Fal-API-Key": "test-fal-key" }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.success).toBe(false);
+      expect(data.error).toContain("Field required");
+      expect(data.error).toContain("Invalid value");
+    });
+
+    it("should handle no media URL in response", async () => {
+      // Schema fetch (for input mapping when no dynamicInputs)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ models: [] }),
+      });
+
+      // fal.run API call returns empty response
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({}),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "Test prompt",
+          selectedModel: {
+            provider: "fal",
+            modelId: "fal-ai/flux/schnell",
+            displayName: "Flux Schnell",
+          },
+        },
+        { "X-Fal-API-Key": "test-fal-key" }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.success).toBe(false);
+      expect(data.error).toContain("No media URL in response");
+    });
+  });
 });
