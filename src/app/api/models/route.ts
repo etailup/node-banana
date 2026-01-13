@@ -46,6 +46,26 @@ const RELEVANT_CATEGORIES = [
   "image-to-video",
 ];
 
+// Gemini image models (hardcoded - these don't come from an external API)
+const GEMINI_IMAGE_MODELS: ProviderModel[] = [
+  {
+    id: "nano-banana",
+    name: "Nano Banana",
+    description: "Fast image generation with Gemini 2.5 Flash. Supports text-to-image and image-to-image with aspect ratio control.",
+    provider: "gemini",
+    capabilities: ["text-to-image", "image-to-image"],
+    coverImage: undefined,
+  },
+  {
+    id: "nano-banana-pro",
+    name: "Nano Banana Pro",
+    description: "High-quality image generation with Gemini 3 Pro. Supports text-to-image, image-to-image, resolution control (1K/2K/4K), and Google Search grounding.",
+    provider: "gemini",
+    capabilities: ["text-to-image", "image-to-image"],
+    coverImage: undefined,
+  },
+];
+
 // ============ Replicate Types ============
 
 interface ReplicateModelsResponse {
@@ -321,19 +341,23 @@ export async function GET(
   const replicateKey = request.headers.get("X-Replicate-Key") || process.env.REPLICATE_API_KEY || null;
   const falKey = request.headers.get("X-Fal-Key") || process.env.FAL_API_KEY || null;
 
-  // Determine which providers to fetch from
+  // Determine which providers to fetch from (excluding gemini - handled separately)
   const providersToFetch: ProviderType[] = [];
+  let includeGemini = false;
 
   if (providerFilter) {
-    // Only fetch from specified provider if key is available (or fal which is optional)
-    if (providerFilter === "replicate" && replicateKey) {
+    if (providerFilter === "gemini") {
+      // Only Gemini requested - no external API calls needed
+      includeGemini = true;
+    } else if (providerFilter === "replicate" && replicateKey) {
       providersToFetch.push("replicate");
     } else if (providerFilter === "fal") {
       // fal.ai works without key
       providersToFetch.push("fal");
     }
   } else {
-    // Fetch from all providers with keys
+    // Include all providers
+    includeGemini = true; // Gemini always available
     if (replicateKey) {
       providersToFetch.push("replicate");
     }
@@ -341,7 +365,8 @@ export async function GET(
     providersToFetch.push("fal");
   }
 
-  if (providersToFetch.length === 0) {
+  // Gemini is always available, so we don't fail if no external providers
+  if (providersToFetch.length === 0 && !includeGemini) {
     return NextResponse.json<ModelsErrorResponse>(
       {
         success: false,
@@ -357,6 +382,22 @@ export async function GET(
   const errors: string[] = [];
   let anyFromCache = false;
   let allFromCache = true;
+
+  // Add Gemini models first if included (they appear at the top)
+  if (includeGemini) {
+    // Filter by search query if provided
+    let geminiModels = GEMINI_IMAGE_MODELS;
+    if (searchQuery) {
+      geminiModels = filterModelsBySearch(geminiModels, searchQuery);
+    }
+    allModels.push(...geminiModels);
+    providerResults["gemini"] = {
+      success: true,
+      count: geminiModels.length,
+      cached: true, // Hardcoded models are effectively "cached"
+    };
+    anyFromCache = true;
+  }
 
   // Fetch from each provider
   for (const provider of providersToFetch) {
