@@ -46,8 +46,12 @@ vi.mock("@/utils/logger", () => ({
 
 import { POST } from "../route";
 
-// Store original env
+// Store original env and fetch
 const originalEnv = { ...process.env };
+const originalFetch = global.fetch;
+
+// Mock fetch for OpenAI API
+const mockFetch = vi.fn();
 
 // Helper to create mock NextRequest for POST
 function createMockPostRequest(
@@ -70,6 +74,7 @@ describe("/api/llm route", () => {
 
   afterEach(() => {
     process.env = originalEnv;
+    global.fetch = originalFetch;
   });
 
   describe("Google provider", () => {
@@ -305,6 +310,277 @@ describe("/api/llm route", () => {
           maxOutputTokens: 1024,
         },
       });
+    });
+  });
+
+  describe("OpenAI provider", () => {
+    beforeEach(() => {
+      global.fetch = mockFetch;
+    });
+
+    it("should generate text successfully with OpenAI", async () => {
+      process.env.OPENAI_API_KEY = "test-openai-key";
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            choices: [{ message: { content: "OpenAI response text" } }],
+          }),
+      });
+
+      const request = createMockPostRequest({
+        prompt: "Test prompt",
+        provider: "openai",
+        model: "gpt-4.1-mini",
+        temperature: 0.7,
+        maxTokens: 1024,
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.text).toBe("OpenAI response text");
+
+      // Verify fetch was called with correct parameters
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://api.openai.com/v1/chat/completions",
+        expect.objectContaining({
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer test-openai-key",
+          },
+          body: JSON.stringify({
+            model: "gpt-4.1-mini",
+            messages: [{ role: "user", content: "Test prompt" }],
+            temperature: 0.7,
+            max_tokens: 1024,
+          }),
+        })
+      );
+    });
+
+    it("should handle vision input (images + prompt)", async () => {
+      process.env.OPENAI_API_KEY = "test-openai-key";
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            choices: [{ message: { content: "Image description from OpenAI" } }],
+          }),
+      });
+
+      const request = createMockPostRequest({
+        prompt: "Describe this image",
+        images: ["data:image/png;base64,iVBORw0KGgo="],
+        provider: "openai",
+        model: "gpt-4.1-mini",
+        temperature: 0.7,
+        maxTokens: 1024,
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.text).toBe("Image description from OpenAI");
+
+      // Verify fetch was called with vision content structure
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://api.openai.com/v1/chat/completions",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            model: "gpt-4.1-mini",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: "Describe this image" },
+                  { type: "image_url", image_url: { url: "data:image/png;base64,iVBORw0KGgo=" } },
+                ],
+              },
+            ],
+            temperature: 0.7,
+            max_tokens: 1024,
+          }),
+        })
+      );
+    });
+
+    it("should reject unknown provider", async () => {
+      const request = createMockPostRequest({
+        prompt: "Test prompt",
+        provider: "unknown-provider",
+        model: "some-model",
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.success).toBe(false);
+      expect(data.error).toBe("Unknown provider: unknown-provider");
+    });
+
+    it("should reject missing OpenAI API key", async () => {
+      delete process.env.OPENAI_API_KEY;
+
+      const request = createMockPostRequest({
+        prompt: "Test prompt",
+        provider: "openai",
+        model: "gpt-4.1-mini",
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.success).toBe(false);
+      expect(data.error).toContain("OPENAI_API_KEY not configured");
+    });
+
+    it("should use X-OpenAI-API-Key header over env var", async () => {
+      process.env.OPENAI_API_KEY = "env-openai-key";
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            choices: [{ message: { content: "Response with header key" } }],
+          }),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "Test prompt",
+          provider: "openai",
+          model: "gpt-4.1-mini",
+        },
+        { "X-OpenAI-API-Key": "header-openai-key" }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+
+      // Verify fetch was called with header key (takes precedence)
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://api.openai.com/v1/chat/completions",
+        expect.objectContaining({
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer header-openai-key",
+          },
+        })
+      );
+    });
+
+    it("should return 429 on rate limit errors", async () => {
+      process.env.OPENAI_API_KEY = "test-openai-key";
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        json: () =>
+          Promise.resolve({
+            error: { message: "429 Rate limit exceeded" },
+          }),
+      });
+
+      const request = createMockPostRequest({
+        prompt: "Test prompt",
+        provider: "openai",
+        model: "gpt-4.1-mini",
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(429);
+      expect(data.success).toBe(false);
+      expect(data.error).toBe("Rate limit reached. Please wait and try again.");
+    });
+
+    it("should handle OpenAI API error responses", async () => {
+      process.env.OPENAI_API_KEY = "test-openai-key";
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: () =>
+          Promise.resolve({
+            error: { message: "Invalid API key" },
+          }),
+      });
+
+      const request = createMockPostRequest({
+        prompt: "Test prompt",
+        provider: "openai",
+        model: "gpt-4.1-mini",
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.success).toBe(false);
+      expect(data.error).toBe("Invalid API key");
+    });
+
+    it("should handle OpenAI API error without message", async () => {
+      process.env.OPENAI_API_KEY = "test-openai-key";
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: () => Promise.resolve({}),
+      });
+
+      const request = createMockPostRequest({
+        prompt: "Test prompt",
+        provider: "openai",
+        model: "gpt-4.1-mini",
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.success).toBe(false);
+      expect(data.error).toBe("OpenAI API error: 500");
+    });
+
+    it("should handle no text in OpenAI response", async () => {
+      process.env.OPENAI_API_KEY = "test-openai-key";
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            choices: [{ message: { content: null } }],
+          }),
+      });
+
+      const request = createMockPostRequest({
+        prompt: "Test prompt",
+        provider: "openai",
+        model: "gpt-4.1-mini",
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.success).toBe(false);
+      expect(data.error).toBe("No text in OpenAI response");
     });
   });
 });
