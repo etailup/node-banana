@@ -338,7 +338,7 @@ Phases execute in numeric order: 1 → 2 → ... → 14 → 15 → 16 → 17 →
 | 17. Component Tests | v1.2 | 11/11 | Complete | 2026-01-13 |
 | 18. API Route Tests | v1.2 | 5/5 | Complete | 2026-01-13 |
 | 19. Type Refactoring | v1.2 | 2/2 | Complete | 2026-01-13 |
-| 20. Integration Tests | v1.2 | 0/? | Not started | - |
+| 20. Integration Tests | v1.2 | 1/2 | In progress | - |
 | 21. Fix Image Input & Deduplication | v1.2 | 1/1 | Complete | 2026-01-13 |
 | 22. Generate Node Dynamic Input Tests | v1.2 | 1/1 | Complete | 2026-01-13 |
 | 23. Model Browser Improvements | v1.2 | 1/1 | Complete | 2026-01-13 |

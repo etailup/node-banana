@@ -1116,4 +1116,810 @@ describe("workflowStore integration tests", () => {
       });
     });
   });
+
+  describe("Workflow execution data flow", () => {
+    beforeEach(() => {
+      // Mock fetch for successful API responses
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ success: true, image: "data:image/png;base64,generatedImage" }),
+        text: () => Promise.resolve(""),
+      }));
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    describe("Image data flow through node chains", () => {
+      it("should pass image from imageInput to nanoBanana via getConnectedInputs", async () => {
+        const testImage = "data:image/png;base64,testImageData";
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("imageInput-1", "imageInput", { image: testImage }),
+            createTestNode("prompt-1", "prompt", { prompt: "describe image" }),
+            createTestNode("nanoBanana-1", "nanoBanana", {
+              aspectRatio: "1:1",
+              resolution: "1K",
+              model: "nano-banana",
+            }),
+          ],
+          edges: [
+            createTestEdge("imageInput-1", "nanoBanana-1", "image", "image"),
+            createTestEdge("prompt-1", "nanoBanana-1", "text", "text"),
+          ],
+        });
+
+        // Verify getConnectedInputs extracts the image correctly
+        const store = useWorkflowStore.getState();
+        const inputs = store.getConnectedInputs("nanoBanana-1");
+
+        expect(inputs.images).toContain(testImage);
+        expect(inputs.images).toHaveLength(1);
+        expect(inputs.text).toBe("describe image");
+      });
+
+      it("should pass annotation outputImage to downstream nanoBanana", () => {
+        const annotatedImage = "data:image/png;base64,annotatedImageData";
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("annotation-1", "annotation", { outputImage: annotatedImage }),
+            createTestNode("prompt-1", "prompt", { prompt: "enhance this" }),
+            createTestNode("nanoBanana-1", "nanoBanana", {}),
+          ],
+          edges: [
+            createTestEdge("annotation-1", "nanoBanana-1", "image", "image"),
+            createTestEdge("prompt-1", "nanoBanana-1", "text", "text"),
+          ],
+        });
+
+        const store = useWorkflowStore.getState();
+        const inputs = store.getConnectedInputs("nanoBanana-1");
+
+        expect(inputs.images).toContain(annotatedImage);
+      });
+
+      it("should collect multiple images from different sources into inputImages array", () => {
+        const image1 = "data:image/png;base64,image1";
+        const image2 = "data:image/png;base64,image2";
+        const image3 = "data:image/png;base64,image3";
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("imageInput-1", "imageInput", { image: image1 }),
+            createTestNode("imageInput-2", "imageInput", { image: image2 }),
+            createTestNode("annotation-1", "annotation", { outputImage: image3 }),
+            createTestNode("prompt-1", "prompt", { prompt: "combine" }),
+            createTestNode("nanoBanana-1", "nanoBanana", {}),
+          ],
+          edges: [
+            createTestEdge("imageInput-1", "nanoBanana-1", "image", "image"),
+            createTestEdge("imageInput-2", "nanoBanana-1", "image", "image"),
+            createTestEdge("annotation-1", "nanoBanana-1", "image", "image"),
+            createTestEdge("prompt-1", "nanoBanana-1", "text", "text"),
+          ],
+        });
+
+        const store = useWorkflowStore.getState();
+        const inputs = store.getConnectedInputs("nanoBanana-1");
+
+        expect(inputs.images).toHaveLength(3);
+        expect(inputs.images).toContain(image1);
+        expect(inputs.images).toContain(image2);
+        expect(inputs.images).toContain(image3);
+      });
+    });
+
+    describe("Text data flow through node chains", () => {
+      it("should pass prompt text to nanoBanana inputPrompt", () => {
+        const promptText = "A beautiful sunset over mountains";
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("prompt-1", "prompt", { prompt: promptText }),
+            createTestNode("nanoBanana-1", "nanoBanana", {}),
+          ],
+          edges: [
+            createTestEdge("prompt-1", "nanoBanana-1", "text", "text"),
+          ],
+        });
+
+        const store = useWorkflowStore.getState();
+        const inputs = store.getConnectedInputs("nanoBanana-1");
+
+        expect(inputs.text).toBe(promptText);
+      });
+
+      it("should pass llmGenerate outputText to nanoBanana as text input", () => {
+        const llmOutput = "Generated description from LLM";
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("llmGenerate-1", "llmGenerate", { outputText: llmOutput }),
+            createTestNode("nanoBanana-1", "nanoBanana", {}),
+          ],
+          edges: [
+            createTestEdge("llmGenerate-1", "nanoBanana-1", "text", "text"),
+          ],
+        });
+
+        const store = useWorkflowStore.getState();
+        const inputs = store.getConnectedInputs("nanoBanana-1");
+
+        expect(inputs.text).toBe(llmOutput);
+      });
+
+      it("should chain prompt → llmGenerate → nanoBanana correctly", () => {
+        const userPrompt = "Describe this image";
+        const llmOutput = "A serene landscape with rolling hills";
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("prompt-1", "prompt", { prompt: userPrompt }),
+            createTestNode("llmGenerate-1", "llmGenerate", { outputText: llmOutput }),
+            createTestNode("nanoBanana-1", "nanoBanana", {}),
+          ],
+          edges: [
+            createTestEdge("prompt-1", "llmGenerate-1", "text", "text"),
+            createTestEdge("llmGenerate-1", "nanoBanana-1", "text", "text"),
+          ],
+        });
+
+        const store = useWorkflowStore.getState();
+
+        // llmGenerate should receive the prompt
+        const llmInputs = store.getConnectedInputs("llmGenerate-1");
+        expect(llmInputs.text).toBe(userPrompt);
+
+        // nanoBanana should receive the LLM output
+        const bananaInputs = store.getConnectedInputs("nanoBanana-1");
+        expect(bananaInputs.text).toBe(llmOutput);
+      });
+    });
+
+    describe("Dynamic inputs from schema-mapped connections", () => {
+      it("should populate dynamicInputs when node has inputSchema", () => {
+        const testImage = "data:image/png;base64,videoFrame";
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("imageInput-1", "imageInput", { image: testImage }),
+            createTestNode("prompt-1", "prompt", { prompt: "animate this" }),
+            createTestNode("generateVideo-1", "generateVideo", {
+              inputSchema: [
+                { name: "image_url", type: "image", required: true, label: "Image" },
+                { name: "prompt", type: "text", required: true, label: "Prompt" },
+              ],
+            }),
+          ],
+          edges: [
+            createTestEdge("imageInput-1", "generateVideo-1", "image", "image"),
+            createTestEdge("prompt-1", "generateVideo-1", "text", "text"),
+          ],
+        });
+
+        const store = useWorkflowStore.getState();
+        const inputs = store.getConnectedInputs("generateVideo-1");
+
+        expect(inputs.dynamicInputs).toHaveProperty("image_url", testImage);
+        expect(inputs.dynamicInputs).toHaveProperty("prompt", "animate this");
+      });
+
+      it("should correctly map multiple image handles to different schema fields", () => {
+        const startFrame = "data:image/png;base64,startFrame";
+        const endFrame = "data:image/png;base64,endFrame";
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("imageInput-1", "imageInput", { image: startFrame }),
+            createTestNode("imageInput-2", "imageInput", { image: endFrame }),
+            createTestNode("generateVideo-1", "generateVideo", {
+              inputSchema: [
+                { name: "start_image_url", type: "image", required: true, label: "Start" },
+                { name: "end_image_url", type: "image", required: false, label: "End" },
+              ],
+            }),
+          ],
+          edges: [
+            createTestEdge("imageInput-1", "generateVideo-1", "image", "image-0"),
+            createTestEdge("imageInput-2", "generateVideo-1", "image", "image-1"),
+          ],
+        });
+
+        const store = useWorkflowStore.getState();
+        const inputs = store.getConnectedInputs("generateVideo-1");
+
+        expect(inputs.dynamicInputs).toHaveProperty("start_image_url", startFrame);
+        expect(inputs.dynamicInputs).toHaveProperty("end_image_url", endFrame);
+      });
+    });
+
+    describe("Mixed image and text data flow", () => {
+      it("should correctly extract both image and text inputs for generation", () => {
+        const testImage = "data:image/png;base64,referenceImage";
+        const testPrompt = "enhance the colors";
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("imageInput-1", "imageInput", { image: testImage }),
+            createTestNode("prompt-1", "prompt", { prompt: testPrompt }),
+            createTestNode("nanoBanana-1", "nanoBanana", {
+              aspectRatio: "1:1",
+              resolution: "1K",
+              model: "nano-banana",
+            }),
+          ],
+          edges: [
+            createTestEdge("imageInput-1", "nanoBanana-1", "image", "image"),
+            createTestEdge("prompt-1", "nanoBanana-1", "text", "text"),
+          ],
+        });
+
+        const store = useWorkflowStore.getState();
+        const inputs = store.getConnectedInputs("nanoBanana-1");
+
+        expect(inputs.images).toHaveLength(1);
+        expect(inputs.images[0]).toBe(testImage);
+        expect(inputs.text).toBe(testPrompt);
+      });
+    });
+
+    describe("State updates during execution", () => {
+      it("should set node status to complete after successful generation", async () => {
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("prompt-1", "prompt", { prompt: "test" }),
+            createTestNode("nanoBanana-1", "nanoBanana", {
+              aspectRatio: "1:1",
+              resolution: "1K",
+              model: "nano-banana",
+              status: "idle",
+            }),
+          ],
+          edges: [
+            createTestEdge("prompt-1", "nanoBanana-1", "text", "text"),
+          ],
+        });
+
+        const store = useWorkflowStore.getState();
+        await store.executeWorkflow();
+
+        const nanoBananaNode = useWorkflowStore.getState().nodes.find(n => n.id === "nanoBanana-1");
+        expect(nanoBananaNode?.data).toHaveProperty("status", "complete");
+      });
+
+      it("should populate outputImage after successful generation", async () => {
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("prompt-1", "prompt", { prompt: "test" }),
+            createTestNode("nanoBanana-1", "nanoBanana", {
+              aspectRatio: "1:1",
+              resolution: "1K",
+              model: "nano-banana",
+              outputImage: null,
+            }),
+          ],
+          edges: [
+            createTestEdge("prompt-1", "nanoBanana-1", "text", "text"),
+          ],
+        });
+
+        const store = useWorkflowStore.getState();
+        await store.executeWorkflow();
+
+        const nanoBananaNode = useWorkflowStore.getState().nodes.find(n => n.id === "nanoBanana-1");
+        expect(nanoBananaNode?.data).toHaveProperty("outputImage", "data:image/png;base64,generatedImage");
+      });
+    });
+  });
+
+  describe("Error handling and edge cases", () => {
+    describe("Missing input errors", () => {
+      it("should set error status when nanoBanana has no text input", async () => {
+        // Mock fetch to track if it was called
+        const mockFetch = vi.fn();
+        vi.stubGlobal("fetch", mockFetch);
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("nanoBanana-1", "nanoBanana", {
+              aspectRatio: "1:1",
+              resolution: "1K",
+              model: "nano-banana",
+              status: "idle",
+            }),
+          ],
+          edges: [],
+        });
+
+        const store = useWorkflowStore.getState();
+        await store.executeWorkflow();
+
+        const nanoBananaNode = useWorkflowStore.getState().nodes.find(n => n.id === "nanoBanana-1");
+        expect(nanoBananaNode?.data).toHaveProperty("status", "error");
+        expect(nanoBananaNode?.data).toHaveProperty("error");
+
+        vi.unstubAllGlobals();
+      });
+
+      it("should set error status when generateVideo has no model selected", async () => {
+        vi.stubGlobal("fetch", vi.fn());
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("prompt-1", "prompt", { prompt: "test" }),
+            createTestNode("generateVideo-1", "generateVideo", {
+              selectedModel: null, // No model selected
+              status: "idle",
+            }),
+          ],
+          edges: [
+            createTestEdge("prompt-1", "generateVideo-1", "text", "text"),
+          ],
+        });
+
+        const store = useWorkflowStore.getState();
+        await store.executeWorkflow();
+
+        const videoNode = useWorkflowStore.getState().nodes.find(n => n.id === "generateVideo-1");
+        expect(videoNode?.data).toHaveProperty("status", "error");
+        expect(videoNode?.data).toHaveProperty("error", "No model selected");
+
+        vi.unstubAllGlobals();
+      });
+
+      it("should stop execution on error (subsequent nodes not executed)", async () => {
+        vi.stubGlobal("fetch", vi.fn());
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("nanoBanana-1", "nanoBanana", {
+              aspectRatio: "1:1",
+              resolution: "1K",
+              model: "nano-banana",
+              status: "idle",
+            }),
+            createTestNode("output-1", "output", { status: "idle" }),
+          ],
+          edges: [
+            createTestEdge("nanoBanana-1", "output-1", "image", "image"),
+          ],
+        });
+
+        const store = useWorkflowStore.getState();
+        await store.executeWorkflow();
+
+        // nanoBanana should have error (no text input)
+        const nanoBananaNode = useWorkflowStore.getState().nodes.find(n => n.id === "nanoBanana-1");
+        expect(nanoBananaNode?.data).toHaveProperty("status", "error");
+
+        // Workflow should have stopped running
+        expect(useWorkflowStore.getState().isRunning).toBe(false);
+
+        vi.unstubAllGlobals();
+      });
+    });
+
+    describe("API error handling", () => {
+      it("should set node error status on HTTP error response", async () => {
+        vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+          ok: false,
+          status: 500,
+          statusText: "Internal Server Error",
+          text: () => Promise.resolve("Server error"),
+          json: () => Promise.resolve({ error: "Server error" }),
+        }));
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("prompt-1", "prompt", { prompt: "test" }),
+            createTestNode("nanoBanana-1", "nanoBanana", {
+              aspectRatio: "1:1",
+              resolution: "1K",
+              model: "nano-banana",
+              status: "idle",
+            }),
+          ],
+          edges: [
+            createTestEdge("prompt-1", "nanoBanana-1", "text", "text"),
+          ],
+        });
+
+        const store = useWorkflowStore.getState();
+        await store.executeWorkflow();
+
+        const nanoBananaNode = useWorkflowStore.getState().nodes.find(n => n.id === "nanoBanana-1");
+        expect(nanoBananaNode?.data).toHaveProperty("status", "error");
+        expect(useWorkflowStore.getState().isRunning).toBe(false);
+
+        vi.unstubAllGlobals();
+      });
+
+      it("should set error message on network error", async () => {
+        vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("NetworkError")));
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("prompt-1", "prompt", { prompt: "test" }),
+            createTestNode("nanoBanana-1", "nanoBanana", {
+              aspectRatio: "1:1",
+              resolution: "1K",
+              model: "nano-banana",
+              status: "idle",
+            }),
+          ],
+          edges: [
+            createTestEdge("prompt-1", "nanoBanana-1", "text", "text"),
+          ],
+        });
+
+        const store = useWorkflowStore.getState();
+        await store.executeWorkflow();
+
+        const nanoBananaNode = useWorkflowStore.getState().nodes.find(n => n.id === "nanoBanana-1");
+        expect(nanoBananaNode?.data).toHaveProperty("status", "error");
+        expect((nanoBananaNode?.data as Record<string, unknown>).error).toContain("Network error");
+        expect(useWorkflowStore.getState().isRunning).toBe(false);
+
+        vi.unstubAllGlobals();
+      });
+
+      it("should set isRunning to false on error", async () => {
+        vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("API failed")));
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("prompt-1", "prompt", { prompt: "test" }),
+            createTestNode("nanoBanana-1", "nanoBanana", {
+              aspectRatio: "1:1",
+              resolution: "1K",
+              model: "nano-banana",
+            }),
+          ],
+          edges: [
+            createTestEdge("prompt-1", "nanoBanana-1", "text", "text"),
+          ],
+        });
+
+        const store = useWorkflowStore.getState();
+        await store.executeWorkflow();
+
+        expect(useWorkflowStore.getState().isRunning).toBe(false);
+
+        vi.unstubAllGlobals();
+      });
+    });
+
+    describe("Workflow state management during execution", () => {
+      it("should set isRunning to true during execution", async () => {
+        let isRunningDuringExecution = false;
+
+        vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => {
+          // Check isRunning while fetch is in progress
+          isRunningDuringExecution = useWorkflowStore.getState().isRunning;
+          return {
+            ok: true,
+            json: () => Promise.resolve({ success: true, image: "data:image/png;base64,test" }),
+            text: () => Promise.resolve(""),
+          };
+        }));
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("prompt-1", "prompt", { prompt: "test" }),
+            createTestNode("nanoBanana-1", "nanoBanana", {
+              aspectRatio: "1:1",
+              resolution: "1K",
+              model: "nano-banana",
+            }),
+          ],
+          edges: [
+            createTestEdge("prompt-1", "nanoBanana-1", "text", "text"),
+          ],
+        });
+
+        const store = useWorkflowStore.getState();
+        await store.executeWorkflow();
+
+        expect(isRunningDuringExecution).toBe(true);
+        expect(useWorkflowStore.getState().isRunning).toBe(false);
+
+        vi.unstubAllGlobals();
+      });
+
+      it("should set isRunning to false after completion", async () => {
+        vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+          ok: true,
+          json: () => Promise.resolve({ success: true, image: "data:image/png;base64,test" }),
+          text: () => Promise.resolve(""),
+        }));
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("prompt-1", "prompt", { prompt: "test" }),
+            createTestNode("nanoBanana-1", "nanoBanana", {
+              aspectRatio: "1:1",
+              resolution: "1K",
+              model: "nano-banana",
+            }),
+          ],
+          edges: [
+            createTestEdge("prompt-1", "nanoBanana-1", "text", "text"),
+          ],
+        });
+
+        const store = useWorkflowStore.getState();
+        await store.executeWorkflow();
+
+        expect(useWorkflowStore.getState().isRunning).toBe(false);
+
+        vi.unstubAllGlobals();
+      });
+
+      it("should set currentNodeId to null after completion", async () => {
+        vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+          ok: true,
+          json: () => Promise.resolve({ success: true, image: "data:image/png;base64,test" }),
+          text: () => Promise.resolve(""),
+        }));
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("prompt-1", "prompt", { prompt: "test" }),
+            createTestNode("nanoBanana-1", "nanoBanana", {
+              aspectRatio: "1:1",
+              resolution: "1K",
+              model: "nano-banana",
+            }),
+          ],
+          edges: [
+            createTestEdge("prompt-1", "nanoBanana-1", "text", "text"),
+          ],
+        });
+
+        const store = useWorkflowStore.getState();
+        await store.executeWorkflow();
+
+        expect(useWorkflowStore.getState().currentNodeId).toBeNull();
+
+        vi.unstubAllGlobals();
+      });
+    });
+
+    describe("Resume functionality", () => {
+      it("should start execution from specified nodeId", async () => {
+        vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+          ok: true,
+          json: () => Promise.resolve({ success: true, image: "data:image/png;base64,test" }),
+          text: () => Promise.resolve(""),
+        }));
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("prompt-1", "prompt", { prompt: "test" }),
+            createTestNode("nanoBanana-1", "nanoBanana", {
+              aspectRatio: "1:1",
+              resolution: "1K",
+              model: "nano-banana",
+              outputImage: "data:image/png;base64,existing", // Already has output
+            }),
+            createTestNode("output-1", "output", {}),
+          ],
+          edges: [
+            createTestEdge("prompt-1", "nanoBanana-1", "text", "text"),
+            createTestEdge("nanoBanana-1", "output-1", "image", "image"),
+          ],
+        });
+
+        const store = useWorkflowStore.getState();
+
+        // Start from output node (should skip prompt and nanoBanana)
+        await store.executeWorkflow("output-1");
+
+        expect(useWorkflowStore.getState().isRunning).toBe(false);
+        expect(useWorkflowStore.getState().currentNodeId).toBeNull();
+
+        vi.unstubAllGlobals();
+      });
+
+      it("should resume from pausedAtNodeId", async () => {
+        vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+          ok: true,
+          json: () => Promise.resolve({ success: true, image: "data:image/png;base64,test" }),
+          text: () => Promise.resolve(""),
+        }));
+
+        // Set up a workflow that was paused
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("prompt-1", "prompt", { prompt: "test" }),
+            createTestNode("nanoBanana-1", "nanoBanana", {
+              aspectRatio: "1:1",
+              resolution: "1K",
+              model: "nano-banana",
+            }),
+          ],
+          edges: [
+            createTestEdge("prompt-1", "nanoBanana-1", "text", "text", true), // Pause edge
+          ],
+        });
+
+        const store = useWorkflowStore.getState();
+
+        // First execution should pause at nanoBanana-1
+        await store.executeWorkflow();
+        expect(useWorkflowStore.getState().pausedAtNodeId).toBe("nanoBanana-1");
+
+        // Resume from paused node
+        await store.executeWorkflow("nanoBanana-1");
+        expect(useWorkflowStore.getState().pausedAtNodeId).toBeNull();
+
+        vi.unstubAllGlobals();
+      });
+    });
+  });
+
+  describe("Connection validation integration", () => {
+    describe("Handle type identification for data extraction", () => {
+      it("should correctly identify image handles by ID pattern", () => {
+        const store = useWorkflowStore.getState();
+        const testImage = "data:image/png;base64,test";
+
+        // Standard image handle
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("imageInput-1", "imageInput", { image: testImage }),
+            createTestNode("nanoBanana-1", "nanoBanana", {}),
+          ],
+          edges: [createTestEdge("imageInput-1", "nanoBanana-1", "image", "image")],
+        });
+
+        const result = store.getConnectedInputs("nanoBanana-1");
+        expect(result.images).toContain(testImage);
+      });
+
+      it("should correctly identify text handles by ID pattern", () => {
+        const store = useWorkflowStore.getState();
+        const testPrompt = "test prompt";
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("prompt-1", "prompt", { prompt: testPrompt }),
+            createTestNode("nanoBanana-1", "nanoBanana", {}),
+          ],
+          edges: [createTestEdge("prompt-1", "nanoBanana-1", "text", "text")],
+        });
+
+        const result = store.getConnectedInputs("nanoBanana-1");
+        expect(result.text).toBe(testPrompt);
+      });
+
+      it("should handle schema-named handles like image_url correctly", () => {
+        const store = useWorkflowStore.getState();
+        const testImage = "data:image/png;base64,test";
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("imageInput-1", "imageInput", { image: testImage }),
+            createTestNode("generateVideo-1", "generateVideo", {
+              inputSchema: [
+                { name: "image_url", type: "image", required: true, label: "Image" },
+              ],
+            }),
+          ],
+          // Edge targeting a schema-named handle
+          edges: [createTestEdge("imageInput-1", "generateVideo-1", "image", "image")],
+        });
+
+        const result = store.getConnectedInputs("generateVideo-1");
+        // Should extract image via dynamicInputs mapping
+        expect(result.dynamicInputs).toHaveProperty("image_url", testImage);
+      });
+
+      it("should handle indexed handles (image-0, image-1) correctly", () => {
+        const store = useWorkflowStore.getState();
+        const image1 = "data:image/png;base64,first";
+        const image2 = "data:image/png;base64,second";
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("imageInput-1", "imageInput", { image: image1 }),
+            createTestNode("imageInput-2", "imageInput", { image: image2 }),
+            createTestNode("generateVideo-1", "generateVideo", {
+              inputSchema: [
+                { name: "start_image", type: "image", required: true, label: "Start" },
+                { name: "end_image", type: "image", required: false, label: "End" },
+              ],
+            }),
+          ],
+          edges: [
+            createTestEdge("imageInput-1", "generateVideo-1", "image", "image-0"),
+            createTestEdge("imageInput-2", "generateVideo-1", "image", "image-1"),
+          ],
+        });
+
+        const result = store.getConnectedInputs("generateVideo-1");
+        expect(result.dynamicInputs).toHaveProperty("start_image", image1);
+        expect(result.dynamicInputs).toHaveProperty("end_image", image2);
+      });
+
+      it("should handle indexed text handles (text-0, text-1) correctly", () => {
+        const store = useWorkflowStore.getState();
+        const prompt = "main prompt";
+        const negPrompt = "negative prompt";
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("prompt-1", "prompt", { prompt }),
+            createTestNode("prompt-2", "prompt", { prompt: negPrompt }),
+            createTestNode("generateVideo-1", "generateVideo", {
+              inputSchema: [
+                { name: "prompt", type: "text", required: true, label: "Prompt" },
+                { name: "negative_prompt", type: "text", required: false, label: "Negative" },
+              ],
+            }),
+          ],
+          edges: [
+            createTestEdge("prompt-1", "generateVideo-1", "text", "text-0"),
+            createTestEdge("prompt-2", "generateVideo-1", "text", "text-1"),
+          ],
+        });
+
+        const result = store.getConnectedInputs("generateVideo-1");
+        expect(result.dynamicInputs).toHaveProperty("prompt", prompt);
+        expect(result.dynamicInputs).toHaveProperty("negative_prompt", negPrompt);
+      });
+    });
+
+    describe("Edge cases in connection handling", () => {
+      it("should ignore connections from non-existent source nodes", () => {
+        const store = useWorkflowStore.getState();
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("nanoBanana-1", "nanoBanana", {}),
+          ],
+          edges: [
+            createTestEdge("deleted-node", "nanoBanana-1", "image", "image"),
+          ],
+        });
+
+        const result = store.getConnectedInputs("nanoBanana-1");
+        expect(result.images).toHaveLength(0);
+      });
+
+      it("should handle null/undefined output data gracefully", () => {
+        const store = useWorkflowStore.getState();
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("imageInput-1", "imageInput", { image: null }),
+            createTestNode("nanoBanana-1", "nanoBanana", {}),
+          ],
+          edges: [createTestEdge("imageInput-1", "nanoBanana-1", "image", "image")],
+        });
+
+        const result = store.getConnectedInputs("nanoBanana-1");
+        expect(result.images).toHaveLength(0);
+      });
+
+      it("should return correct structure when node has no incoming edges", () => {
+        const store = useWorkflowStore.getState();
+
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("nanoBanana-1", "nanoBanana", {}),
+          ],
+          edges: [],
+        });
+
+        const result = store.getConnectedInputs("nanoBanana-1");
+        expect(result.images).toEqual([]);
+        expect(result.text).toBeNull();
+        expect(result.dynamicInputs).toEqual({});
+      });
+    });
+  });
 });
