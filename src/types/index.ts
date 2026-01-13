@@ -3,6 +3,18 @@ import { Edge } from "@xyflow/react";
 // Re-export all node and annotation types from domain files
 export * from "./annotation";
 export * from "./nodes";
+export * from "./providers";
+
+// Recently used models tracking
+export interface RecentModel {
+  provider: ProviderType;
+  modelId: string;
+  displayName: string;
+  timestamp: number;
+}
+
+// Import provider types for use in this file
+import type { ProviderType, LLMProvider, LLMModelType } from "./providers";
 
 // Aspect Ratios (supported by both Nano Banana and Nano Banana Pro)
 export type AspectRatio = "1:1" | "2:3" | "3:2" | "3:4" | "4:3" | "4:5" | "5:4" | "9:16" | "16:9" | "21:9";
@@ -12,17 +24,6 @@ export type Resolution = "1K" | "2K" | "4K";
 
 // Image Generation Model Options
 export type ModelType = "nano-banana" | "nano-banana-pro";
-
-// LLM Provider Options
-export type LLMProvider = "google" | "openai";
-
-// LLM Model Options
-export type LLMModelType =
-  | "gemini-2.5-flash"
-  | "gemini-3-flash-preview"
-  | "gemini-3-pro-preview"
-  | "gpt-4.1-mini"
-  | "gpt-4.1-nano";
 
 // Workflow Edge Data
 export interface WorkflowEdgeData extends Record<string, unknown> {
@@ -102,24 +103,3 @@ export interface NodeGroup {
   locked?: boolean;
 }
 
-// Provider Types for multi-provider support
-export type ProviderType = "gemini" | "openai" | "replicate" | "fal";
-
-// Selected model for image/video generation nodes
-export interface SelectedModel {
-  provider: ProviderType;
-  modelId: string;
-  displayName: string;
-}
-
-export interface ProviderConfig {
-  id: ProviderType;
-  name: string;
-  enabled: boolean;
-  apiKey: string | null;
-  apiKeyEnvVar?: string;  // For providers using environment variables (e.g., Gemini)
-}
-
-export interface ProviderSettings {
-  providers: Record<ProviderType, ProviderConfig>;
-}
