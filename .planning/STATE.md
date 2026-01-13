@@ -9,10 +9,10 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 ## Current Position
 
-Phase: 21 of 23 (Fix Image Input & Deduplication)
-Plan: 1 of 1 in current phase
-Status: Phase complete
-Last activity: 2026-01-13 - Completed 21-01-PLAN.md
+Phase: 19 of 23 (Type Refactoring)
+Plan: 1 of 2 in current phase
+Status: Plan 1 complete
+Last activity: 2026-01-13 - Completed 19-01-PLAN.md
 
 Progress: █████████░ 96%
 
@@ -46,8 +46,8 @@ Progress: █████████░ 96%
 | 22. Generate Node Dynamic Input Tests | 1/1 | 20 min | 20 min |
 
 **Recent Trend:**
-- Last 5 plans: 7 min, 3 min, 22 min, 2 min, 20 min
-- Trend: Test-focused phases have higher execution times due to verification cycles
+- Last 5 plans: 3 min, 22 min, 2 min, 20 min, 8 min
+- Trend: Type refactoring is faster than test phases
 
 ## Accumulated Context
 
@@ -106,6 +106,8 @@ Recent decisions affecting current work:
 - Store utilities extracted to src/store/utils/ with re-exports for backward compatibility
 - Consolidated defaultNodeDimensions (was duplicated in addNode and createGroup)
 - localStorage mocking pattern for testing utility modules
+- Type domain files live in src/types/*.ts with re-exports from index.ts
+- BaseNodeData in annotation.ts to avoid circular imports (nodes.ts imports annotation.ts)
 
 ### Deferred Issues
 
@@ -130,6 +132,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-13
-Stopped at: Phase 21 complete
+Stopped at: Phase 19-01 complete
 Resume file: None
-Next action: Plan Phase 23 (run /gsd:plan-phase 23)
+Next action: Execute Phase 19-02 (run /gsd:execute-plan .planning/phases/19-type-refactoring/19-02-PLAN.md)

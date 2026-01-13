@@ -250,7 +250,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 19-01: Extract node and annotation types
+- [x] 19-01: Extract node and annotation types
 - [ ] 19-02: Extract provider, workflow, API, and model types
 
 #### Phase 20: Integration Tests
@@ -336,7 +336,7 @@ Phases execute in numeric order: 1 → 2 → ... → 14 → 15 → 16 → 17 →
 | 16. Store Modularization | v1.2 | 1/1 | Complete | 2026-01-12 |
 | 17. Component Tests | v1.2 | 11/11 | Complete | 2026-01-13 |
 | 18. API Route Tests | v1.2 | 5/5 | Complete | 2026-01-13 |
-| 19. Type Refactoring | v1.2 | 0/2 | Planned | - |
+| 19. Type Refactoring | v1.2 | 1/2 | In Progress | - |
 | 20. Integration Tests | v1.2 | 0/? | Not started | - |
 | 21. Fix Image Input & Deduplication | v1.2 | 1/1 | Complete | 2026-01-13 |
 | 22. Generate Node Dynamic Input Tests | v1.2 | 1/1 | Complete | 2026-01-13 |
