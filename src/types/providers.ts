@@ -37,3 +37,11 @@ export type LLMModelType =
   | "gemini-3-pro-preview"
   | "gpt-4.1-mini"
   | "gpt-4.1-nano";
+
+// Recently used models tracking
+export interface RecentModel {
+  provider: ProviderType;
+  modelId: string;
+  displayName: string;
+  timestamp: number;
+}
