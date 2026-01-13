@@ -1418,6 +1418,131 @@ describe("/api/generate route", () => {
         })
       );
     });
+
+    it("should pass parameters to prediction input", async () => {
+      // Model info fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          latest_version: { id: "version123", openapi_schema: {} },
+        }),
+      });
+
+      // Create prediction
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          id: "prediction123",
+          status: "succeeded",
+          output: ["https://replicate.delivery/output.png"],
+        }),
+      });
+
+      // Fetch output media
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "image/png" }),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "Test prompt",
+          selectedModel: {
+            provider: "replicate",
+            modelId: "stability-ai/sdxl",
+            displayName: "SDXL",
+          },
+          parameters: {
+            seed: 42,
+            num_inference_steps: 30,
+            guidance_scale: 7.5,
+          },
+        },
+        { "X-Replicate-API-Key": "test-replicate-key" }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+
+      // Verify parameters were passed to prediction
+      const createPredictionCall = mockFetch.mock.calls[1];
+      const requestBody = JSON.parse(createPredictionCall[1].body);
+      expect(requestBody.input).toEqual(
+        expect.objectContaining({
+          seed: 42,
+          num_inference_steps: 30,
+          guidance_scale: 7.5,
+        })
+      );
+    });
+
+    it("should merge parameters with dynamicInputs (dynamicInputs take precedence)", async () => {
+      // Model info fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          latest_version: { id: "version123", openapi_schema: {} },
+        }),
+      });
+
+      // Create prediction
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          id: "prediction123",
+          status: "succeeded",
+          output: ["https://replicate.delivery/output.png"],
+        }),
+      });
+
+      // Fetch output media
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "image/png" }),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "",
+          selectedModel: {
+            provider: "replicate",
+            modelId: "stability-ai/sdxl",
+            displayName: "SDXL",
+          },
+          parameters: {
+            seed: 42,
+            guidance_scale: 7.5,
+          },
+          dynamicInputs: {
+            prompt: "Dynamic prompt",
+            guidance_scale: "10.0", // Should override parameters
+          },
+        },
+        { "X-Replicate-API-Key": "test-replicate-key" }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+
+      // Verify dynamicInputs override parameters
+      const createPredictionCall = mockFetch.mock.calls[1];
+      const requestBody = JSON.parse(createPredictionCall[1].body);
+      expect(requestBody.input).toEqual(
+        expect.objectContaining({
+          seed: 42,
+          prompt: "Dynamic prompt",
+          guidance_scale: "10.0", // dynamicInputs value
+        })
+      );
+    });
   });
 
   describe("fal.ai provider", () => {
@@ -1919,6 +2044,114 @@ describe("/api/generate route", () => {
           headers: expect.objectContaining({
             Authorization: "Key env-fal-key",
           }),
+        })
+      );
+    });
+
+    it("should pass parameters to fal.ai request body", async () => {
+      // fal.run API call
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          images: [{ url: "https://fal.media/output.png" }],
+        }),
+      });
+
+      // Fetch output media
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "image/png" }),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "",
+          selectedModel: {
+            provider: "fal",
+            modelId: "fal-ai/flux/schnell",
+            displayName: "Flux Schnell",
+          },
+          dynamicInputs: {
+            prompt: "Test prompt",
+          },
+          parameters: {
+            seed: 12345,
+            num_inference_steps: 28,
+            guidance_scale: 3.5,
+          },
+        },
+        { "X-Fal-API-Key": "test-fal-key" }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+
+      // Verify parameters were passed to fal.ai
+      const falCall = mockFetch.mock.calls[0];
+      const requestBody = JSON.parse(falCall[1].body);
+      expect(requestBody).toEqual(
+        expect.objectContaining({
+          seed: 12345,
+          num_inference_steps: 28,
+          guidance_scale: 3.5,
+        })
+      );
+    });
+
+    it("should merge parameters with dynamicInputs (dynamicInputs take precedence)", async () => {
+      // fal.run API call
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          images: [{ url: "https://fal.media/output.png" }],
+        }),
+      });
+
+      // Fetch output media
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "image/png" }),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "",
+          selectedModel: {
+            provider: "fal",
+            modelId: "fal-ai/flux/schnell",
+            displayName: "Flux Schnell",
+          },
+          parameters: {
+            seed: 42,
+            num_inference_steps: 25,
+          },
+          dynamicInputs: {
+            prompt: "Dynamic prompt",
+            num_inference_steps: "30", // Should override parameters
+          },
+        },
+        { "X-Fal-API-Key": "test-fal-key" }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+
+      // Verify dynamicInputs override parameters
+      const falCall = mockFetch.mock.calls[0];
+      const requestBody = JSON.parse(falCall[1].body);
+      expect(requestBody).toEqual(
+        expect.objectContaining({
+          seed: 42,
+          prompt: "Dynamic prompt",
+          num_inference_steps: "30", // dynamicInputs value
         })
       );
     });
