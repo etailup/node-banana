@@ -871,4 +871,552 @@ describe("/api/generate route", () => {
       expect(data.image).toBe("data:image/png;base64,noMimeTypeData");
     });
   });
+
+  describe("Replicate provider", () => {
+    const mockFetch = vi.fn();
+    const originalFetch = global.fetch;
+
+    beforeEach(() => {
+      global.fetch = mockFetch;
+      mockFetch.mockClear();
+    });
+
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
+
+    it("should generate image successfully via Replicate", async () => {
+      // Model info fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          latest_version: { id: "version123", openapi_schema: {} },
+        }),
+      });
+
+      // Create prediction
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          id: "prediction123",
+          status: "starting",
+        }),
+      });
+
+      // Poll prediction (succeeded immediately)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          id: "prediction123",
+          status: "succeeded",
+          output: ["https://replicate.delivery/output.png"],
+        }),
+      });
+
+      // Fetch output media
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "image/png" }),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "A beautiful landscape",
+          selectedModel: {
+            provider: "replicate",
+            modelId: "stability-ai/sdxl",
+            displayName: "SDXL",
+          },
+        },
+        { "X-Replicate-API-Key": "test-replicate-key" }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.image).toContain("data:image/png;base64,");
+      expect(data.contentType).toBe("image");
+
+      // Verify API key was passed correctly
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining("replicate.com/v1/models/stability-ai/sdxl"),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: "Bearer test-replicate-key",
+          }),
+        })
+      );
+    });
+
+    it("should generate video successfully via Replicate", async () => {
+      // Model info fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          latest_version: { id: "version456", openapi_schema: {} },
+        }),
+      });
+
+      // Create prediction
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          id: "prediction456",
+          status: "starting",
+        }),
+      });
+
+      // Poll prediction (succeeded)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          id: "prediction456",
+          status: "succeeded",
+          output: ["https://replicate.delivery/output.mp4"],
+        }),
+      });
+
+      // Fetch output media (video)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "video/mp4" }),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(2048)),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "A cinematic video",
+          selectedModel: {
+            provider: "replicate",
+            modelId: "luma/ray",
+            displayName: "Luma Ray",
+          },
+        },
+        { "X-Replicate-API-Key": "test-replicate-key" }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.video).toContain("data:video/mp4;base64,");
+      expect(data.contentType).toBe("video");
+    });
+
+    it("should return 401 when Replicate API key missing", async () => {
+      delete process.env.REPLICATE_API_KEY;
+
+      const request = createMockPostRequest({
+        prompt: "Test prompt",
+        selectedModel: {
+          provider: "replicate",
+          modelId: "stability-ai/sdxl",
+          displayName: "SDXL",
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.success).toBe(false);
+      expect(data.error).toContain("Replicate API key not configured");
+    });
+
+    it("should handle rate limit (429) from Replicate", async () => {
+      // Model info fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          latest_version: { id: "version123", openapi_schema: {} },
+        }),
+      });
+
+      // Create prediction returns 429
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        text: () => Promise.resolve(JSON.stringify({ detail: "Rate limit exceeded" })),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "Test prompt",
+          selectedModel: {
+            provider: "replicate",
+            modelId: "stability-ai/sdxl",
+            displayName: "SDXL",
+          },
+        },
+        { "X-Replicate-API-Key": "test-replicate-key" }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.success).toBe(false);
+      expect(data.error).toContain("Rate limit exceeded");
+    });
+
+    it("should handle prediction failure", async () => {
+      // Model info fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          latest_version: { id: "version123", openapi_schema: {} },
+        }),
+      });
+
+      // Create prediction
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          id: "prediction123",
+          status: "starting",
+        }),
+      });
+
+      // Poll prediction (failed)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          id: "prediction123",
+          status: "failed",
+          error: "NSFW content detected",
+        }),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "Test prompt",
+          selectedModel: {
+            provider: "replicate",
+            modelId: "stability-ai/sdxl",
+            displayName: "SDXL",
+          },
+        },
+        { "X-Replicate-API-Key": "test-replicate-key" }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.success).toBe(false);
+      expect(data.error).toContain("NSFW content detected");
+    });
+
+    it("should handle prediction timeout (5 min max)", async () => {
+      vi.useFakeTimers();
+
+      // Model info fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          latest_version: { id: "version123", openapi_schema: {} },
+        }),
+      });
+
+      // Create prediction
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          id: "prediction123",
+          status: "starting",
+        }),
+      });
+
+      // Repeatedly return "processing" status
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          id: "prediction123",
+          status: "processing",
+        }),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "Test prompt",
+          selectedModel: {
+            provider: "replicate",
+            modelId: "stability-ai/sdxl",
+            displayName: "SDXL",
+          },
+        },
+        { "X-Replicate-API-Key": "test-replicate-key" }
+      );
+
+      // Start the POST request
+      const responsePromise = POST(request);
+
+      // Advance time past the 5-minute timeout
+      // We need to run pending timers multiple times to simulate polling
+      for (let i = 0; i < 310; i++) {
+        await vi.advanceTimersByTimeAsync(1000);
+      }
+
+      const response = await responsePromise;
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.success).toBe(false);
+      expect(data.error).toContain("timed out");
+
+      vi.useRealTimers();
+    });
+
+    it("should poll for prediction completion", async () => {
+      // Model info fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          latest_version: { id: "version123", openapi_schema: {} },
+        }),
+      });
+
+      // Create prediction
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          id: "prediction123",
+          status: "starting",
+        }),
+      });
+
+      // Poll 1: still starting
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          id: "prediction123",
+          status: "starting",
+        }),
+      });
+
+      // Poll 2: processing
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          id: "prediction123",
+          status: "processing",
+        }),
+      });
+
+      // Poll 3: succeeded
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          id: "prediction123",
+          status: "succeeded",
+          output: ["https://replicate.delivery/output.png"],
+        }),
+      });
+
+      // Fetch output media
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "image/png" }),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "Test prompt",
+          selectedModel: {
+            provider: "replicate",
+            modelId: "stability-ai/sdxl",
+            displayName: "SDXL",
+          },
+        },
+        { "X-Replicate-API-Key": "test-replicate-key" }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+
+      // Verify polling occurred (model fetch + create + 3 polls + media fetch = 6 calls)
+      expect(mockFetch).toHaveBeenCalledTimes(6);
+    });
+
+    it("should return video URL for large videos (>20MB)", async () => {
+      // Model info fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          latest_version: { id: "version123", openapi_schema: {} },
+        }),
+      });
+
+      // Create prediction
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          id: "prediction123",
+          status: "starting",
+        }),
+      });
+
+      // Poll prediction (succeeded)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          id: "prediction123",
+          status: "succeeded",
+          output: ["https://replicate.delivery/large-video.mp4"],
+        }),
+      });
+
+      // Fetch output media (large video > 20MB)
+      const largeBuffer = new ArrayBuffer(25 * 1024 * 1024); // 25MB
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "video/mp4" }),
+        arrayBuffer: () => Promise.resolve(largeBuffer),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "Generate a long video",
+          selectedModel: {
+            provider: "replicate",
+            modelId: "luma/ray",
+            displayName: "Luma Ray",
+          },
+        },
+        { "X-Replicate-API-Key": "test-replicate-key" }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.videoUrl).toBe("https://replicate.delivery/large-video.mp4");
+      expect(data.video).toBeUndefined();
+      expect(data.contentType).toBe("video");
+    });
+
+    it("should pass dynamicInputs to prediction input", async () => {
+      // Model info fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          latest_version: { id: "version123", openapi_schema: {} },
+        }),
+      });
+
+      // Create prediction - capture the request
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          id: "prediction123",
+          status: "succeeded",
+          output: ["https://replicate.delivery/output.png"],
+        }),
+      });
+
+      // Fetch output media
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "image/png" }),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
+      });
+
+      const request = createMockPostRequest(
+        {
+          prompt: "",
+          selectedModel: {
+            provider: "replicate",
+            modelId: "stability-ai/sdxl",
+            displayName: "SDXL",
+          },
+          dynamicInputs: {
+            prompt: "Dynamic prompt from connection",
+            image_url: "data:image/png;base64,testImageData",
+            guidance_scale: "7.5",
+          },
+        },
+        { "X-Replicate-API-Key": "test-replicate-key" }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+
+      // Verify dynamicInputs were passed to prediction
+      const createPredictionCall = mockFetch.mock.calls[1];
+      const requestBody = JSON.parse(createPredictionCall[1].body);
+      expect(requestBody.input).toEqual(
+        expect.objectContaining({
+          prompt: "Dynamic prompt from connection",
+          image_url: "data:image/png;base64,testImageData",
+          guidance_scale: "7.5",
+        })
+      );
+    });
+
+    it("should use env var API key when header not provided", async () => {
+      process.env.REPLICATE_API_KEY = "env-replicate-key";
+
+      // Model info fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          latest_version: { id: "version123", openapi_schema: {} },
+        }),
+      });
+
+      // Create prediction
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          id: "prediction123",
+          status: "succeeded",
+          output: ["https://replicate.delivery/output.png"],
+        }),
+      });
+
+      // Fetch output media
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "image/png" }),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
+      });
+
+      const request = createMockPostRequest({
+        prompt: "Test prompt",
+        selectedModel: {
+          provider: "replicate",
+          modelId: "stability-ai/sdxl",
+          displayName: "SDXL",
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+
+      // Verify env var key was used
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining("replicate.com/v1/models"),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: "Bearer env-replicate-key",
+          }),
+        })
+      );
+    });
+  });
 });
