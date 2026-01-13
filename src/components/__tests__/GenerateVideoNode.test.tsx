@@ -645,6 +645,166 @@ describe("GenerateVideoNode", () => {
       expect(imageHandle).toBeInTheDocument();
       expect(textHandle).toBeInTheDocument();
     });
+
+    describe("Multiple Image Inputs (common for video)", () => {
+      it("should render multiple image handles for multi-frame video models", () => {
+        const { container } = render(
+          <TestWrapper>
+            <GenerateVideoNode {...createNodeProps({
+              selectedModel: { provider: "fal", modelId: "kling-video/v1", displayName: "Kling Video" },
+              inputSchema: [
+                { name: "start_image", type: "image", required: true, label: "Start Image" },
+                { name: "end_image", type: "image", required: false, label: "End Image" },
+                { name: "prompt", type: "text", required: true, label: "Motion Prompt" },
+              ],
+            })} />
+          </TestWrapper>
+        );
+
+        // Should have two image INPUT handles (exclude any output handles)
+        const imageInputHandles = container.querySelectorAll('[data-handletype="image"][class*="target"]');
+        expect(imageInputHandles.length).toBe(2);
+
+        // Check schema names are set
+        const schemaNames = Array.from(imageInputHandles).map(h => h.getAttribute('data-schema-name'));
+        expect(schemaNames).toContain('start_image');
+        expect(schemaNames).toContain('end_image');
+      });
+
+      it("should show labels like 'Start Frame', 'End Frame' from schema", () => {
+        render(
+          <TestWrapper>
+            <GenerateVideoNode {...createNodeProps({
+              selectedModel: { provider: "fal", modelId: "kling-video/v1", displayName: "Kling Video" },
+              inputSchema: [
+                { name: "start_image", type: "image", required: true, label: "Start Frame" },
+                { name: "end_image", type: "image", required: false, label: "End Frame" },
+                { name: "prompt", type: "text", required: true, label: "Motion Prompt" },
+              ],
+            })} />
+          </TestWrapper>
+        );
+
+        expect(screen.getByText("Start Frame")).toBeInTheDocument();
+        expect(screen.getByText("End Frame")).toBeInTheDocument();
+      });
+    });
+
+    describe("Placeholder Handles", () => {
+      it("should show dimmed image handle when video model only needs text", () => {
+        const { container } = render(
+          <TestWrapper>
+            <GenerateVideoNode {...createNodeProps({
+              selectedModel: { provider: "fal", modelId: "text-to-video/model", displayName: "Text to Video" },
+              inputSchema: [
+                { name: "prompt", type: "text", required: true, label: "Prompt" },
+                { name: "negative_prompt", type: "text", required: false, label: "Negative" },
+              ],
+            })} />
+          </TestWrapper>
+        );
+
+        // Image handle should exist with dimmed opacity
+        const imageHandle = container.querySelector('[data-handletype="image"]') as HTMLElement;
+        expect(imageHandle).toBeInTheDocument();
+        expect(imageHandle.style.opacity).toBe("0.3");
+      });
+
+      it("should show dimmed text handle when video model only needs images", () => {
+        const { container } = render(
+          <TestWrapper>
+            <GenerateVideoNode {...createNodeProps({
+              selectedModel: { provider: "fal", modelId: "image-to-video/model", displayName: "Image to Video" },
+              inputSchema: [
+                { name: "start_frame", type: "image", required: true, label: "Start Frame" },
+                { name: "end_frame", type: "image", required: false, label: "End Frame" },
+              ],
+            })} />
+          </TestWrapper>
+        );
+
+        // Text handle should exist with dimmed opacity
+        const textHandle = container.querySelector('[data-handletype="text"]') as HTMLElement;
+        expect(textHandle).toBeInTheDocument();
+        expect(textHandle.style.opacity).toBe("0.3");
+      });
+
+      it("should show 'Not used by this model' description for placeholder handles", () => {
+        const { container } = render(
+          <TestWrapper>
+            <GenerateVideoNode {...createNodeProps({
+              selectedModel: { provider: "fal", modelId: "text-to-video/model", displayName: "Text to Video" },
+              inputSchema: [
+                { name: "prompt", type: "text", required: true, label: "Prompt" },
+              ],
+            })} />
+          </TestWrapper>
+        );
+
+        // Image handle should have the placeholder title
+        const imageHandle = container.querySelector('[data-handletype="image"]');
+        expect(imageHandle).toHaveAttribute("title", "Not used by this model");
+      });
+    });
+
+    describe("Schema Integration", () => {
+      it("should position handles correctly with image handles before text handles", () => {
+        const { container } = render(
+          <TestWrapper>
+            <GenerateVideoNode {...createNodeProps({
+              selectedModel: { provider: "fal", modelId: "kling-video/v1", displayName: "Kling Video" },
+              inputSchema: [
+                { name: "image", type: "image", required: true, label: "Input Image" },
+                { name: "prompt", type: "text", required: true, label: "Prompt" },
+              ],
+            })} />
+          </TestWrapper>
+        );
+
+        const imageHandle = container.querySelector('[data-handletype="image"]') as HTMLElement;
+        const textHandle = container.querySelector('[data-handletype="text"]') as HTMLElement;
+
+        // Image handle should be positioned above (lower %) text handle
+        const imageTop = parseFloat(imageHandle.style.top);
+        const textTop = parseFloat(textHandle.style.top);
+        expect(imageTop).toBeLessThan(textTop);
+      });
+
+      it("should maintain gap between image and text handle groups", () => {
+        const { container } = render(
+          <TestWrapper>
+            <GenerateVideoNode {...createNodeProps({
+              selectedModel: { provider: "fal", modelId: "kling-video/v1", displayName: "Kling Video" },
+              inputSchema: [
+                { name: "start_image", type: "image", required: true, label: "Start Image" },
+                { name: "end_image", type: "image", required: false, label: "End Image" },
+                { name: "prompt", type: "text", required: true, label: "Motion Prompt" },
+              ],
+            })} />
+          </TestWrapper>
+        );
+
+        // Get all input handles in order (exclude output handle)
+        const imageInputHandles = container.querySelectorAll('[data-handletype="image"][class*="target"]');
+        const textHandle = container.querySelector('[data-handletype="text"]') as HTMLElement;
+
+        expect(imageInputHandles.length).toBe(2);
+
+        const image0 = imageInputHandles[0] as HTMLElement;
+        const image1 = imageInputHandles[1] as HTMLElement;
+
+        const top0 = parseFloat(image0.style.top);
+        const top1 = parseFloat(image1.style.top);
+        const topText = parseFloat(textHandle.style.top);
+
+        // Gap between image-1 and text should be larger than gap between image-0 and image-1
+        const imageDiff = top1 - top0;
+        const gapDiff = topText - top1;
+
+        // The gap should account for the spacing slot
+        expect(gapDiff).toBeGreaterThan(imageDiff * 0.9);
+      });
+    });
   });
 
   describe("Custom Title and Comment", () => {
