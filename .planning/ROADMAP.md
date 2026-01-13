@@ -12,7 +12,7 @@ None
 
 - ✅ **v1.0 Multi-Provider Support** - Phases 1-6 (shipped 2026-01-11)
 - ✅ **v1.1 Improvements** - Phases 7-14 (shipped 2026-01-12)
-- 🚧 **v1.2 Improvements** - Phases 15-20 (in progress)
+- 🚧 **v1.2 Improvements** - Phases 15-21 (in progress)
 
 ## Phases
 
@@ -223,7 +223,7 @@ Plans:
 - [x] 17-05: Toolbars (Header, FloatingActionBar, MultiSelectToolbar)
 - [x] 17-06: Canvas & Edges (WorkflowCanvas, EditableEdge, ReferenceEdge, EdgeToolbar)
 - [x] 17-07: Menus & Notifications (ConnectionDropMenu, Toast, CostIndicator)
-- [ ] 17-08: Core Modals (ModelSearchDialog, ProjectSetupModal, CostDialog)
+- [x] 17-08: Core Modals (ModelSearchDialog, ProjectSetupModal, CostDialog)
 - [ ] 17-09: Editor Modals (PromptEditorModal, SplitGridSettingsModal, AnnotationModal)
 - [ ] 17-10: Quickstart (WelcomeModal, QuickstartInitialView, QuickstartTemplatesView, PromptWorkflowView, QuickstartBackButton)
 - [ ] 17-11: Utilities (GlobalImageHistory, GroupsOverlay, ModelParameters)
@@ -258,10 +258,26 @@ Plans:
 Plans:
 - [ ] 20-01: TBD (run /gsd:plan-phase 20 to break down)
 
+#### Phase 21: Fix Image Input & Deduplication Issues
+
+**Goal**: Fix Gemini nano-banana-pro model ignoring image inputs and resolve duplicate image saving across input/generated images
+**Depends on**: Phase 20
+**Research**: Likely (Gemini API image input handling, current hashing implementation)
+**Research topics**: Gemini 3 Pro image generation API requirements, why image inputs are ignored, current save logic for inputs vs generations
+**Plans**: TBD
+
+**Issues:**
+1. nano-banana-pro model generates without considering image inputs (image data sent but not used)
+2. Input and generated images have duplicate files despite different hashes - need consistent hashing approach matching video saving
+3. Generated images should be prepended with prompt details like generated videos
+
+Plans:
+- [ ] 21-01: TBD (run /gsd:plan-phase 21 to break down)
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → ... → 14 → 15 → 16 → 17 → 18 → 19 → 20
+Phases execute in numeric order: 1 → 2 → ... → 14 → 15 → 16 → 17 → 18 → 19 → 20 → 21
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -281,7 +297,8 @@ Phases execute in numeric order: 1 → 2 → ... → 14 → 15 → 16 → 17 →
 | 14. Fix Drag-Connect Node Creation Bugs | v1.1 | 1/1 | Complete | 2026-01-12 |
 | 15. Test Infrastructure | v1.2 | 1/1 | Complete | 2026-01-12 |
 | 16. Store Modularization | v1.2 | 1/1 | Complete | 2026-01-12 |
-| 17. Component Tests | v1.2 | 7/11 | In progress | - |
+| 17. Component Tests | v1.2 | 8/11 | In progress | - |
 | 18. API Route Tests | v1.2 | 0/? | Not started | - |
 | 19. Type Refactoring | v1.2 | 0/? | Not started | - |
 | 20. Integration Tests | v1.2 | 0/? | Not started | - |
+| 21. Fix Image Input & Deduplication | v1.2 | 0/? | Not started | - |
