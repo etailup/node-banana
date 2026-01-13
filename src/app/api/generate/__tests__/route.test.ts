@@ -602,4 +602,273 @@ describe("/api/generate route", () => {
       );
     });
   });
+
+  describe("Input validation", () => {
+    it("should reject request with no prompt, images, or dynamic inputs", async () => {
+      process.env.GEMINI_API_KEY = "test-gemini-key";
+
+      const request = createMockPostRequest({
+        model: "nano-banana-pro",
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.success).toBe(false);
+      expect(data.error).toBe("Prompt or image input is required");
+    });
+
+    it("should accept request with only images (image-to-image)", async () => {
+      process.env.GEMINI_API_KEY = "test-gemini-key";
+
+      mockGenerateContent.mockResolvedValueOnce(createGeminiImageResponse());
+
+      const request = createMockPostRequest({
+        images: ["data:image/png;base64,imageOnlyData"],
+        model: "nano-banana-pro",
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      // Gemini is called with undefined prompt (which becomes empty text)
+      expect(mockGenerateContent).toHaveBeenCalled();
+    });
+
+    it("should accept request with dynamicInputs containing prompt", async () => {
+      process.env.GEMINI_API_KEY = "test-gemini-key";
+
+      mockGenerateContent.mockResolvedValueOnce(createGeminiImageResponse());
+
+      const request = createMockPostRequest({
+        dynamicInputs: {
+          prompt: "Dynamic prompt text",
+        },
+        model: "nano-banana-pro",
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+    });
+
+    it("should accept request with dynamicInputs containing image frames", async () => {
+      process.env.GEMINI_API_KEY = "test-gemini-key";
+
+      mockGenerateContent.mockResolvedValueOnce(createGeminiImageResponse());
+
+      const request = createMockPostRequest({
+        dynamicInputs: {
+          first_frame: "data:image/png;base64,firstFrameData",
+          last_frame: "data:image/png;base64,lastFrameData",
+        },
+        model: "nano-banana-pro",
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+    });
+
+    it("should accept request with dynamicInputs containing image_url", async () => {
+      process.env.GEMINI_API_KEY = "test-gemini-key";
+
+      mockGenerateContent.mockResolvedValueOnce(createGeminiImageResponse());
+
+      const request = createMockPostRequest({
+        dynamicInputs: {
+          image_url: "data:image/png;base64,imageUrlData",
+        },
+        model: "nano-banana-pro",
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+    });
+
+    it("should handle multiple images in request", async () => {
+      process.env.GEMINI_API_KEY = "test-gemini-key";
+
+      mockGenerateContent.mockResolvedValueOnce(createGeminiImageResponse());
+
+      const request = createMockPostRequest({
+        prompt: "Combine these images",
+        images: [
+          "data:image/png;base64,image1Data",
+          "data:image/jpeg;base64,image2Data",
+          "data:image/webp;base64,image3Data",
+        ],
+        model: "nano-banana-pro",
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(mockGenerateContent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: "Combine these images" },
+                {
+                  inlineData: {
+                    mimeType: "image/png",
+                    data: "image1Data",
+                  },
+                },
+                {
+                  inlineData: {
+                    mimeType: "image/jpeg",
+                    data: "image2Data",
+                  },
+                },
+                {
+                  inlineData: {
+                    mimeType: "image/webp",
+                    data: "image3Data",
+                  },
+                },
+              ],
+            },
+          ],
+        })
+      );
+    });
+  });
+
+  describe("Provider routing", () => {
+    it("should route to Gemini when no selectedModel provided", async () => {
+      process.env.GEMINI_API_KEY = "test-gemini-key";
+
+      mockGenerateContent.mockResolvedValueOnce(createGeminiImageResponse());
+
+      const request = createMockPostRequest({
+        prompt: "Test prompt",
+        model: "nano-banana-pro",
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      // Gemini mock should have been called
+      expect(mockGenerateContent).toHaveBeenCalled();
+    });
+
+    it("should route to Gemini when selectedModel.provider is gemini", async () => {
+      process.env.GEMINI_API_KEY = "test-gemini-key";
+
+      mockGenerateContent.mockResolvedValueOnce(createGeminiImageResponse());
+
+      const request = createMockPostRequest({
+        prompt: "Test prompt",
+        model: "nano-banana-pro",
+        selectedModel: {
+          provider: "gemini",
+          modelId: "gemini-3-pro-image-preview",
+          displayName: "Gemini 3 Pro",
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(mockGenerateContent).toHaveBeenCalled();
+    });
+
+    it("should return 401 for Replicate provider without API key", async () => {
+      delete process.env.REPLICATE_API_KEY;
+
+      const request = createMockPostRequest({
+        prompt: "Test prompt",
+        selectedModel: {
+          provider: "replicate",
+          modelId: "stability-ai/sdxl",
+          displayName: "SDXL",
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.success).toBe(false);
+      expect(data.error).toContain("Replicate API key not configured");
+    });
+  });
+
+  describe("Response handling", () => {
+    it("should return proper response structure with image", async () => {
+      process.env.GEMINI_API_KEY = "test-gemini-key";
+
+      mockGenerateContent.mockResolvedValueOnce(
+        createGeminiImageResponse("image/jpeg", "jpegOutputData")
+      );
+
+      const request = createMockPostRequest({
+        prompt: "Generate a photo",
+        model: "nano-banana-pro",
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data).toEqual({
+        success: true,
+        image: "data:image/jpeg;base64,jpegOutputData",
+      });
+    });
+
+    it("should handle response with default MIME type", async () => {
+      process.env.GEMINI_API_KEY = "test-gemini-key";
+
+      // Response with no mimeType specified
+      mockGenerateContent.mockResolvedValueOnce({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  inlineData: {
+                    data: "noMimeTypeData",
+                    // mimeType intentionally omitted
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const request = createMockPostRequest({
+        prompt: "Generate image",
+        model: "nano-banana-pro",
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      // Should default to image/png
+      expect(data.image).toBe("data:image/png;base64,noMimeTypeData");
+    });
+  });
 });
