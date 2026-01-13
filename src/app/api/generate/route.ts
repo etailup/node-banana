@@ -1,10 +1,23 @@
+/**
+ * Generate API Route
+ * 
+ * TIMEOUT CONFIGURATION:
+ * - maxDuration: Only applies on Vercel, not locally
+ * - AbortSignal.timeout: Controls outgoing fetch to providers
+ * - For local development, server.requestTimeout must be set in server.js (Node.js default is 5 minutes)
+ * 
+ * FAL.AI QUEUE API NOTE:
+ * The generateWithFalQueue function exists but is NOT used because fal.ai's queue API
+ * has file size limitations that are too restrictive for our use case. We use the blocking
+ * fal.run endpoint instead, which requires the server timeout to be extended for video generation.
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { GenerateRequest, GenerateResponse, ModelType, SelectedModel, ProviderType } from "@/types";
 import { GenerationInput, GenerationOutput, ProviderModel } from "@/lib/providers/types";
 import { uploadImageForUrl, shouldUseImageUrl, deleteImages } from "@/lib/images";
 
-export const maxDuration = 600; // 10 minute timeout for video generation
+export const maxDuration = 600; // 10 minute timeout for video generation (Vercel only)
 export const dynamic = 'force-dynamic'; // Ensure this route is always dynamic
 
 // Map model types to Gemini model IDs
@@ -889,7 +902,11 @@ async function generateWithFal(
 /**
  * Generate video using fal.ai Queue API
  * Uses async queue submission + polling to handle long-running video generation
- * that would otherwise timeout with the blocking fal.run endpoint
+ * that would otherwise timeout with the blocking fal.run endpoint.
+ * 
+ * NOTE: This function is NOT currently used because fal.ai's queue API has file size
+ * limitations that are too restrictive. We use the blocking fal.run endpoint instead
+ * with an extended server timeout configured in server.js.
  */
 async function generateWithFalQueue(
   requestId: string,
