@@ -309,7 +309,7 @@ Plans:
 3. Include Gemini models (nano-banana, nano-banana-pro) in the browsable model list alongside Replicate/fal.ai models
 
 Plans:
-- [ ] 23-01: TBD (run /gsd:plan-phase 23 to break down)
+- [x] 23-01: Recently used models, icon-based provider filter, Gemini models in browse
 
 ## Progress
 
@@ -340,4 +340,4 @@ Phases execute in numeric order: 1 → 2 → ... → 14 → 15 → 16 → 17 →
 | 20. Integration Tests | v1.2 | 0/? | Not started | - |
 | 21. Fix Image Input & Deduplication | v1.2 | 1/1 | Complete | 2026-01-13 |
 | 22. Generate Node Dynamic Input Tests | v1.2 | 1/1 | Complete | 2026-01-13 |
-| 23. Model Browser Improvements | v1.2 | 0/? | Not started | - |
+| 23. Model Browser Improvements | v1.2 | 1/1 | Complete | 2026-01-13 |
