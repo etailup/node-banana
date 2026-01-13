@@ -271,12 +271,12 @@ Plans:
 **Plans**: 1 plan
 
 **Issues:**
-1. nano-banana-pro model generates without considering image inputs (image data sent but not used)
+1. ~~nano-banana-pro model generates without considering image inputs~~ - RESOLVED (no longer an issue)
 2. Input and generated images have duplicate files despite different hashes - need consistent hashing approach matching video saving
 3. Generated images should be prepended with prompt details like generated videos
 
 Plans:
-- [ ] 21-01: Fix Gemini image-to-image part ordering and unify MD5 hashing
+- [ ] 21-01: Unify MD5 hashing for image deduplication
 
 #### Phase 22: Generate Node Dynamic Input Tests
 
