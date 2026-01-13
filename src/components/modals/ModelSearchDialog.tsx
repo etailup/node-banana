@@ -1,11 +1,32 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useWorkflowStore } from "@/store/workflowStore";
 import { useReactFlow } from "@xyflow/react";
-import { ProviderType } from "@/types";
+import { ProviderType, RecentModel } from "@/types";
 import { ProviderModel, ModelCapability } from "@/lib/providers/types";
+
+// Provider icons
+const ReplicateIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 1000 1000" fill="currentColor">
+    <polygon points="1000,427.6 1000,540.6 603.4,540.6 603.4,1000 477,1000 477,427.6" />
+    <polygon points="1000,213.8 1000,327 364.8,327 364.8,1000 238.4,1000 238.4,213.8" />
+    <polygon points="1000,0 1000,113.2 126.4,113.2 126.4,1000 0,1000 0,0" />
+  </svg>
+);
+
+const FalIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 1855 1855" fill="currentColor">
+    <path fillRule="evenodd" clipRule="evenodd" d="M1181.65 78C1212.05 78 1236.42 101.947 1239.32 131.261C1265.25 392.744 1480.07 600.836 1750.02 625.948C1780.28 628.764 1805 652.366 1805 681.816V1174.18C1805 1203.63 1780.28 1227.24 1750.02 1230.05C1480.07 1255.16 1265.25 1463.26 1239.32 1724.74C1236.42 1754.05 1212.05 1778 1181.65 1778H673.354C642.951 1778 618.585 1754.05 615.678 1724.74C589.754 1463.26 374.927 1255.16 104.984 1230.05C74.7212 1227.24 50 1203.63 50 1174.18V681.816C50 652.366 74.7213 628.764 104.984 625.948C374.927 600.836 589.754 392.744 615.678 131.261C618.585 101.946 642.951 78 673.353 78H1181.65ZM402.377 926.561C402.377 1209.41 638.826 1438.71 930.501 1438.71C1222.18 1438.71 1458.63 1209.41 1458.63 926.561C1458.63 643.709 1222.18 414.412 930.501 414.412C638.826 414.412 402.377 643.709 402.377 926.561Z" />
+  </svg>
+);
+
+const GeminiIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" />
+  </svg>
+);
 
 // Get the center of the React Flow pane in screen coordinates
 function getPaneCenter() {
@@ -52,6 +73,8 @@ export function ModelSearchDialog({
     addNode,
     incrementModalCount,
     decrementModalCount,
+    recentModels,
+    trackModelUsage,
   } = useWorkflowStore();
   const { screenToFlowPosition } = useReactFlow();
 
@@ -175,6 +198,13 @@ export function ModelSearchDialog({
   // Handle model selection
   const handleSelectModel = useCallback(
     (model: ProviderModel) => {
+      // Track model usage for "recently used" feature
+      trackModelUsage({
+        provider: model.provider,
+        modelId: model.id,
+        displayName: model.name,
+      });
+
       // If onModelSelected is provided, use it to update an existing node
       if (onModelSelected) {
         onModelSelected(model);
@@ -206,7 +236,7 @@ export function ModelSearchDialog({
 
       onClose();
     },
-    [screenToFlowPosition, addNode, onClose, onModelSelected]
+    [screenToFlowPosition, addNode, onClose, onModelSelected, trackModelUsage]
   );
 
   // Handle escape key
@@ -239,6 +269,8 @@ export function ModelSearchDialog({
   // Get provider badge color
   const getProviderBadgeColor = (provider: ProviderType) => {
     switch (provider) {
+      case "gemini":
+        return "bg-green-500/20 text-green-300";
       case "replicate":
         return "bg-blue-500/20 text-blue-300";
       case "fal":
@@ -247,6 +279,47 @@ export function ModelSearchDialog({
         return "bg-neutral-500/20 text-neutral-300";
     }
   };
+
+  // Get provider display name
+  const getProviderDisplayName = (provider: ProviderType) => {
+    switch (provider) {
+      case "gemini":
+        return "Gemini";
+      case "replicate":
+        return "Replicate";
+      case "fal":
+        return "fal.ai";
+      default:
+        return provider;
+    }
+  };
+
+  // Filter recent models by capability
+  const filteredRecentModels = useMemo(() => {
+    return recentModels
+      .filter((recent) => {
+        // Find matching model in current models list to check capabilities
+        const matchingModel = models.find((m) => m.id === recent.modelId);
+        if (!matchingModel && capabilityFilter !== "all") {
+          // If model not loaded yet and filter is active, exclude it
+          return false;
+        }
+        if (capabilityFilter === "all") return true;
+        if (!matchingModel) return true; // Show if we can't verify capabilities
+
+        const isImage = matchingModel.capabilities.some(
+          (cap) => cap === "text-to-image" || cap === "image-to-image"
+        );
+        const isVideo = matchingModel.capabilities.some(
+          (cap) => cap === "text-to-video" || cap === "image-to-video"
+        );
+
+        if (capabilityFilter === "image") return isImage;
+        if (capabilityFilter === "video") return isVideo;
+        return true;
+      })
+      .slice(0, 4); // Show max 4
+  }, [recentModels, models, capabilityFilter]);
 
   // Get display name with suffix for fal.ai models to differentiate variants
   const getDisplayName = (model: ProviderModel): string => {
@@ -376,18 +449,53 @@ export function ModelSearchDialog({
               />
             </div>
 
-            {/* Provider Filter */}
-            <select
-              value={providerFilter}
-              onChange={(e) =>
-                setProviderFilter(e.target.value as ProviderType | "all")
-              }
-              className="px-3 py-2 text-sm bg-neutral-700 border border-neutral-600 rounded text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-500"
-            >
-              <option value="all">All Providers</option>
-              <option value="replicate">Replicate</option>
-              <option value="fal">fal.ai</option>
-            </select>
+            {/* Provider Filter - Icon Buttons */}
+            <div className="flex items-center gap-0.5 bg-neutral-700/50 rounded p-0.5">
+              <button
+                onClick={() => setProviderFilter("all")}
+                title="All Providers"
+                className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                  providerFilter === "all"
+                    ? "bg-neutral-600 text-neutral-100"
+                    : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-700"
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setProviderFilter("gemini")}
+                title="Gemini"
+                className={`p-2 rounded transition-colors ${
+                  providerFilter === "gemini"
+                    ? "bg-green-500/20 text-green-300"
+                    : "text-neutral-400 hover:text-green-300 hover:bg-neutral-700"
+                }`}
+              >
+                <GeminiIcon />
+              </button>
+              <button
+                onClick={() => setProviderFilter("replicate")}
+                title="Replicate"
+                className={`p-2 rounded transition-colors ${
+                  providerFilter === "replicate"
+                    ? "bg-blue-500/20 text-blue-300"
+                    : "text-neutral-400 hover:text-blue-300 hover:bg-neutral-700"
+                }`}
+              >
+                <ReplicateIcon />
+              </button>
+              <button
+                onClick={() => setProviderFilter("fal")}
+                title="fal.ai"
+                className={`p-2 rounded transition-colors ${
+                  providerFilter === "fal"
+                    ? "bg-yellow-500/20 text-yellow-300"
+                    : "text-neutral-400 hover:text-yellow-300 hover:bg-neutral-700"
+                }`}
+              >
+                <FalIcon />
+              </button>
+            </div>
 
             {/* Capability Filter */}
             <select
@@ -479,7 +587,77 @@ export function ModelSearchDialog({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-4">
+              {/* Recently Used Section */}
+              {filteredRecentModels.length > 0 && !searchQuery && (
+                <div className="bg-neutral-700/30 rounded-lg p-3">
+                  <h3 className="text-xs font-medium text-neutral-500 mb-2">
+                    Recently Used
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {filteredRecentModels.map((recent) => {
+                      const matchingModel = models.find(
+                        (m) => m.id === recent.modelId
+                      );
+                      // Create a ProviderModel from RecentModel for handleSelectModel
+                      const model: ProviderModel = matchingModel || {
+                        id: recent.modelId,
+                        name: recent.displayName,
+                        description: null,
+                        provider: recent.provider,
+                        capabilities: [],
+                      };
+                      return (
+                        <button
+                          key={`recent-${recent.modelId}`}
+                          onClick={() => handleSelectModel(model)}
+                          className="flex items-center gap-3 p-3 bg-neutral-700/50 hover:bg-neutral-700 border border-neutral-600/30 hover:border-neutral-500 rounded-lg transition-colors text-left cursor-pointer group"
+                        >
+                          {/* Small cover image */}
+                          <div className="w-10 h-10 rounded bg-neutral-600 overflow-hidden flex-shrink-0">
+                            {matchingModel?.coverImage ? (
+                              <img
+                                src={matchingModel.coverImage}
+                                alt={recent.displayName}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <svg
+                                  className="w-5 h-5 text-neutral-500"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1.5}
+                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                  />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-neutral-100 text-sm truncate">
+                              {recent.displayName}
+                            </div>
+                            <span
+                              className={`text-[10px] px-1.5 py-0.5 rounded ${getProviderBadgeColor(recent.provider)}`}
+                            >
+                              {getProviderDisplayName(recent.provider)}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Main Model List */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {models.map((model) => (
                 <button
                   key={`${model.provider}-${model.id}`}
@@ -535,7 +713,7 @@ export function ModelSearchDialog({
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
                         className="text-neutral-500 hover:text-neutral-300 transition-colors flex-shrink-0"
-                        title={`View on ${model.provider === "fal" ? "fal.ai" : "Replicate"}`}
+                        title={`View on ${getProviderDisplayName(model.provider)}`}
                       >
                         <svg
                           className="w-3 h-3"
@@ -558,7 +736,7 @@ export function ModelSearchDialog({
                       <span
                         className={`text-[10px] px-1.5 py-0.5 rounded ${getProviderBadgeColor(model.provider)}`}
                       >
-                        {model.provider === "fal" ? "fal.ai" : "Replicate"}
+                        {getProviderDisplayName(model.provider)}
                       </span>
                       {getCapabilityBadges(model.capabilities)}
                     </div>
@@ -589,6 +767,7 @@ export function ModelSearchDialog({
                   </div>
                 </button>
               ))}
+              </div>
             </div>
           )}
         </div>
