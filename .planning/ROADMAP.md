@@ -12,7 +12,7 @@ None
 
 - ✅ **v1.0 Multi-Provider Support** - Phases 1-6 (shipped 2026-01-11)
 - ✅ **v1.1 Improvements** - Phases 7-14 (shipped 2026-01-12)
-- 🚧 **v1.2 Improvements** - Phases 15-22 (in progress)
+- 🚧 **v1.2 Improvements** - Phases 15-23 (in progress)
 
 ## Phases
 
@@ -268,7 +268,7 @@ Plans:
 **Depends on**: Phase 20
 **Research**: Likely (Gemini API image input handling, current hashing implementation)
 **Research topics**: Gemini 3 Pro image generation API requirements, why image inputs are ignored, current save logic for inputs vs generations
-**Plans**: TBD
+**Plans**: 1 plan
 
 **Issues:**
 1. nano-banana-pro model generates without considering image inputs (image data sent but not used)
@@ -276,7 +276,7 @@ Plans:
 3. Generated images should be prepended with prompt details like generated videos
 
 Plans:
-- [ ] 21-01: TBD (run /gsd:plan-phase 21 to break down)
+- [ ] 21-01: Fix Gemini image-to-image part ordering and unify MD5 hashing
 
 #### Phase 22: Generate Node Dynamic Input Tests
 
@@ -295,10 +295,25 @@ Plans:
 Plans:
 - [ ] 22-01: ModelParameters tests, GenerateImageNode/GenerateVideoNode dynamic handle tests
 
+#### Phase 23: Model Browser Improvements
+
+**Goal**: Improve model browser UX with recently used models section, icon-based provider dropdown with Gemini, and include Gemini models in browse list
+**Depends on**: Phase 22
+**Research**: Unlikely (existing UI patterns)
+**Plans**: TBD
+
+**Features:**
+1. Recently used models section at top of browse dialog showing last 4 models used
+2. Provider dropdown uses icons instead of text, add Gemini to the provider list
+3. Include Gemini models (nano-banana, nano-banana-pro) in the browsable model list alongside Replicate/fal.ai models
+
+Plans:
+- [ ] 23-01: TBD (run /gsd:plan-phase 23 to break down)
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → ... → 14 → 15 → 16 → 17 → 18 → 19 → 20 → 21 → 22
+Phases execute in numeric order: 1 → 2 → ... → 14 → 15 → 16 → 17 → 18 → 19 → 20 → 21 → 22 → 23
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -322,5 +337,6 @@ Phases execute in numeric order: 1 → 2 → ... → 14 → 15 → 16 → 17 →
 | 18. API Route Tests | v1.2 | 5/5 | Complete | 2026-01-13 |
 | 19. Type Refactoring | v1.2 | 0/? | Not started | - |
 | 20. Integration Tests | v1.2 | 0/? | Not started | - |
-| 21. Fix Image Input & Deduplication | v1.2 | 0/? | Not started | - |
+| 21. Fix Image Input & Deduplication | v1.2 | 0/1 | Planned | - |
 | 22. Generate Node Dynamic Input Tests | v1.2 | 0/1 | Planned | - |
+| 23. Model Browser Improvements | v1.2 | 0/? | Not started | - |

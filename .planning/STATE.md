@@ -9,10 +9,10 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 ## Current Position
 
-Phase: 18 of 22 (API Route Tests)
-Plan: 5 of 5 in current phase
-Status: Phase complete
-Last activity: 2026-01-13 - Completed 18-05-PLAN.md
+Phase: 21 of 23 (Fix Image Input & Deduplication)
+Plan: 1 of 1 in current phase
+Status: Planned
+Last activity: 2026-01-13 - Created 21-01-PLAN.md
 
 Progress: █████████░ 93%
 
@@ -124,10 +124,11 @@ Recent decisions affecting current work:
 - Milestone v1.2 Improvements created: 6 phases (Phase 15-20), testing and modularization
 - Phase 21 added: Fix Gemini Pro image input handling and image deduplication issues
 - Phase 22 added: Generate node dynamic input validation and API call tests
+- Phase 23 added: Model browser improvements (recently used, icon dropdown, Gemini models in list)
 
 ## Session Continuity
 
 Last session: 2026-01-13
-Stopped at: Phase 22 planned (1 plan created)
+Stopped at: Phase 21 planned (1 plan created)
 Resume file: None
-Next action: Execute Phase 22 (run /gsd:execute-plan .planning/phases/22-generate-node-dynamic-input-tests/22-01-PLAN.md)
+Next action: Execute Phase 21 (run /gsd:execute-plan .planning/phases/21-fix-image-input-deduplication/21-01-PLAN.md)
