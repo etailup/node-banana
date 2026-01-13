@@ -258,10 +258,11 @@ Plans:
 **Goal**: End-to-end workflow execution tests covering node connections and data flow
 **Depends on**: Phase 19
 **Research**: Unlikely (internal testing patterns)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 20-01: TBD (run /gsd:plan-phase 20 to break down)
+- [ ] 20-01: Store integration tests (getConnectedInputs, validateWorkflow, topological sort)
+- [ ] 20-02: Workflow execution tests (data flow, error handling, connection validation)
 
 #### Phase 21: Fix Image Input & Deduplication Issues
 
