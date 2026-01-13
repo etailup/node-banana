@@ -623,6 +623,241 @@ describe("GenerateImageNode", () => {
       expect(imageHandle).toBeInTheDocument();
       expect(textHandle).toBeInTheDocument();
     });
+
+    describe("Multiple Image Inputs", () => {
+      it("should render multiple image handles when schema has multiple image inputs", () => {
+        const { container } = render(
+          <TestWrapper>
+            <GenerateImageNode {...createNodeProps({
+              selectedModel: { provider: "fal", modelId: "video/frames", displayName: "Video Frames" },
+              inputSchema: [
+                { name: "first_frame", type: "image", required: true, label: "First Frame" },
+                { name: "last_frame", type: "image", required: false, label: "Last Frame" },
+                { name: "prompt", type: "text", required: true, label: "Prompt" },
+              ],
+            })} />
+          </TestWrapper>
+        );
+
+        // Should have two image INPUT handles with data-schema-name attributes (exclude output handle)
+        const imageInputHandles = container.querySelectorAll('[data-handletype="image"][class*="target"]');
+        expect(imageInputHandles.length).toBe(2);
+
+        // Check schema names are set
+        const schemaNames = Array.from(imageInputHandles).map(h => h.getAttribute('data-schema-name'));
+        expect(schemaNames).toContain('first_frame');
+        expect(schemaNames).toContain('last_frame');
+      });
+
+      it("should position multiple image handles correctly (spaced evenly)", () => {
+        const { container } = render(
+          <TestWrapper>
+            <GenerateImageNode {...createNodeProps({
+              selectedModel: { provider: "fal", modelId: "video/frames", displayName: "Video Frames" },
+              inputSchema: [
+                { name: "first_frame", type: "image", required: true, label: "First Frame" },
+                { name: "last_frame", type: "image", required: false, label: "Last Frame" },
+                { name: "prompt", type: "text", required: true, label: "Prompt" },
+              ],
+            })} />
+          </TestWrapper>
+        );
+
+        // Check handles have style.top set (indicating positioning) - filter to input handles only
+        const imageInputHandles = container.querySelectorAll('[data-handletype="image"][class*="target"]');
+        expect(imageInputHandles.length).toBe(2);
+
+        const image0Handle = imageInputHandles[0] as HTMLElement;
+        const image1Handle = imageInputHandles[1] as HTMLElement;
+
+        // Both should have top positions set
+        expect(image0Handle.style.top).toBeTruthy();
+        expect(image1Handle.style.top).toBeTruthy();
+
+        // First handle should be positioned higher (lower percentage) than second
+        const top0 = parseFloat(image0Handle.style.top);
+        const top1 = parseFloat(image1Handle.style.top);
+        expect(top0).toBeLessThan(top1);
+      });
+
+      it("should show labels for each image input from schema", () => {
+        render(
+          <TestWrapper>
+            <GenerateImageNode {...createNodeProps({
+              selectedModel: { provider: "fal", modelId: "video/frames", displayName: "Video Frames" },
+              inputSchema: [
+                { name: "first_frame", type: "image", required: true, label: "First Frame" },
+                { name: "last_frame", type: "image", required: false, label: "Last Frame" },
+                { name: "prompt", type: "text", required: true, label: "Prompt" },
+              ],
+            })} />
+          </TestWrapper>
+        );
+
+        expect(screen.getByText("First Frame")).toBeInTheDocument();
+        expect(screen.getByText("Last Frame")).toBeInTheDocument();
+      });
+    });
+
+    describe("Multiple Text Inputs", () => {
+      it("should render multiple text handles when schema has multiple text inputs", () => {
+        const { container } = render(
+          <TestWrapper>
+            <GenerateImageNode {...createNodeProps({
+              selectedModel: { provider: "fal", modelId: "flux/dev", displayName: "FLUX Dev" },
+              inputSchema: [
+                { name: "image", type: "image", required: true, label: "Image" },
+                { name: "prompt", type: "text", required: true, label: "Prompt" },
+                { name: "negative_prompt", type: "text", required: false, label: "Negative Prompt" },
+              ],
+            })} />
+          </TestWrapper>
+        );
+
+        // Should have two text handles with data-schema-name attributes
+        const textHandles = container.querySelectorAll('[data-handletype="text"]');
+        expect(textHandles.length).toBe(2);
+
+        // Check schema names are set
+        const schemaNames = Array.from(textHandles).map(h => h.getAttribute('data-schema-name'));
+        expect(schemaNames).toContain('prompt');
+        expect(schemaNames).toContain('negative_prompt');
+      });
+
+      it("should show labels for each text input from schema", () => {
+        render(
+          <TestWrapper>
+            <GenerateImageNode {...createNodeProps({
+              selectedModel: { provider: "fal", modelId: "flux/dev", displayName: "FLUX Dev" },
+              inputSchema: [
+                { name: "image", type: "image", required: true, label: "Image" },
+                { name: "prompt", type: "text", required: true, label: "Prompt" },
+                { name: "negative_prompt", type: "text", required: false, label: "Negative Prompt" },
+              ],
+            })} />
+          </TestWrapper>
+        );
+
+        expect(screen.getByText("Prompt")).toBeInTheDocument();
+        expect(screen.getByText("Negative Prompt")).toBeInTheDocument();
+      });
+    });
+
+    describe("Placeholder Handle Variations", () => {
+      it("should show dimmed image handle (opacity 0.3) when schema has only text inputs", () => {
+        const { container } = render(
+          <TestWrapper>
+            <GenerateImageNode {...createNodeProps({
+              selectedModel: { provider: "fal", modelId: "text-only/model", displayName: "Text Only" },
+              inputSchema: [
+                { name: "prompt", type: "text", required: true, label: "Prompt" },
+                { name: "negative_prompt", type: "text", required: false, label: "Negative" },
+              ],
+            })} />
+          </TestWrapper>
+        );
+
+        // Image handle should exist with dimmed opacity
+        const imageHandle = container.querySelector('[data-handletype="image"]') as HTMLElement;
+        expect(imageHandle).toBeInTheDocument();
+        expect(imageHandle.style.opacity).toBe("0.3");
+      });
+
+      it("should show dimmed text handle when schema has only image inputs", () => {
+        const { container } = render(
+          <TestWrapper>
+            <GenerateImageNode {...createNodeProps({
+              selectedModel: { provider: "fal", modelId: "image-only/model", displayName: "Image Only" },
+              inputSchema: [
+                { name: "first_frame", type: "image", required: true, label: "First Frame" },
+                { name: "last_frame", type: "image", required: false, label: "Last Frame" },
+              ],
+            })} />
+          </TestWrapper>
+        );
+
+        // Text handle should exist with dimmed opacity
+        const textHandle = container.querySelector('[data-handletype="text"]') as HTMLElement;
+        expect(textHandle).toBeInTheDocument();
+        expect(textHandle.style.opacity).toBe("0.3");
+      });
+
+      it("should show 'Not used by this model' description for placeholder handles", () => {
+        const { container } = render(
+          <TestWrapper>
+            <GenerateImageNode {...createNodeProps({
+              selectedModel: { provider: "fal", modelId: "text-only/model", displayName: "Text Only" },
+              inputSchema: [
+                { name: "prompt", type: "text", required: true, label: "Prompt" },
+              ],
+            })} />
+          </TestWrapper>
+        );
+
+        // Image handle should have the placeholder title
+        const imageHandle = container.querySelector('[data-handletype="image"]');
+        expect(imageHandle).toHaveAttribute("title", "Not used by this model");
+      });
+    });
+
+    describe("Handle Ordering", () => {
+      it("should render image handles before text handles", () => {
+        const { container } = render(
+          <TestWrapper>
+            <GenerateImageNode {...createNodeProps({
+              selectedModel: { provider: "fal", modelId: "flux/dev", displayName: "FLUX Dev" },
+              inputSchema: [
+                { name: "image", type: "image", required: true, label: "Input Image" },
+                { name: "prompt", type: "text", required: true, label: "Prompt" },
+              ],
+            })} />
+          </TestWrapper>
+        );
+
+        const imageHandle = container.querySelector('[data-handletype="image"]') as HTMLElement;
+        const textHandle = container.querySelector('[data-handletype="text"]') as HTMLElement;
+
+        // Image handle should be positioned above (lower %) text handle
+        const imageTop = parseFloat(imageHandle.style.top);
+        const textTop = parseFloat(textHandle.style.top);
+        expect(imageTop).toBeLessThan(textTop);
+      });
+
+      it("should maintain gap between image and text handle groups", () => {
+        const { container } = render(
+          <TestWrapper>
+            <GenerateImageNode {...createNodeProps({
+              selectedModel: { provider: "fal", modelId: "video/frames", displayName: "Video Frames" },
+              inputSchema: [
+                { name: "first_frame", type: "image", required: true, label: "First Frame" },
+                { name: "last_frame", type: "image", required: false, label: "Last Frame" },
+                { name: "prompt", type: "text", required: true, label: "Prompt" },
+              ],
+            })} />
+          </TestWrapper>
+        );
+
+        // Get all input handles in order (exclude output handle)
+        const imageInputHandles = container.querySelectorAll('[data-handletype="image"][class*="target"]');
+        const textHandle = container.querySelector('[data-handletype="text"]') as HTMLElement;
+
+        expect(imageInputHandles.length).toBe(2);
+
+        const image0 = imageInputHandles[0] as HTMLElement;
+        const image1 = imageInputHandles[1] as HTMLElement;
+
+        const top0 = parseFloat(image0.style.top);
+        const top1 = parseFloat(image1.style.top);
+        const topText = parseFloat(textHandle.style.top);
+
+        // Gap between image-1 and text should be larger than gap between image-0 and image-1
+        const imageDiff = top1 - top0;
+        const gapDiff = topText - top1;
+
+        // The gap should account for the spacing slot
+        expect(gapDiff).toBeGreaterThan(imageDiff * 0.9);
+      });
+    });
   });
 
   describe("Custom Title and Comment", () => {
