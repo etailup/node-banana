@@ -501,7 +501,6 @@ export function WorkflowCanvas() {
           img.src = imageData;
         });
 
-        console.log(`[SplitGrid] Created ${images.length} nodes from ${grid.rows}x${grid.cols} grid (confidence: ${Math.round(grid.confidence * 100)}%)`);
       } catch (error) {
         console.error("[SplitGrid] Error:", error);
         alert("Failed to split image grid: " + (error instanceof Error ? error.message : "Unknown error"));
