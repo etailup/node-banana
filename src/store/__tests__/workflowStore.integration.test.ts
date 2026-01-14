@@ -1871,6 +1871,91 @@ describe("workflowStore integration tests", () => {
         expect(result.dynamicInputs).toHaveProperty("prompt", prompt);
         expect(result.dynamicInputs).toHaveProperty("negative_prompt", negPrompt);
       });
+
+      it("should map both 'image' and 'image-0' to schema name when single image input", () => {
+        // Bug fix test: node components use 'image-0' for indexed handles, but legacy edges
+        // may use 'image'. Both should work when there's only one image input.
+        const store = useWorkflowStore.getState();
+        const testImage = "data:image/png;base64,singleImage";
+
+        // Test with indexed handle ID (image-0) - what new node components use
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("imageInput-1", "imageInput", { image: testImage }),
+            createTestNode("nanoBanana-1", "nanoBanana", {
+              inputSchema: [
+                { name: "image_input", type: "image", required: false, label: "Image Input" },
+              ],
+            }),
+          ],
+          edges: [
+            createTestEdge("imageInput-1", "nanoBanana-1", "image", "image-0"),
+          ],
+        });
+
+        const resultIndexed = store.getConnectedInputs("nanoBanana-1");
+        expect(resultIndexed.dynamicInputs).toHaveProperty("image_input", testImage);
+
+        // Test with legacy handle ID (image) - what old edges may have
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("imageInput-2", "imageInput", { image: testImage }),
+            createTestNode("nanoBanana-2", "nanoBanana", {
+              inputSchema: [
+                { name: "image_input", type: "image", required: false, label: "Image Input" },
+              ],
+            }),
+          ],
+          edges: [
+            createTestEdge("imageInput-2", "nanoBanana-2", "image", "image"),
+          ],
+        });
+
+        const resultLegacy = store.getConnectedInputs("nanoBanana-2");
+        expect(resultLegacy.dynamicInputs).toHaveProperty("image_input", testImage);
+      });
+
+      it("should map both 'text' and 'text-0' to schema name when single text input", () => {
+        // Same fix for text handles
+        const store = useWorkflowStore.getState();
+        const testPrompt = "test prompt text";
+
+        // Test with indexed handle ID (text-0)
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("prompt-1", "prompt", { prompt: testPrompt }),
+            createTestNode("nanoBanana-1", "nanoBanana", {
+              inputSchema: [
+                { name: "prompt", type: "text", required: true, label: "Prompt" },
+              ],
+            }),
+          ],
+          edges: [
+            createTestEdge("prompt-1", "nanoBanana-1", "text", "text-0"),
+          ],
+        });
+
+        const resultIndexed = store.getConnectedInputs("nanoBanana-1");
+        expect(resultIndexed.dynamicInputs).toHaveProperty("prompt", testPrompt);
+
+        // Test with legacy handle ID (text)
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("prompt-2", "prompt", { prompt: testPrompt }),
+            createTestNode("nanoBanana-2", "nanoBanana", {
+              inputSchema: [
+                { name: "prompt", type: "text", required: true, label: "Prompt" },
+              ],
+            }),
+          ],
+          edges: [
+            createTestEdge("prompt-2", "nanoBanana-2", "text", "text"),
+          ],
+        });
+
+        const resultLegacy = store.getConnectedInputs("nanoBanana-2");
+        expect(resultLegacy.dynamicInputs).toHaveProperty("prompt", testPrompt);
+      });
     });
 
     describe("Edge cases in connection handling", () => {

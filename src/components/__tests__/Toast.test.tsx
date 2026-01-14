@@ -148,7 +148,7 @@ describe("Toast", () => {
 
       expect(screen.getByText("Test message")).toBeInTheDocument();
 
-      const closeButton = screen.getAllByRole("button")[0];
+      const closeButton = screen.getByTitle("Dismiss");
       fireEvent.click(closeButton);
 
       expect(screen.queryByText("Test message")).not.toBeInTheDocument();

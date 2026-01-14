@@ -216,8 +216,21 @@ function ParameterInput({ param, value, onChange }: ParameterInputProps) {
         </label>
         <select
           value={(value as string) ?? ""}
-          onChange={(e) => onChange(e.target.value || undefined)}
-          className="w-full text-[9px] py-0.5 px-1 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300"
+          onChange={(e) => {
+            const val = e.target.value;
+            if (val === "") {
+              onChange(undefined);
+            } else if (param.type === "integer") {
+              onChange(parseInt(val, 10));
+            } else if (param.type === "number") {
+              onChange(parseFloat(val));
+            } else if (param.type === "boolean") {
+              onChange(val === "true");
+            } else {
+              onChange(val);
+            }
+          }}
+          className="nodrag nopan w-full text-[9px] py-0.5 px-1 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300"
         >
           <option value="">Default</option>
           {param.enum.map((opt) => (
@@ -244,7 +257,7 @@ function ParameterInput({ param, value, onChange }: ParameterInputProps) {
           type="checkbox"
           checked={effectiveValue}
           onChange={(e) => onChange(e.target.checked)}
-          className="w-2.5 h-2.5 rounded border-neutral-700 bg-neutral-900/50 text-neutral-600 focus:ring-1 focus:ring-neutral-600 focus:ring-offset-0"
+          className="nodrag nopan w-2.5 h-2.5 rounded border-neutral-700 bg-neutral-900/50 text-neutral-600 focus:ring-1 focus:ring-neutral-600 focus:ring-offset-0"
         />
         <span>{displayName}</span>
       </label>
@@ -299,7 +312,7 @@ function ParameterInput({ param, value, onChange }: ParameterInputProps) {
             }
           }}
           placeholder={param.default !== undefined ? `Default: ${param.default}` : undefined}
-          className={`w-full text-[9px] py-0.5 px-1 border rounded bg-neutral-900/50 focus:outline-none focus:ring-1 text-neutral-300 placeholder:text-neutral-600 ${
+          className={`nodrag nopan w-full text-[9px] py-0.5 px-1 border rounded bg-neutral-900/50 focus:outline-none focus:ring-1 text-neutral-300 placeholder:text-neutral-600 ${
             validationError
               ? "border-red-500 focus:ring-red-500"
               : "border-neutral-700 focus:ring-neutral-600"
@@ -331,7 +344,7 @@ function ParameterInput({ param, value, onChange }: ParameterInputProps) {
         value={(value as string) ?? ""}
         onChange={(e) => onChange(e.target.value || undefined)}
         placeholder={param.default !== undefined ? `Default: ${param.default}` : undefined}
-        className="w-full text-[9px] py-0.5 px-1 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300 placeholder:text-neutral-600"
+        className="nodrag nopan w-full text-[9px] py-0.5 px-1 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300 placeholder:text-neutral-600"
       />
     </div>
   );

@@ -217,7 +217,7 @@ const INPUT_PATTERNS: Record<string, string[]> = {
 
   // Image inputs
   image: ["image_url", "image_urls", "image", "first_frame", "start_image", "init_image",
-          "reference_image", "input_image", "source_image", "img", "photo"],
+          "reference_image", "input_image", "image_input", "source_image", "img", "photo"],
 
   // Video/media settings
   aspectRatio: ["aspect_ratio", "ratio", "size", "dimensions", "output_size"],
@@ -247,6 +247,78 @@ interface InputMapping {
   arrayParams: Set<string>;
   // Track actual schema param names that expect array types (e.g., "image_urls")
   schemaArrayParams: Set<string>;
+}
+
+/**
+ * Parameter type information extracted from OpenAPI schema
+ */
+interface ParameterTypeInfo {
+  [paramName: string]: "string" | "integer" | "number" | "boolean" | "array" | "object";
+}
+
+/**
+ * Extract parameter types from OpenAPI schema
+ */
+function getParameterTypesFromSchema(schema: Record<string, unknown> | undefined): ParameterTypeInfo {
+  const typeInfo: ParameterTypeInfo = {};
+
+  if (!schema) return typeInfo;
+
+  try {
+    const components = schema.components as Record<string, unknown> | undefined;
+    const schemas = components?.schemas as Record<string, unknown> | undefined;
+    const input = schemas?.Input as Record<string, unknown> | undefined;
+    const properties = input?.properties as Record<string, unknown> | undefined;
+
+    if (!properties) return typeInfo;
+
+    for (const [propName, prop] of Object.entries(properties)) {
+      const property = prop as Record<string, unknown>;
+      const type = property?.type as string | undefined;
+      if (type && ["string", "integer", "number", "boolean", "array", "object"].includes(type)) {
+        typeInfo[propName] = type as ParameterTypeInfo[string];
+      }
+    }
+  } catch {
+    // Schema parsing failed
+  }
+
+  return typeInfo;
+}
+
+/**
+ * Coerce parameter values to their expected types based on schema
+ * This handles cases where values were incorrectly stored as strings (e.g., from UI enum selects)
+ */
+function coerceParameterTypes(
+  parameters: Record<string, unknown> | undefined,
+  typeInfo: ParameterTypeInfo
+): Record<string, unknown> {
+  if (!parameters) return {};
+
+  const result = { ...parameters };
+
+  for (const [key, value] of Object.entries(result)) {
+    if (value === undefined || value === null) continue;
+
+    const expectedType = typeInfo[key];
+    if (!expectedType) continue;
+
+    // Coerce string values to their expected types
+    if (typeof value === "string") {
+      if (expectedType === "integer") {
+        const parsed = parseInt(value, 10);
+        if (!isNaN(parsed)) result[key] = parsed;
+      } else if (expectedType === "number") {
+        const parsed = parseFloat(value);
+        if (!isNaN(parsed)) result[key] = parsed;
+      } else if (expectedType === "boolean") {
+        result[key] = value === "true";
+      }
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -362,15 +434,17 @@ async function generateWithReplicate(
   const hasDynamicInputs = input.dynamicInputs && Object.keys(input.dynamicInputs).length > 0;
   console.log(`[API:${requestId}] Model version: ${version}, Dynamic inputs: ${hasDynamicInputs ? Object.keys(input.dynamicInputs!).join(", ") : "none"}`);
 
-  // Build input for the prediction
+  // Get schema for type coercion and input mapping
+  const schema = modelData.latest_version?.openapi_schema as Record<string, unknown> | undefined;
+  const parameterTypes = getParameterTypesFromSchema(schema);
+
+  // Build input for the prediction, coercing parameter types from schema
   const predictionInput: Record<string, unknown> = {
-    ...input.parameters,
+    ...coerceParameterTypes(input.parameters, parameterTypes),
   };
 
   // Add dynamic inputs if provided (these come from schema-mapped connections)
   if (hasDynamicInputs) {
-    // Get schema to detect array parameters
-    const schema = modelData.latest_version?.openapi_schema as Record<string, unknown> | undefined;
     const { schemaArrayParams } = getInputMappingFromSchema(schema);
 
     // Apply array wrapping based on schema type
@@ -385,7 +459,6 @@ async function generateWithReplicate(
     }
   } else {
     // Fallback: use schema to map generic input names to model-specific parameter names
-    const schema = modelData.latest_version?.openapi_schema as Record<string, unknown> | undefined;
     const { paramMap, arrayParams } = getInputMappingFromSchema(schema);
 
     // Map prompt input
@@ -404,12 +477,11 @@ async function generateWithReplicate(
       }
     }
 
-    // Map any parameters that might need renaming
-    if (input.parameters) {
-      for (const [key, value] of Object.entries(input.parameters)) {
-        const mappedKey = paramMap[key] || key;
-        predictionInput[mappedKey] = value;
-      }
+    // Map any parameters that might need renaming (use coerced values)
+    const coercedParams = coerceParameterTypes(input.parameters, parameterTypes);
+    for (const [key, value] of Object.entries(coercedParams)) {
+      const mappedKey = paramMap[key] || key;
+      predictionInput[mappedKey] = value;
     }
   }
 
@@ -585,13 +657,21 @@ async function generateWithReplicate(
 }
 
 /**
+ * Extended input mapping with parameter types for fal.ai
+ */
+interface FalInputMapping extends InputMapping {
+  parameterTypes: ParameterTypeInfo;
+}
+
+/**
  * Fetch fal.ai model schema and extract input parameter mappings
  * Uses the Model Search API with OpenAPI expansion (same as /api/models/[modelId])
  */
-async function getFalInputMapping(modelId: string, apiKey: string | null): Promise<InputMapping> {
+async function getFalInputMapping(modelId: string, apiKey: string | null): Promise<FalInputMapping> {
   const paramMap: Record<string, string> = {};
   const arrayParams = new Set<string>();
   const schemaArrayParams = new Set<string>();
+  const parameterTypes: ParameterTypeInfo = {};
 
   try {
     // Use fal.ai Model Search API with OpenAPI expansion
@@ -604,13 +684,13 @@ async function getFalInputMapping(modelId: string, apiKey: string | null): Promi
     const response = await fetch(url, { headers });
 
     if (!response.ok) {
-      return { paramMap, arrayParams, schemaArrayParams };
+      return { paramMap, arrayParams, schemaArrayParams, parameterTypes };
     }
 
     const data = await response.json();
     const modelData = data.models?.[0];
     if (!modelData?.openapi) {
-      return { paramMap, arrayParams, schemaArrayParams };
+      return { paramMap, arrayParams, schemaArrayParams, parameterTypes };
     }
 
     // Extract input schema from OpenAPI spec (same logic as /api/models/[modelId])
@@ -637,18 +717,23 @@ async function getFalInputMapping(modelId: string, apiKey: string | null): Promi
     }
 
     if (!inputSchema) {
-      return { paramMap, arrayParams, schemaArrayParams };
+      return { paramMap, arrayParams, schemaArrayParams, parameterTypes };
     }
 
     const properties = inputSchema.properties as Record<string, unknown> | undefined;
-    if (!properties) return { paramMap, arrayParams, schemaArrayParams };
+    if (!properties) return { paramMap, arrayParams, schemaArrayParams, parameterTypes };
 
-    // First pass: detect all array-typed properties by their actual schema name
+    // First pass: detect all array-typed properties and extract parameter types
     // This is used for dynamicInputs which use schema names directly
     for (const [propName, prop] of Object.entries(properties)) {
       const property = prop as Record<string, unknown>;
       if (property?.type === "array") {
         schemaArrayParams.add(propName);
+      }
+      // Extract parameter type for type coercion
+      const type = property?.type as string | undefined;
+      if (type && ["string", "integer", "number", "boolean", "array", "object"].includes(type)) {
+        parameterTypes[propName] = type as ParameterTypeInfo[string];
       }
     }
 
@@ -687,7 +772,7 @@ async function getFalInputMapping(modelId: string, apiKey: string | null): Promi
     // Schema parsing failed - continue with empty mapping
   }
 
-  return { paramMap, arrayParams, schemaArrayParams };
+  return { paramMap, arrayParams, schemaArrayParams, parameterTypes };
 }
 
 /**
@@ -704,19 +789,18 @@ async function generateWithFal(
   const hasDynamicInputs = input.dynamicInputs && Object.keys(input.dynamicInputs).length > 0;
   console.log(`[API:${requestId}] Dynamic inputs: ${hasDynamicInputs ? Object.keys(input.dynamicInputs!).join(", ") : "none"}, API key: ${apiKey ? "yes" : "no"}`);
 
+  // Fetch schema for type coercion and input mapping (only one API call)
+  const { paramMap, arrayParams, schemaArrayParams, parameterTypes } = await getFalInputMapping(modelId, apiKey);
 
-  // Build request body
+  // Build request body, coercing parameter types from schema
   // If we have dynamic inputs, they take precedence (they already contain prompt, image_url, etc.)
   const requestBody: Record<string, unknown> = {
-    ...input.parameters,
+    ...coerceParameterTypes(input.parameters, parameterTypes),
   };
 
   // Add dynamic inputs if provided (these come from schema-mapped connections)
   // Filter out empty/null/undefined values to avoid sending invalid inputs to fal.ai
   if (hasDynamicInputs) {
-    // Fetch schema to know which params expect arrays
-    const { schemaArrayParams } = await getFalInputMapping(modelId, apiKey);
-
     const filteredInputs: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(input.dynamicInputs!)) {
       if (value !== null && value !== undefined && value !== '') {
@@ -731,7 +815,6 @@ async function generateWithFal(
     Object.assign(requestBody, filteredInputs);
   } else {
     // Fallback: use schema to map generic input names to model-specific parameter names
-    const { paramMap, arrayParams } = await getFalInputMapping(modelId, apiKey);
 
     // Map prompt input
     if (input.prompt) {
@@ -749,12 +832,11 @@ async function generateWithFal(
       }
     }
 
-    // Map any parameters that might need renaming
-    if (input.parameters) {
-      for (const [key, value] of Object.entries(input.parameters)) {
-        const mappedKey = paramMap[key] || key;
-        requestBody[mappedKey] = value;
-      }
+    // Map any parameters that might need renaming (use coerced values)
+    const coercedParams = coerceParameterTypes(input.parameters, parameterTypes);
+    for (const [key, value] of Object.entries(coercedParams)) {
+      const mappedKey = paramMap[key] || key;
+      requestBody[mappedKey] = value;
     }
   }
 

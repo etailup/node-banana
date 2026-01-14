@@ -615,15 +615,23 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       const textInputs = inputSchema.filter(i => i.type === "text");
 
       // Map image handles to schema names
+      // Always use indexed IDs (image-0, image-1) to match node component
+      // Also map legacy ID ("image") for first input for backward compatibility
       imageInputs.forEach((input, index) => {
-        const handleId = imageInputs.length > 1 ? `image-${index}` : "image";
-        handleToSchemaName[handleId] = input.name;
+        handleToSchemaName[`image-${index}`] = input.name;
+        if (index === 0) {
+          handleToSchemaName["image"] = input.name;
+        }
       });
 
       // Map text handles to schema names
+      // Always use indexed IDs (text-0, text-1) to match node component
+      // Also map legacy ID ("text") for first input for backward compatibility
       textInputs.forEach((input, index) => {
-        const handleId = textInputs.length > 1 ? `text-${index}` : "text";
-        handleToSchemaName[handleId] = input.name;
+        handleToSchemaName[`text-${index}`] = input.name;
+        if (index === 0) {
+          handleToSchemaName["text"] = input.name;
+        }
       });
     }
 
@@ -1618,9 +1626,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         const provider = nodeData.selectedModel?.provider || "gemini";
 
         // Always get fresh connected inputs first, fall back to stored inputs only if not connected
-        const inputs = getConnectedInputs(nodeId);
-        const images = inputs.images.length > 0 ? inputs.images : nodeData.inputImages;
-        const text = inputs.text ?? nodeData.inputPrompt;
+        const { images: connectedImages, text: connectedText, dynamicInputs } = getConnectedInputs(nodeId);
+        const images = connectedImages.length > 0 ? connectedImages : nodeData.inputImages;
+        const text = connectedText ?? nodeData.inputPrompt;
 
         if (!text) {
           logger.error('node.error', 'Generate node regeneration failed: missing text input', {
@@ -1684,6 +1692,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             useGoogleSearch: nodeData.useGoogleSearch,
             selectedModel: nodeData.selectedModel,
             parameters: nodeData.parameters,
+            dynamicInputs,  // Pass dynamic inputs for schema-mapped connections
           }),
         });
 

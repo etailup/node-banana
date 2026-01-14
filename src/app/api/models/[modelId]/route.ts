@@ -31,6 +31,8 @@ const IMAGE_INPUT_PATTERNS = [
   "image_url",
   "image_urls",
   "image",
+  "image_input",
+  "input_image",
   "first_frame",
   "last_frame",
   "tail_image_url",
@@ -106,12 +108,27 @@ function toLabel(name: string): string {
 }
 
 /**
- * Check if property is an image input
+ * Check if property is an image input based on BOTH schema type AND name.
+ *
+ * Image inputs must be strings (URLs or base64) or arrays of strings.
+ * Integers, booleans, numbers with "image" in the name are NOT image inputs.
  */
-function isImageInput(name: string): boolean {
-  // Check explicit patterns first
-  if (IMAGE_INPUT_PATTERNS.includes(name)) {
-    return true;
+function isImageInput(name: string, prop: Record<string, unknown>): boolean {
+  // First check: must be a string type (images are URLs or base64 strings)
+  // Integers, booleans, numbers are NEVER image inputs regardless of name
+  const propType = prop.type as string | undefined;
+  if (propType !== "string" && propType !== "array") {
+    return false;
+  }
+
+  // For arrays, check if items are strings (or unspecified - be lenient)
+  if (propType === "array") {
+    const items = prop.items as Record<string, unknown> | undefined;
+    // Only reject if items.type is explicitly specified AND not "string"
+    // Many schemas don't specify items type for image arrays
+    if (items && items.type && items.type !== "string") {
+      return false;
+    }
   }
 
   // Check exclusions (e.g., image_size is a parameter, not an image input)
@@ -119,11 +136,46 @@ function isImageInput(name: string): boolean {
     return false;
   }
 
-  // Check for "image" as a word boundary:
-  // - ends with _image (e.g., start_image, control_image)
-  // - starts with image_ (e.g., image_url, image_urls)
-  // - contains _image_ (e.g., tail_image_url)
-  // But NOT num_images (no underscore before "image")
+  // Check format hints (OpenAPI format field) - strong signal for image URLs
+  const format = prop.format as string | undefined;
+  if (format === "uri" || format === "data-uri" || format === "binary") {
+    // Only treat as image if name also suggests it's an image
+    if (IMAGE_INPUT_PATTERNS.includes(name) ||
+        name.endsWith("_image") ||
+        name.startsWith("image_") ||
+        name.includes("_image_")) {
+      return true;
+    }
+  }
+
+  // Check description for image-related keywords
+  const description = (prop.description as string || "").toLowerCase();
+  if (description.includes("image url") ||
+      description.includes("base64 image") ||
+      description.includes("data uri") ||
+      description.includes("image file") ||
+      description.includes("url of the image") ||
+      description.includes("path to image")) {
+    return true;
+  }
+
+  // Check explicit patterns (exact matches like "image_url", "image")
+  if (IMAGE_INPUT_PATTERNS.includes(name)) {
+    return true;
+  }
+
+  // More restrictive name pattern matching for strings
+  // Exclude names that suggest counts or settings rather than actual images
+  if (name.includes("_images") ||    // max_images, num_images
+      name.includes("guidance") ||   // image_guidance_scale
+      name.includes("generation") || // sequential_image_generation
+      name.includes("_count") ||     // image_count
+      name.includes("_size") ||      // image_size (already in exclusions but belt-and-suspenders)
+      name.includes("_scale")) {     // image_scale
+    return false;
+  }
+
+  // Finally, check name patterns for remaining string types
   return name.endsWith("_image") ||
          name.startsWith("image_") ||
          name.includes("_image_");
@@ -376,7 +428,8 @@ function extractParametersFromSchema(
 
   for (const [name, prop] of Object.entries(properties)) {
     // Check if this is a connectable input (image or text)
-    if (isImageInput(name)) {
+    // Pass both name AND prop to check schema type, not just name
+    if (isImageInput(name, prop)) {
       inputs.push({
         name,
         type: "image",

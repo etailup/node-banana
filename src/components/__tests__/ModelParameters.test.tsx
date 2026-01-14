@@ -569,6 +569,113 @@ describe("ModelParameters", () => {
 
       expect(onParametersChange).toHaveBeenCalledWith({ scheduler: "DPM++" });
     });
+
+    it("should coerce integer enum selection to number", async () => {
+      const onParametersChange = vi.fn();
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            parameters: [
+              createMockParameter({
+                name: "max_images",
+                type: "integer",
+                enum: [1, 2, 3, 4],
+              }),
+            ],
+          }),
+      });
+
+      render(
+        <ModelParameters
+          {...defaultProps}
+          onParametersChange={onParametersChange}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole("combobox")).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByRole("combobox"), {
+        target: { value: "2" },
+      });
+
+      // Should be number 2, not string "2"
+      expect(onParametersChange).toHaveBeenCalledWith({ max_images: 2 });
+    });
+
+    it("should coerce number enum selection to number", async () => {
+      const onParametersChange = vi.fn();
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            parameters: [
+              createMockParameter({
+                name: "guidance_scale",
+                type: "number",
+                enum: [1.5, 2.0, 2.5, 3.0],
+              }),
+            ],
+          }),
+      });
+
+      render(
+        <ModelParameters
+          {...defaultProps}
+          onParametersChange={onParametersChange}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole("combobox")).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByRole("combobox"), {
+        target: { value: "2.5" },
+      });
+
+      // Should be number 2.5, not string "2.5"
+      expect(onParametersChange).toHaveBeenCalledWith({ guidance_scale: 2.5 });
+    });
+
+    it("should clear value when Default is selected from enum", async () => {
+      const onParametersChange = vi.fn();
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            parameters: [
+              createMockParameter({
+                name: "max_images",
+                type: "integer",
+                enum: [1, 2, 3, 4],
+              }),
+            ],
+          }),
+      });
+
+      render(
+        <ModelParameters
+          {...defaultProps}
+          parameters={{ max_images: 2 }}
+          onParametersChange={onParametersChange}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole("combobox")).toBeInTheDocument();
+      });
+
+      // Select the "Default" option (empty value)
+      fireEvent.change(screen.getByRole("combobox"), {
+        target: { value: "" },
+      });
+
+      // Should remove the parameter (clear it)
+      expect(onParametersChange).toHaveBeenCalledWith({});
+    });
   });
 
   describe("Parameter Display Names", () => {

@@ -14,9 +14,7 @@ const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
   const server = createServer(async (req, res) => {
-    // Use WHATWG URL API instead of deprecated url.parse()
-    const parsedUrl = new URL(req.url, `http://${hostname}:${port}`);
-    await handle(req, res, parsedUrl);
+    await handle(req, res);
   });
 
   // Increase timeout to 10 minutes for long-running video generation

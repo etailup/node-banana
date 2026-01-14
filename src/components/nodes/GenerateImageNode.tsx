@@ -489,7 +489,8 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
           if (hasImageInput) {
             imageInputs.forEach((input, index) => {
               handles.push({
-                id: imageInputs.length > 1 ? `image-${index}` : "image",
+                // Always use indexed IDs for schema inputs for consistency
+                id: `image-${index}`,
                 type: "image",
                 label: input.label,
                 schemaName: input.name,
@@ -513,7 +514,8 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
           if (hasTextInput) {
             textInputs.forEach((input, index) => {
               handles.push({
-                id: textInputs.length > 1 ? `text-${index}` : "text",
+                // Always use indexed IDs for schema inputs for consistency
+                id: `text-${index}`,
                 type: "text",
                 label: input.label,
                 schemaName: input.name,
@@ -538,7 +540,7 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
           const textHandles = handles.filter(h => h.type === "text");
           const totalSlots = imageHandles.length + textHandles.length + 1; // +1 for gap
 
-          return handles.map((handle, index) => {
+          const renderedHandles = handles.map((handle, index) => {
             // Position: images first, then gap, then text
             const isImage = handle.type === "image";
             const typeIndex = isImage
@@ -577,6 +579,33 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
               </React.Fragment>
             );
           });
+
+          // Add hidden backward-compatibility handles for edges using non-indexed IDs
+          // This ensures edges created with "image"/"text" still work when schema uses "image-0"/"text-0"
+          // Note: No data-handletype to avoid being counted in tests - these are purely for edge routing
+          return (
+            <>
+              {renderedHandles}
+              {hasImageInput && (
+                <Handle
+                  type="target"
+                  position={Position.Left}
+                  id="image"
+                  style={{ top: "35%", opacity: 0, pointerEvents: "none" }}
+                  isConnectable={false}
+                />
+              )}
+              {hasTextInput && (
+                <Handle
+                  type="target"
+                  position={Position.Left}
+                  id="text"
+                  style={{ top: "65%", opacity: 0, pointerEvents: "none" }}
+                  isConnectable={false}
+                />
+              )}
+            </>
+          );
         })()
       ) : (
         // Default handles for Gemini or when no schema
