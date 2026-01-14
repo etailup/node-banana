@@ -209,7 +209,7 @@ describe("QuickstartInitialView", () => {
       expect(twitterLink).toHaveAttribute("rel", "noopener noreferrer");
     });
 
-    it("should render docs coming soon text (not as a link)", () => {
+    it("should render docs link", () => {
       render(
         <QuickstartInitialView
           onSelectBlankCanvas={mockOnSelectBlankCanvas}
@@ -219,8 +219,10 @@ describe("QuickstartInitialView", () => {
         />
       );
 
-      expect(screen.getByText("Docs (coming soon)")).toBeInTheDocument();
-      expect(screen.getByText("Docs (coming soon)").closest("a")).toBeNull();
+      const docsLink = screen.getByText("Docs").closest("a");
+      expect(docsLink).toHaveAttribute("href", "https://node-banana-docs.vercel.app/");
+      expect(docsLink).toHaveAttribute("target", "_blank");
+      expect(docsLink).toHaveAttribute("rel", "noopener noreferrer");
     });
   });
 
