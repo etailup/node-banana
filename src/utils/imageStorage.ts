@@ -177,6 +177,36 @@ async function externalizeNodeImages(
       break;
     }
 
+    case "generateVideo": {
+      const d = data as import("@/types").GenerateVideoNodeData;
+      let inputImageRefs = d.inputImageRefs ? [...d.inputImageRefs] : [];
+      const inputImages: string[] = [];
+
+      // Handle input images array (save to inputs)
+      // Skip if corresponding inputImageRef already exists
+      for (let i = 0; i < d.inputImages.length; i++) {
+        const img = d.inputImages[i];
+        const existingRef = d.inputImageRefs?.[i];
+        if (existingRef && isBase64DataUrl(img)) {
+          inputImages.push(""); // Already has ref, just clear the base64
+        } else if (isBase64DataUrl(img)) {
+          const ref = await saveImageAndGetId(img, workflowPath, savedImageIds, "inputs");
+          inputImageRefs[i] = ref;
+          inputImages.push(""); // Empty placeholder
+        } else {
+          inputImages.push(img);
+        }
+      }
+
+      // Note: outputVideo is a video URL, not saved as an image
+      newData = {
+        ...d,
+        inputImages: inputImages.length > 0 && inputImages.every(i => i === "") ? [] : inputImages,
+        inputImageRefs: inputImageRefs.length > 0 ? inputImageRefs : undefined,
+      };
+      break;
+    }
+
     case "output": {
       const d = data as import("@/types").OutputNodeData;
       // Output displays generated content, save to generations
@@ -355,6 +385,27 @@ async function hydrateNodeImages(
 
     case "llmGenerate": {
       const d = data as import("@/types").LLMGenerateNodeData;
+      const inputImages = [...d.inputImages];
+
+      // Hydrate input images from refs
+      if (d.inputImageRefs && d.inputImageRefs.length > 0) {
+        for (let i = 0; i < d.inputImageRefs.length; i++) {
+          const ref = d.inputImageRefs[i];
+          if (ref) {
+            inputImages[i] = await loadImageById(ref, workflowPath, loadedImages, "inputs");
+          }
+        }
+      }
+
+      newData = {
+        ...d,
+        inputImages,
+      };
+      break;
+    }
+
+    case "generateVideo": {
+      const d = data as import("@/types").GenerateVideoNodeData;
       const inputImages = [...d.inputImages];
 
       // Hydrate input images from refs
