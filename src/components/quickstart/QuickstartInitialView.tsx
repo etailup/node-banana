@@ -137,7 +137,7 @@ export function QuickstartInitialView({
               />
             }
             title="Prompt a workflow"
-            description="Describe what you want"
+            description="Get Gemini to build it"
             badge="Beta"
           />
         </div>
