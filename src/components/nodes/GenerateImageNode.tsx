@@ -831,8 +831,8 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
           />
         )}
 
-        {/* Aspect ratio and resolution row - only for Gemini-only mode */}
-        {isGeminiOnly && (
+        {/* Aspect ratio and resolution row - only for Gemini models */}
+        {currentProvider === "gemini" && (
           <div className="flex gap-1.5 shrink-0">
             <select
               value={nodeData.aspectRatio}
@@ -861,8 +861,8 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
           </div>
         )}
 
-        {/* Google Search toggle - only for Nano Banana Pro in Gemini-only mode */}
-        {isGeminiOnly && isNanoBananaPro && (
+        {/* Google Search toggle - only for Nano Banana Pro */}
+        {currentProvider === "gemini" && isNanoBananaPro && (
           <label className="flex items-center gap-1.5 text-[10px] text-neutral-300 shrink-0 cursor-pointer">
             <input
               type="checkbox"
