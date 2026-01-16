@@ -75,7 +75,7 @@ export function WelcomeModal({
   );
 
   // Template explorer needs more width for two-column layout
-  const dialogWidth = currentView === "templates" ? "max-w-6xl" : "max-w-4xl";
+  const dialogWidth = currentView === "templates" ? "max-w-6xl" : "max-w-2xl";
   const dialogHeight = currentView === "templates" ? "max-h-[85vh]" : "max-h-[80vh]";
 
   return (
