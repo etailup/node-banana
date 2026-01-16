@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { WorkflowFile } from "@/store/workflowStore";
-import { getAllPresets, PRESET_TEMPLATES } from "@/lib/quickstart/templates";
+import { getAllPresets, PRESET_TEMPLATES, getTemplateContent } from "@/lib/quickstart/templates";
 import { QuickstartBackButton } from "./QuickstartBackButton";
 import { TemplateCard } from "./TemplateCard";
+import { WorkflowPreviewModal } from "./WorkflowPreviewModal";
 import { CommunityWorkflowMeta, TemplateCategory, TemplateMetadata } from "@/types/quickstart";
 
 interface TemplateExplorerViewProps {
@@ -30,6 +31,7 @@ export function TemplateExplorerView({
   const [isLoadingList, setIsLoadingList] = useState(true);
   const [loadingWorkflowId, setLoadingWorkflowId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -79,6 +81,19 @@ export function TemplateExplorerView({
       };
     });
     return workflows;
+  }, []);
+
+  // Get preview image for each template (first image from "full" content level)
+  const previewImages = useMemo(() => {
+    const images: Record<string, string | undefined> = {};
+    PRESET_TEMPLATES.forEach((template) => {
+      const content = getTemplateContent(template.id, "full");
+      if (content?.images) {
+        const imageUrls = Object.values(content.images).map((img) => img.url);
+        images[template.id] = imageUrls[0];
+      }
+    });
+    return images;
   }, []);
 
   // Filter presets based on search, category, and tags
@@ -404,9 +419,11 @@ export function TemplateExplorerView({
                     key={preset.id}
                     template={preset}
                     nodeCount={presetMetadata[preset.id]?.nodeCount ?? 0}
+                    previewImage={previewImages[preset.id]}
                     workflow={presetWorkflows[preset.id]}
                     isLoading={loadingWorkflowId === preset.id}
                     onClick={() => handlePresetSelect(preset.id)}
+                    onPreviewClick={() => setPreviewTemplateId(preset.id)}
                     disabled={isLoading}
                   />
                 ))}
@@ -579,6 +596,16 @@ export function TemplateExplorerView({
           )}
         </div>
       </div>
+
+      {/* Workflow Preview Modal */}
+      {previewTemplateId && presetWorkflows[previewTemplateId] && (
+        <WorkflowPreviewModal
+          isOpen={true}
+          onClose={() => setPreviewTemplateId(null)}
+          templateName={presets.find((p) => p.id === previewTemplateId)?.name || "Template"}
+          workflow={presetWorkflows[previewTemplateId]}
+        />
+      )}
     </div>
   );
 }

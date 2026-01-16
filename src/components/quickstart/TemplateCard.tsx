@@ -2,7 +2,6 @@
 
 import { Node, Edge } from "@xyflow/react";
 import { TemplateCategory } from "@/types/quickstart";
-import { WorkflowPreview } from "./WorkflowPreview";
 
 interface TemplateCardProps {
   template: {
@@ -14,9 +13,11 @@ interface TemplateCardProps {
     tags: string[];
   };
   nodeCount: number;
+  previewImage?: string;
   workflow?: { nodes: Node[]; edges: Edge[] };
   isLoading: boolean;
   onClick: () => void;
+  onPreviewClick?: () => void;
   disabled: boolean;
 }
 
@@ -37,9 +38,11 @@ const CATEGORY_COLORS: Record<TemplateCategory, string> = {
 export function TemplateCard({
   template,
   nodeCount,
+  previewImage,
   workflow,
   isLoading,
   onClick,
+  onPreviewClick,
   disabled,
 }: TemplateCardProps) {
   return (
@@ -89,8 +92,13 @@ export function TemplateCard({
               />
             </svg>
           </div>
-        ) : workflow ? (
-          <WorkflowPreview workflow={workflow} />
+        ) : previewImage ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={previewImage}
+            alt={`${template.name} preview`}
+            className="w-full h-full object-cover"
+          />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
             <svg
@@ -101,6 +109,41 @@ export function TemplateCard({
               strokeWidth={1.5}
             >
               <path strokeLinecap="round" strokeLinejoin="round" d={template.icon} />
+            </svg>
+          </div>
+        )}
+
+        {/* Workflow Preview Button - show in top right when workflow is available */}
+        {workflow && !isLoading && (
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={(e) => {
+              e.stopPropagation();
+              onPreviewClick?.();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.stopPropagation();
+                onPreviewClick?.();
+              }
+            }}
+            className="absolute top-2 right-2 p-1.5 rounded-md bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-600 hover:border-neutral-500 transition-colors cursor-pointer"
+            title="Preview workflow"
+          >
+            {/* Node graph icon */}
+            <svg
+              className="w-4 h-4 text-neutral-400 hover:text-neutral-300"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z"
+              />
             </svg>
           </div>
         )}

@@ -1,15 +1,17 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
   Node,
   Edge,
+  useReactFlow,
+  NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-// Node type to color mapping - using minimap colors from WorkflowCanvas
+// Node type to color mapping - using similar colors from WorkflowCanvas minimap
 const NODE_COLORS: Record<string, string> = {
   imageInput: "#22c55e",    // green-500
   annotation: "#eab308",    // yellow-500
@@ -22,8 +24,9 @@ const NODE_COLORS: Record<string, string> = {
 };
 
 // Simple preview node component - just a colored rectangle
-function PreviewNode({ data }: { data: { nodeType: string } }) {
-  const color = NODE_COLORS[data.nodeType] || "#6b7280";
+function PreviewNode({ data }: NodeProps) {
+  const nodeType = data?.nodeType as string || "unknown";
+  const color = NODE_COLORS[nodeType] || "#6b7280";
 
   return (
     <div
@@ -31,8 +34,9 @@ function PreviewNode({ data }: { data: { nodeType: string } }) {
         width: "100%",
         height: "100%",
         backgroundColor: color,
-        borderRadius: 4,
-        opacity: 0.8,
+        borderRadius: 6,
+        border: "2px solid rgba(255,255,255,0.2)",
+        boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
       }}
     />
   );
@@ -50,33 +54,43 @@ interface WorkflowPreviewProps {
   className?: string;
 }
 
+// Inner component that can use useReactFlow
 function WorkflowPreviewInner({ workflow, className = "" }: WorkflowPreviewProps) {
-  // Transform workflow nodes to preview nodes
+  const { fitView } = useReactFlow();
+
+  // Transform workflow nodes to preview nodes - keep original sizes/positions for better layout
   const previewNodes = useMemo(() => {
     return workflow.nodes.map((node) => ({
       id: node.id,
       type: "preview",
       position: node.position,
       data: { nodeType: node.type || "unknown" },
-      // Scale down the node sizes for preview
+      // Use scaled-down versions of the original dimensions
       style: {
-        width: ((node.style?.width as number) || 300) * 0.15,
-        height: ((node.style?.height as number) || 280) * 0.15,
+        width: ((node.style?.width as number) || 300) * 0.3,
+        height: ((node.style?.height as number) || 280) * 0.3,
       },
     }));
   }, [workflow.nodes]);
 
-  // Use the workflow edges as-is (simplified rendering)
+  // Use the workflow edges with simplified styling
   const previewEdges = useMemo(() => {
     return workflow.edges.map((edge) => ({
       id: edge.id,
       source: edge.source,
       target: edge.target,
-      // Simple edge style
-      style: { stroke: "#525252", strokeWidth: 1 },
+      style: { stroke: "#525252", strokeWidth: 2 },
       type: "default",
     }));
   }, [workflow.edges]);
+
+  // Fit view when nodes load
+  const onInit = useCallback(() => {
+    // Small delay to ensure nodes are rendered
+    setTimeout(() => {
+      fitView({ padding: 0.3, duration: 0 });
+    }, 50);
+  }, [fitView]);
 
   return (
     <div className={`w-full h-full ${className}`}>
@@ -84,6 +98,7 @@ function WorkflowPreviewInner({ workflow, className = "" }: WorkflowPreviewProps
         nodes={previewNodes}
         edges={previewEdges}
         nodeTypes={previewNodeTypes}
+        onInit={onInit}
         // Non-interactive mode
         nodesDraggable={false}
         nodesConnectable={false}
@@ -92,15 +107,14 @@ function WorkflowPreviewInner({ workflow, className = "" }: WorkflowPreviewProps
         zoomOnScroll={false}
         zoomOnPinch={false}
         zoomOnDoubleClick={false}
-        preventScrolling={false}
+        preventScrolling={true}
         // Fit the preview to container
         fitView={true}
-        fitViewOptions={{ padding: 0.2 }}
-        // Hide attribution and controls
+        fitViewOptions={{ padding: 0.3 }}
+        // Hide attribution
         proOptions={{ hideAttribution: true }}
-        // Minimal styling
+        // Styling
         className="bg-transparent"
-        // No default edge options needed
         defaultEdgeOptions={{
           type: "default",
           animated: false,
