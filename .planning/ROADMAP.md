@@ -343,7 +343,7 @@ Plans:
 
 Plans:
 - [x] 24-01: fal.ai pricing API integration and ProviderModel.pricing population
-- [ ] 24-02: Expand costCalculator to handle video nodes and external providers
+- [x] 24-02: Expand costCalculator to handle video nodes and external providers
 - [ ] 24-03: Update CostDialog UI for multi-provider breakdown
 
 ### 📋 v1.3 Improvements (Planned)
@@ -365,7 +365,7 @@ Plans:
 
 Plans:
 - [x] 25-01: Template types, TemplateCard component, TemplateExplorerView grid layout
-- [ ] 25-02: Sidebar filters (search, category, tags), WelcomeModal integration
+- [x] 25-02: Sidebar filters (search, category, tags), WelcomeModal integration
 
 #### Phase 26: Template Preview Rendering
 
@@ -454,8 +454,8 @@ Phases execute in numeric order: 1 → 2 → ... → 24 → 25 → 26 → 27 →
 | 21. Fix Image Input & Deduplication | v1.2 | 1/1 | Complete | 2026-01-13 |
 | 22. Generate Node Dynamic Input Tests | v1.2 | 1/1 | Complete | 2026-01-13 |
 | 23. Model Browser Improvements | v1.2 | 1/1 | Complete | 2026-01-13 |
-| 24. Improved Cost Summary | v1.2 | 1/3 | In progress | - |
-| 25. Template Explorer UI | v1.3 | 1/2 | In progress | - |
+| 24. Improved Cost Summary | v1.2 | 2/3 | In progress | - |
+| 25. Template Explorer UI | v1.3 | 2/2 | Complete | 2026-01-16 |
 | 26. Template Preview Rendering | v1.3 | 0/? | Not started | - |
 | 27. Node Defaults Infrastructure | v1.3 | 0/? | Not started | - |
 | 28. Node Defaults UI | v1.3 | 0/? | Not started | - |

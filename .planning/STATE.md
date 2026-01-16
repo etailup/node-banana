@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 ## Current Position
 
 Phase: 25 of 29 (Template Explorer UI)
-Plan: 1 of 2 in current phase
-Status: In progress
-Last activity: 2026-01-16 - Completed 25-01-PLAN.md
+Plan: 2 of 2 in current phase
+Status: Complete
+Last activity: 2026-01-16 - Completed 25-02-PLAN.md
 
 Progress: █████████░ 90%
 
@@ -47,11 +47,11 @@ Progress: █████████░ 90%
 | 22. Generate Node Dynamic Input Tests | 1/1 | 20 min | 20 min |
 | 23. Model Browser Improvements | 1/1 | 5 min | 5 min |
 | 20. Integration Tests | 2/2 | 11 min | 5.5 min |
-| 24. Improved Cost Summary | 1/3 | 2 min | 2 min |
-| 25. Template Explorer UI | 1/2 | 8 min | 8 min |
+| 24. Improved Cost Summary | 2/3 | 10 min | 5 min |
+| 25. Template Explorer UI | 2/2 | 23 min | 11.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 2 min, 5 min, 9 min, 2 min, 8 min
+- Last 5 plans: 5 min, 9 min, 2 min, 8 min, 15 min
 - Trend: UI component phases take moderate time
 
 ## Accumulated Context
@@ -124,6 +124,9 @@ Recent decisions affecting current work:
 - Template category colors: blue=product, purple=style, green=composition, amber=community
 - Template grid layout: 2 cols mobile, 3 cols lg+
 - Template node count calculated at runtime from workflow.nodes.length
+- onWheelCapture pattern for isolating modal scroll from React Flow canvas
+- min-h-0 on flexbox containers enables overflow scrolling
+- overflow-clip instead of overflow-hidden when child needs scroll
 
 ### Deferred Issues
 
@@ -150,6 +153,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-16
-Stopped at: Completed 25-01-PLAN.md (template explorer UI components)
+Stopped at: Completed 25-02-PLAN.md (sidebar filters and WelcomeModal integration)
 Resume file: None
-Next action: Execute 25-02-PLAN.md (sidebar filters and WelcomeModal integration)
+Next action: Execute 24-03-PLAN.md (CostDialog UI) or Phase 26 (Template Preview Rendering)
