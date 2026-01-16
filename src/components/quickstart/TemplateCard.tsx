@@ -1,6 +1,8 @@
 "use client";
 
+import { Node, Edge } from "@xyflow/react";
 import { TemplateCategory } from "@/types/quickstart";
+import { WorkflowPreview } from "./WorkflowPreview";
 
 interface TemplateCardProps {
   template: {
@@ -12,7 +14,7 @@ interface TemplateCardProps {
     tags: string[];
   };
   nodeCount: number;
-  previewImage?: string;
+  workflow?: { nodes: Node[]; edges: Edge[] };
   isLoading: boolean;
   onClick: () => void;
   disabled: boolean;
@@ -35,7 +37,7 @@ const CATEGORY_COLORS: Record<TemplateCategory, string> = {
 export function TemplateCard({
   template,
   nodeCount,
-  previewImage,
+  workflow,
   isLoading,
   onClick,
   disabled,
@@ -87,13 +89,8 @@ export function TemplateCard({
               />
             </svg>
           </div>
-        ) : previewImage ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={previewImage}
-            alt={`${template.name} preview`}
-            className="w-full h-full object-cover"
-          />
+        ) : workflow ? (
+          <WorkflowPreview workflow={workflow} />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
             <svg

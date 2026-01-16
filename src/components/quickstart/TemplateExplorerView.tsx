@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { WorkflowFile } from "@/store/workflowStore";
-import { getAllPresets, PRESET_TEMPLATES, getTemplateContent } from "@/lib/quickstart/templates";
+import { getAllPresets, PRESET_TEMPLATES } from "@/lib/quickstart/templates";
 import { QuickstartBackButton } from "./QuickstartBackButton";
 import { TemplateCard } from "./TemplateCard";
 import { CommunityWorkflowMeta, TemplateCategory, TemplateMetadata } from "@/types/quickstart";
@@ -69,17 +69,16 @@ export function TemplateExplorerView({
     return metadata;
   }, []);
 
-  // Get preview image for each template (first image from "full" content level)
-  const previewImages = useMemo(() => {
-    const images: Record<string, string | undefined> = {};
+  // Get workflow data for each template
+  const presetWorkflows = useMemo(() => {
+    const workflows: Record<string, { nodes: typeof PRESET_TEMPLATES[0]["workflow"]["nodes"]; edges: typeof PRESET_TEMPLATES[0]["workflow"]["edges"] } | undefined> = {};
     PRESET_TEMPLATES.forEach((template) => {
-      const content = getTemplateContent(template.id, "full");
-      if (content?.images) {
-        const imageUrls = Object.values(content.images).map((img) => img.url);
-        images[template.id] = imageUrls[0];
-      }
+      workflows[template.id] = {
+        nodes: template.workflow.nodes,
+        edges: template.workflow.edges,
+      };
     });
-    return images;
+    return workflows;
   }, []);
 
   // Filter presets based on search, category, and tags
@@ -405,7 +404,7 @@ export function TemplateExplorerView({
                     key={preset.id}
                     template={preset}
                     nodeCount={presetMetadata[preset.id]?.nodeCount ?? 0}
-                    previewImage={previewImages[preset.id]}
+                    workflow={presetWorkflows[preset.id]}
                     isLoading={loadingWorkflowId === preset.id}
                     onClick={() => handlePresetSelect(preset.id)}
                     disabled={isLoading}
