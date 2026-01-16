@@ -47,21 +47,26 @@ describe("CostDialog", () => {
     totalCost: 0.50,
     breakdown: [
       {
-        model: "nano-banana",
-        resolution: "1K",
+        provider: "gemini",
+        modelId: "nano-banana",
+        modelName: "Nano Banana",
         count: 5,
         unitCost: 0.039,
+        unit: "image",
         subtotal: 0.195,
       },
       {
-        model: "nano-banana-pro",
-        resolution: "2K",
+        provider: "gemini",
+        modelId: "nano-banana-pro",
+        modelName: "Nano Banana Pro",
         count: 2,
         unitCost: 0.134,
+        unit: "image",
         subtotal: 0.268,
       },
     ],
     nodeCount: 7,
+    unknownPricingCount: 0,
     ...overrides,
   });
 
@@ -184,7 +189,7 @@ describe("CostDialog", () => {
       expect(screen.getByText(/2x Nano Banana Pro/)).toBeInTheDocument();
     });
 
-    it("should show resolution for Nano Banana Pro models", () => {
+    it("should show model names in breakdown", () => {
       render(
         <CostDialog
           predictedCost={createPredictedCost()}
@@ -193,8 +198,34 @@ describe("CostDialog", () => {
         />
       );
 
-      // Nano Banana Pro should show resolution
-      expect(screen.getByText(/Nano Banana Pro.*\(2K\)/)).toBeInTheDocument();
+      // Model names should be displayed
+      expect(screen.getByText(/Nano Banana Pro/)).toBeInTheDocument();
+    });
+
+    it("should show no pricing indicator for models without pricing", () => {
+      render(
+        <CostDialog
+          predictedCost={createPredictedCost({
+            breakdown: [
+              {
+                provider: "replicate",
+                modelId: "some-model",
+                modelName: "Some Model",
+                count: 1,
+                unitCost: null,
+                unit: "image",
+                subtotal: null,
+              },
+            ],
+            unknownPricingCount: 1,
+          })}
+          incurredCost={0}
+          onClose={vi.fn()}
+        />
+      );
+
+      expect(screen.getByText(/no pricing/)).toBeInTheDocument();
+      expect(screen.getByText(/1 model without pricing/)).toBeInTheDocument();
     });
 
     it("should display subtotal for each model type", () => {
