@@ -69,15 +69,14 @@ export function TemplateExplorerView({
     return metadata;
   }, []);
 
-  // Get preview images for each template (from the "full" content level)
+  // Get preview image for each template (first image from "full" content level)
   const previewImages = useMemo(() => {
-    const images: Record<string, string[]> = {};
+    const images: Record<string, string | undefined> = {};
     PRESET_TEMPLATES.forEach((template) => {
       const content = getTemplateContent(template.id, "full");
       if (content?.images) {
-        images[template.id] = Object.values(content.images).map((img) => img.url);
-      } else {
-        images[template.id] = [];
+        const imageUrls = Object.values(content.images).map((img) => img.url);
+        images[template.id] = imageUrls[0];
       }
     });
     return images;
@@ -406,7 +405,7 @@ export function TemplateExplorerView({
                     key={preset.id}
                     template={preset}
                     nodeCount={presetMetadata[preset.id]?.nodeCount ?? 0}
-                    previewImages={previewImages[preset.id]}
+                    previewImage={previewImages[preset.id]}
                     isLoading={loadingWorkflowId === preset.id}
                     onClick={() => handlePresetSelect(preset.id)}
                     disabled={isLoading}

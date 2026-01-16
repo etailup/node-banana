@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { TemplateCategory } from "@/types/quickstart";
 
 interface TemplateCardProps {
@@ -13,7 +12,7 @@ interface TemplateCardProps {
     tags: string[];
   };
   nodeCount: number;
-  previewImages?: string[];
+  previewImage?: string;
   isLoading: boolean;
   onClick: () => void;
   disabled: boolean;
@@ -36,31 +35,11 @@ const CATEGORY_COLORS: Record<TemplateCategory, string> = {
 export function TemplateCard({
   template,
   nodeCount,
-  previewImages = [],
+  previewImage,
   isLoading,
   onClick,
   disabled,
 }: TemplateCardProps) {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-
-  // Cycle through preview images
-  useEffect(() => {
-    if (previewImages.length <= 1) return;
-
-    const interval = setInterval(() => {
-      setIsTransitioning(true);
-      setTimeout(() => {
-        setCurrentImageIndex((prev) => (prev + 1) % previewImages.length);
-        setIsTransitioning(false);
-      }, 300); // Fade out duration
-    }, 2500); // Time between transitions
-
-    return () => clearInterval(interval);
-  }, [previewImages.length]);
-
-  const hasImages = previewImages.length > 0;
-
   return (
     <button
       onClick={onClick}
@@ -108,32 +87,13 @@ export function TemplateCard({
               />
             </svg>
           </div>
-        ) : hasImages ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={previewImages[currentImageIndex]}
-              alt={`${template.name} preview`}
-              className={`
-                w-full h-full object-cover transition-opacity duration-300
-                ${isTransitioning ? "opacity-0" : "opacity-100"}
-              `}
-            />
-            {/* Image indicator dots */}
-            {previewImages.length > 1 && (
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                {previewImages.map((_, idx) => (
-                  <div
-                    key={idx}
-                    className={`
-                      w-1.5 h-1.5 rounded-full transition-colors
-                      ${idx === currentImageIndex ? "bg-white" : "bg-white/40"}
-                    `}
-                  />
-                ))}
-              </div>
-            )}
-          </>
+        ) : previewImage ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={previewImage}
+            alt={`${template.name} preview`}
+            className="w-full h-full object-cover"
+          />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
             <svg
