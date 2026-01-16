@@ -61,15 +61,21 @@ export function CostDialog({ predictedCost, incurredCost, onClose }: CostDialogP
                 {predictedCost.breakdown.map((item, idx) => (
                   <div key={idx} className="flex justify-between text-xs">
                     <span className="text-neutral-500">
-                      {item.count}x {item.model === "nano-banana" ? "Nano Banana" : "Nano Banana Pro"}
-                      {item.model === "nano-banana-pro" && ` (${item.resolution})`}
+                      {item.count}x {item.modelName}
+                      {item.unitCost === null && " (no pricing)"}
                     </span>
                     <span className="text-neutral-400">
-                      {formatCost(item.subtotal)}
+                      {item.subtotal !== null ? formatCost(item.subtotal) : "—"}
                     </span>
                   </div>
                 ))}
               </div>
+            )}
+
+            {predictedCost.unknownPricingCount > 0 && (
+              <p className="text-xs text-amber-500 mt-2">
+                {predictedCost.unknownPricingCount} model{predictedCost.unknownPricingCount > 1 ? "s" : ""} without pricing
+              </p>
             )}
 
             {predictedCost.nodeCount === 0 && (
