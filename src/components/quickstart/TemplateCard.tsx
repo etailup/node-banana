@@ -1,6 +1,5 @@
 "use client";
 
-import { Node, Edge } from "@xyflow/react";
 import { TemplateCategory } from "@/types/quickstart";
 
 interface TemplateCardProps {
@@ -14,11 +13,9 @@ interface TemplateCardProps {
   };
   nodeCount: number;
   previewImage?: string;
-  workflow?: { nodes: Node[]; edges: Edge[] };
-  isLoading: boolean;
+  isLoading?: boolean;
   onClick: () => void;
-  onPreviewClick?: () => void;
-  disabled: boolean;
+  disabled?: boolean;
 }
 
 const CATEGORY_LABELS: Record<TemplateCategory, string> = {
@@ -39,16 +36,14 @@ export function TemplateCard({
   template,
   nodeCount,
   previewImage,
-  workflow,
-  isLoading,
+  isLoading = false,
   onClick,
-  onPreviewClick,
-  disabled,
+  disabled = false,
 }: TemplateCardProps) {
   return (
     <button
       onClick={onClick}
-      disabled={disabled}
+      disabled={disabled || isLoading}
       className={`
         group w-full text-left rounded-lg border p-4 transition-all
         ${
@@ -112,41 +107,6 @@ export function TemplateCard({
             </svg>
           </div>
         )}
-
-        {/* Workflow Preview Button - show in top right when workflow is available */}
-        {workflow && !isLoading && (
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={(e) => {
-              e.stopPropagation();
-              onPreviewClick?.();
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.stopPropagation();
-                onPreviewClick?.();
-              }
-            }}
-            className="absolute top-2 right-2 p-1.5 rounded-md bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-600 hover:border-neutral-500 transition-colors cursor-pointer"
-            title="Preview workflow"
-          >
-            {/* Node graph icon */}
-            <svg
-              className="w-4 h-4 text-neutral-400 hover:text-neutral-300"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1.5}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z"
-              />
-            </svg>
-          </div>
-        )}
       </div>
 
       {/* Name */}
@@ -160,7 +120,7 @@ export function TemplateCard({
       </p>
 
       {/* Metadata row */}
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2">
         {/* Node count badge */}
         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-neutral-700/50 text-neutral-400">
           {nodeCount} nodes
@@ -175,18 +135,6 @@ export function TemplateCard({
         >
           {CATEGORY_LABELS[template.category]}
         </span>
-      </div>
-
-      {/* Tags */}
-      <div className="flex flex-wrap gap-1">
-        {template.tags.slice(0, 4).map((tag) => (
-          <span
-            key={tag}
-            className="px-1.5 py-0.5 rounded text-[10px] bg-neutral-700/30 text-neutral-500"
-          >
-            {tag}
-          </span>
-        ))}
       </div>
     </button>
   );

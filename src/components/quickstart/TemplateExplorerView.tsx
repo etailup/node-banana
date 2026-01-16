@@ -5,7 +5,7 @@ import { WorkflowFile } from "@/store/workflowStore";
 import { getAllPresets, PRESET_TEMPLATES, getTemplateContent } from "@/lib/quickstart/templates";
 import { QuickstartBackButton } from "./QuickstartBackButton";
 import { TemplateCard } from "./TemplateCard";
-import { WorkflowPreviewModal } from "./WorkflowPreviewModal";
+import { TemplateDetailModal } from "./TemplateDetailModal";
 import { CommunityWorkflowMeta, TemplateCategory, TemplateMetadata } from "@/types/quickstart";
 
 interface TemplateExplorerViewProps {
@@ -31,7 +31,7 @@ export function TemplateExplorerView({
   const [isLoadingList, setIsLoadingList] = useState(true);
   const [loadingWorkflowId, setLoadingWorkflowId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -420,10 +420,7 @@ export function TemplateExplorerView({
                     template={preset}
                     nodeCount={presetMetadata[preset.id]?.nodeCount ?? 0}
                     previewImage={previewImages[preset.id]}
-                    workflow={presetWorkflows[preset.id]}
-                    isLoading={loadingWorkflowId === preset.id}
-                    onClick={() => handlePresetSelect(preset.id)}
-                    onPreviewClick={() => setPreviewTemplateId(preset.id)}
+                    onClick={() => setSelectedTemplateId(preset.id)}
                     disabled={isLoading}
                   />
                 ))}
@@ -597,13 +594,18 @@ export function TemplateExplorerView({
         </div>
       </div>
 
-      {/* Workflow Preview Modal */}
-      {previewTemplateId && presetWorkflows[previewTemplateId] && (
-        <WorkflowPreviewModal
+      {/* Template Detail Modal */}
+      {selectedTemplateId && presetWorkflows[selectedTemplateId] && (
+        <TemplateDetailModal
           isOpen={true}
-          onClose={() => setPreviewTemplateId(null)}
-          templateName={presets.find((p) => p.id === previewTemplateId)?.name || "Template"}
-          workflow={presetWorkflows[previewTemplateId]}
+          onClose={() => setSelectedTemplateId(null)}
+          onUseWorkflow={() => {
+            handlePresetSelect(selectedTemplateId);
+          }}
+          isLoading={loadingWorkflowId === selectedTemplateId}
+          template={presets.find((p) => p.id === selectedTemplateId)!}
+          nodeCount={presetMetadata[selectedTemplateId]?.nodeCount ?? 0}
+          workflow={presetWorkflows[selectedTemplateId]}
         />
       )}
     </div>
