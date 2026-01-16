@@ -272,7 +272,7 @@ export function TemplateExplorerView({
       </div>
 
       {/* Content - Sidebar + Main Grid */}
-      <div className="flex-1 flex min-h-0 overflow-hidden">
+      <div className="flex-1 flex min-h-0 overflow-clip">
         {/* Sidebar */}
         <div className="w-48 flex-shrink-0 bg-neutral-900/80 border-r border-neutral-700 p-4 space-y-5 overflow-y-auto">
           {/* Search Input */}
