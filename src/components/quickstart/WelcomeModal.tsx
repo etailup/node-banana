@@ -74,12 +74,16 @@ export function WelcomeModal({
     [onWorkflowGenerated]
   );
 
+  // Template explorer needs more width for two-column layout
+  const dialogWidth = currentView === "templates" ? "max-w-6xl" : "max-w-4xl";
+  const dialogHeight = currentView === "templates" ? "max-h-[85vh]" : "max-h-[80vh]";
+
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
       onWheelCapture={(e) => e.stopPropagation()}
     >
-      <div className="w-full max-w-6xl mx-4 bg-neutral-800 rounded-xl border border-neutral-700 shadow-2xl overflow-clip max-h-[85vh] flex flex-col">
+      <div className={`w-full ${dialogWidth} mx-4 bg-neutral-800 rounded-xl border border-neutral-700 shadow-2xl overflow-clip ${dialogHeight} flex flex-col`}>
         {currentView === "initial" && (
           <QuickstartInitialView
             onSelectBlankCanvas={handleSelectBlankCanvas}
