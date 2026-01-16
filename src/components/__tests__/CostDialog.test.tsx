@@ -43,8 +43,11 @@ describe("CostDialog", () => {
     vi.restoreAllMocks();
   });
 
+  /**
+   * Helper to create a PredictedCostResult with multi-provider support
+   */
   const createPredictedCost = (overrides: Partial<PredictedCostResult> = {}): PredictedCostResult => ({
-    totalCost: 0.50,
+    totalCost: 0.463,
     breakdown: [
       {
         provider: "gemini",
@@ -68,6 +71,53 @@ describe("CostDialog", () => {
     nodeCount: 7,
     unknownPricingCount: 0,
     ...overrides,
+  });
+
+  /**
+   * Helper to create a multi-provider PredictedCostResult with fal.ai and Replicate
+   */
+  const createMultiProviderCost = (): PredictedCostResult => ({
+    totalCost: 0.55,  // Only known costs: Gemini + fal.ai
+    breakdown: [
+      {
+        provider: "gemini",
+        modelId: "nano-banana",
+        modelName: "Nano Banana",
+        count: 3,
+        unitCost: 0.039,
+        unit: "image",
+        subtotal: 0.117,
+      },
+      {
+        provider: "fal",
+        modelId: "fal-ai/fast-sdxl",
+        modelName: "Fast SDXL",
+        count: 2,
+        unitCost: 0.10,
+        unit: "image",
+        subtotal: 0.20,
+      },
+      {
+        provider: "fal",
+        modelId: "fal-ai/minimax-video",
+        modelName: "MiniMax Video",
+        count: 1,
+        unitCost: 0.233,
+        unit: "5 seconds",
+        subtotal: 0.233,
+      },
+      {
+        provider: "replicate",
+        modelId: "stability-ai/sdxl",
+        modelName: "Stability SDXL",
+        count: 2,
+        unitCost: null,  // Replicate has no pricing API
+        unit: "image",
+        subtotal: null,
+      },
+    ],
+    nodeCount: 8,
+    unknownPricingCount: 2,
   });
 
   describe("Basic Rendering", () => {
@@ -162,7 +212,7 @@ describe("CostDialog", () => {
     it("should display $0.00 for zero costs", () => {
       render(
         <CostDialog
-          predictedCost={createPredictedCost({ totalCost: 0 })}
+          predictedCost={createPredictedCost({ totalCost: 0, breakdown: [], nodeCount: 0 })}
           incurredCost={0}
           onClose={vi.fn()}
         />
@@ -174,8 +224,160 @@ describe("CostDialog", () => {
     });
   });
 
+  describe("Provider Grouping", () => {
+    it("should render Known Costs section with provider grouping", () => {
+      render(
+        <CostDialog
+          predictedCost={createMultiProviderCost()}
+          incurredCost={0}
+          onClose={vi.fn()}
+        />
+      );
+
+      // Should show Known Costs header
+      expect(screen.getByText("Known Costs")).toBeInTheDocument();
+
+      // Should show provider names
+      expect(screen.getByText("Gemini")).toBeInTheDocument();
+      expect(screen.getByText("fal.ai")).toBeInTheDocument();
+    });
+
+    it("should render provider icons", () => {
+      render(
+        <CostDialog
+          predictedCost={createMultiProviderCost()}
+          incurredCost={0}
+          onClose={vi.fn()}
+        />
+      );
+
+      // Provider icons show single letter (G for Gemini, f for fal.ai, R for Replicate)
+      expect(screen.getByText("G")).toBeInTheDocument();
+      expect(screen.getByText("f")).toBeInTheDocument();
+      expect(screen.getByText("R")).toBeInTheDocument();
+    });
+
+    it("should show models grouped under their provider", () => {
+      render(
+        <CostDialog
+          predictedCost={createMultiProviderCost()}
+          incurredCost={0}
+          onClose={vi.fn()}
+        />
+      );
+
+      // Check for model entries
+      expect(screen.getByText(/3x Nano Banana/)).toBeInTheDocument();
+      expect(screen.getByText(/2x Fast SDXL/)).toBeInTheDocument();
+      expect(screen.getByText(/1x MiniMax Video/)).toBeInTheDocument();
+    });
+
+    it("should show Known Costs total separately from Predicted Cost total", () => {
+      render(
+        <CostDialog
+          predictedCost={createMultiProviderCost()}
+          incurredCost={0}
+          onClose={vi.fn()}
+        />
+      );
+
+      // Both Predicted Cost and Known Costs show the same total ($0.55)
+      // since all known models sum to 0.55
+      const costElements = screen.getAllByText("$0.55");
+      expect(costElements.length).toBe(2); // One for Predicted, one for Known Costs
+    });
+  });
+
+  describe("Pricing Unavailable Section", () => {
+    it("should render Pricing Unavailable section for Replicate models", () => {
+      render(
+        <CostDialog
+          predictedCost={createMultiProviderCost()}
+          incurredCost={0}
+          onClose={vi.fn()}
+        />
+      );
+
+      expect(screen.getByText("Pricing Unavailable")).toBeInTheDocument();
+      expect(screen.getByText("Replicate")).toBeInTheDocument();
+      expect(screen.getByText(/2x Stability SDXL/)).toBeInTheDocument();
+    });
+
+    it("should hide Pricing Unavailable section when no Replicate models", () => {
+      render(
+        <CostDialog
+          predictedCost={createPredictedCost()}  // Only Gemini models
+          incurredCost={0}
+          onClose={vi.fn()}
+        />
+      );
+
+      expect(screen.queryByText("Pricing Unavailable")).not.toBeInTheDocument();
+    });
+
+    it("should show Replicate help text with link", () => {
+      render(
+        <CostDialog
+          predictedCost={createMultiProviderCost()}
+          incurredCost={0}
+          onClose={vi.fn()}
+        />
+      );
+
+      expect(screen.getByText(/Replicate pricing varies by hardware and runtime/)).toBeInTheDocument();
+
+      // Check for replicate.com links - there are multiple (in Pricing Unavailable section and Pricing Reference)
+      const replicateLinks = screen.getAllByRole("link", { name: /replicate\.com/i });
+      expect(replicateLinks.length).toBeGreaterThanOrEqual(1);
+      expect(replicateLinks[0]).toHaveAttribute("href", "https://replicate.com/pricing");
+    });
+  });
+
+  describe("Billing Units", () => {
+    it("should show billing units (per image, per video, per second)", () => {
+      render(
+        <CostDialog
+          predictedCost={createMultiProviderCost()}
+          incurredCost={0}
+          onClose={vi.fn()}
+        />
+      );
+
+      // Check for formatted billing units - use getAllByText since "per image" appears multiple times
+      const perImageElements = screen.getAllByText(/per image/);
+      expect(perImageElements.length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText(/per 5 seconds/)).toBeInTheDocument();
+    });
+
+    it("should format custom billing units correctly", () => {
+      const costWithCustomUnit = createPredictedCost({
+        breakdown: [
+          {
+            provider: "fal",
+            modelId: "fal-ai/some-model",
+            modelName: "Some Model",
+            count: 1,
+            unitCost: 0.05,
+            unit: "second",
+            subtotal: 0.05,
+          },
+        ],
+      });
+
+      render(
+        <CostDialog
+          predictedCost={costWithCustomUnit}
+          incurredCost={0}
+          onClose={vi.fn()}
+        />
+      );
+
+      expect(screen.getByText(/per second/)).toBeInTheDocument();
+    });
+  });
+
   describe("Cost Breakdown", () => {
-    it("should render per-model cost rows", () => {
+    it("should render per-model cost rows with counts", () => {
       render(
         <CostDialog
           predictedCost={createPredictedCost()}
@@ -187,45 +389,6 @@ describe("CostDialog", () => {
       // Check for model count and name
       expect(screen.getByText(/5x Nano Banana/)).toBeInTheDocument();
       expect(screen.getByText(/2x Nano Banana Pro/)).toBeInTheDocument();
-    });
-
-    it("should show model names in breakdown", () => {
-      render(
-        <CostDialog
-          predictedCost={createPredictedCost()}
-          incurredCost={0}
-          onClose={vi.fn()}
-        />
-      );
-
-      // Model names should be displayed
-      expect(screen.getByText(/Nano Banana Pro/)).toBeInTheDocument();
-    });
-
-    it("should show no pricing indicator for models without pricing", () => {
-      render(
-        <CostDialog
-          predictedCost={createPredictedCost({
-            breakdown: [
-              {
-                provider: "replicate",
-                modelId: "some-model",
-                modelName: "Some Model",
-                count: 1,
-                unitCost: null,
-                unit: "image",
-                subtotal: null,
-              },
-            ],
-            unknownPricingCount: 1,
-          })}
-          incurredCost={0}
-          onClose={vi.fn()}
-        />
-      );
-
-      expect(screen.getByText(/no pricing/)).toBeInTheDocument();
-      expect(screen.getByText(/1 model without pricing/)).toBeInTheDocument();
     });
 
     it("should display subtotal for each model type", () => {
@@ -240,6 +403,20 @@ describe("CostDialog", () => {
       // Check for subtotals
       expect(screen.getByText("$0.20")).toBeInTheDocument(); // 0.195 rounded
       expect(screen.getByText("$0.27")).toBeInTheDocument(); // 0.268 rounded
+    });
+
+    it("should show dash for models without pricing", () => {
+      render(
+        <CostDialog
+          predictedCost={createMultiProviderCost()}
+          incurredCost={0}
+          onClose={vi.fn()}
+        />
+      );
+
+      // Replicate models should show dash instead of cost
+      const dashes = screen.getAllByText("—");
+      expect(dashes.length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -260,20 +437,31 @@ describe("CostDialog", () => {
       expect(screen.getByText("No generation nodes in workflow")).toBeInTheDocument();
     });
 
-    it("should not show breakdown section when nodeCount is 0", () => {
+    it("should not show Known Costs section when no Gemini/fal.ai models", () => {
       render(
         <CostDialog
-          predictedCost={createPredictedCost({
+          predictedCost={{
             totalCost: 0,
-            breakdown: [],
-            nodeCount: 0
-          })}
+            breakdown: [
+              {
+                provider: "replicate",
+                modelId: "some-model",
+                modelName: "Some Model",
+                count: 1,
+                unitCost: null,
+                unit: "image",
+                subtotal: null,
+              },
+            ],
+            nodeCount: 1,
+            unknownPricingCount: 1,
+          }}
           incurredCost={0}
           onClose={vi.fn()}
         />
       );
 
-      expect(screen.queryByText(/5x Nano Banana/)).not.toBeInTheDocument();
+      expect(screen.queryByText("Known Costs")).not.toBeInTheDocument();
     });
   });
 
@@ -386,7 +574,7 @@ describe("CostDialog", () => {
   });
 
   describe("Pricing Reference", () => {
-    it("should display nano-banana pricing", () => {
+    it("should display Gemini pricing range", () => {
       render(
         <CostDialog
           predictedCost={createPredictedCost()}
@@ -395,10 +583,10 @@ describe("CostDialog", () => {
         />
       );
 
-      expect(screen.getByText(/Nano Banana \(Flash\):/)).toBeInTheDocument();
+      expect(screen.getByText(/Gemini: \$0\.039-\$0\.24\/image/)).toBeInTheDocument();
     });
 
-    it("should display nano-banana-pro pricing tiers", () => {
+    it("should display fal.ai pricing source", () => {
       render(
         <CostDialog
           predictedCost={createPredictedCost()}
@@ -407,8 +595,19 @@ describe("CostDialog", () => {
         />
       );
 
-      expect(screen.getByText(/Nano Banana Pro 1K\/2K:/)).toBeInTheDocument();
-      expect(screen.getByText(/Nano Banana Pro 4K:/)).toBeInTheDocument();
+      expect(screen.getByText(/fal\.ai: Pricing fetched from fal\.ai API/)).toBeInTheDocument();
+    });
+
+    it("should display Replicate pricing note with link", () => {
+      render(
+        <CostDialog
+          predictedCost={createPredictedCost()}
+          incurredCost={0}
+          onClose={vi.fn()}
+        />
+      );
+
+      expect(screen.getByText(/no API pricing available/)).toBeInTheDocument();
     });
 
     it("should display currency note", () => {
@@ -424,7 +623,7 @@ describe("CostDialog", () => {
     });
   });
 
-  describe("Incurred Cost Description", () => {
+  describe("Incurred Cost Section", () => {
     it("should display description for incurred costs", () => {
       render(
         <CostDialog
@@ -435,6 +634,18 @@ describe("CostDialog", () => {
       );
 
       expect(screen.getByText("Actual API spend from successful generations")).toBeInTheDocument();
+    });
+
+    it("should display tracking note for Gemini and fal.ai", () => {
+      render(
+        <CostDialog
+          predictedCost={createPredictedCost()}
+          incurredCost={0}
+          onClose={vi.fn()}
+        />
+      );
+
+      expect(screen.getByText("Tracks Gemini and fal.ai only")).toBeInTheDocument();
     });
   });
 });
