@@ -20,6 +20,13 @@ export function CostIndicator() {
     return null;
   }
 
+  // Show "?" if any external provider nodes exist (fal.ai, Replicate have unreliable pricing)
+  const hasExternalProviders = predictedCost.breakdown.some(
+    (item) => item.provider === "fal" || item.provider === "replicate"
+  );
+
+  const displayCost = hasExternalProviders ? "?" : formatCost(predictedCost.totalCost);
+
   return (
     <>
       <button
@@ -27,7 +34,7 @@ export function CostIndicator() {
         className="px-2 py-0.5 rounded text-xs text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 transition-colors"
         title="View cost details"
       >
-        {formatCost(predictedCost.totalCost)}
+        {displayCost}
       </button>
 
       {showDialog && (
