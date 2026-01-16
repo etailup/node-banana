@@ -262,9 +262,9 @@ export function TemplateExplorerView({
   const isLoading = loadingWorkflowId !== null;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-neutral-700 flex items-center gap-4">
+      <div className="flex-shrink-0 px-6 py-4 border-b border-neutral-700 flex items-center gap-4">
         <QuickstartBackButton onClick={onBack} disabled={isLoading} />
         <h2 className="text-lg font-semibold text-neutral-100">
           Template Explorer
@@ -272,7 +272,7 @@ export function TemplateExplorerView({
       </div>
 
       {/* Content - Sidebar + Main Grid */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* Sidebar */}
         <div className="w-48 flex-shrink-0 bg-neutral-900/80 border-r border-neutral-700 p-4 space-y-5 overflow-y-auto">
           {/* Search Input */}
