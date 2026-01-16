@@ -20,12 +20,8 @@ export function CostIndicator() {
     return null;
   }
 
-  // Show "?" if any external provider nodes exist (fal.ai, Replicate have unreliable pricing)
-  const hasExternalProviders = predictedCost.breakdown.some(
-    (item) => item.provider === "fal" || item.provider === "replicate"
-  );
-
-  const displayCost = hasExternalProviders ? "?" : formatCost(predictedCost.totalCost);
+  // Always show dollar format (external provider costs not included in total)
+  const displayCost = formatCost(predictedCost.totalCost);
 
   return (
     <>
