@@ -71,18 +71,6 @@ export function TemplateExplorerView({
     return metadata;
   }, []);
 
-  // Get workflow data for each template
-  const presetWorkflows = useMemo(() => {
-    const workflows: Record<string, { nodes: typeof PRESET_TEMPLATES[0]["workflow"]["nodes"]; edges: typeof PRESET_TEMPLATES[0]["workflow"]["edges"] } | undefined> = {};
-    PRESET_TEMPLATES.forEach((template) => {
-      workflows[template.id] = {
-        nodes: template.workflow.nodes,
-        edges: template.workflow.edges,
-      };
-    });
-    return workflows;
-  }, []);
-
   // Get preview image for each template (first image from "full" content level)
   const previewImages = useMemo(() => {
     const images: Record<string, string | undefined> = {};
@@ -595,7 +583,7 @@ export function TemplateExplorerView({
       </div>
 
       {/* Template Detail Modal */}
-      {selectedTemplateId && presetWorkflows[selectedTemplateId] && (
+      {selectedTemplateId && (
         <TemplateDetailModal
           isOpen={true}
           onClose={() => setSelectedTemplateId(null)}
@@ -605,7 +593,7 @@ export function TemplateExplorerView({
           isLoading={loadingWorkflowId === selectedTemplateId}
           template={presets.find((p) => p.id === selectedTemplateId)!}
           nodeCount={presetMetadata[selectedTemplateId]?.nodeCount ?? 0}
-          workflow={presetWorkflows[selectedTemplateId]}
+          previewImage={previewImages[selectedTemplateId]}
         />
       )}
     </div>

@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
-import { Node, Edge } from "@xyflow/react";
 import { TemplateCategory } from "@/types/quickstart";
-import { WorkflowPreview } from "./WorkflowPreview";
 
 interface TemplateDetailModalProps {
   isOpen: boolean;
@@ -18,7 +16,7 @@ interface TemplateDetailModalProps {
     tags: string[];
   };
   nodeCount: number;
-  workflow: { nodes: Node[]; edges: Edge[] };
+  previewImage?: string;
 }
 
 const CATEGORY_LABELS: Record<TemplateCategory, string> = {
@@ -42,7 +40,7 @@ export function TemplateDetailModal({
   isLoading,
   template,
   nodeCount,
-  workflow,
+  previewImage,
 }: TemplateDetailModalProps) {
   // Handle escape key to close
   const handleKeyDown = useCallback(
@@ -117,10 +115,19 @@ export function TemplateDetailModal({
           </button>
         </div>
 
-        {/* Workflow Preview */}
+        {/* Workflow Screenshot */}
         <div className="flex-1 min-h-0 p-6 bg-neutral-950/50">
-          <div className="w-full h-[50vh] bg-neutral-900 rounded-lg border border-neutral-800 overflow-hidden">
-            <WorkflowPreview workflow={workflow} />
+          <div className="w-full h-[50vh] bg-neutral-900 rounded-lg border border-neutral-800 overflow-hidden flex items-center justify-center">
+            {previewImage ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={previewImage}
+                alt={`${template.name} workflow screenshot`}
+                className="max-w-full max-h-full object-contain"
+              />
+            ) : (
+              <div className="text-neutral-500 text-sm">No preview available</div>
+            )}
           </div>
         </div>
 
