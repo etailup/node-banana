@@ -16,9 +16,8 @@ type CategoryFilter = "all" | TemplateCategory;
 
 const CATEGORY_OPTIONS: { id: CategoryFilter; label: string }[] = [
   { id: "all", label: "All" },
-  { id: "product", label: "Product" },
-  { id: "style", label: "Style" },
-  { id: "composition", label: "Composition" },
+  { id: "simple", label: "Simple" },
+  { id: "advanced", label: "Advanced" },
   { id: "community", label: "Community" },
 ];
 
@@ -138,16 +137,13 @@ export function TemplateExplorerView({
         if (!matchesSearch) return false;
       }
 
-      // Tags don't apply to community workflows (they don't have tags)
-
       return true;
     });
   }, [communityWorkflows, debouncedSearch, categoryFilter]);
 
-  // Collect all unique tags from filtered presets
+  // Collect all unique tags from presets
   const availableTags = useMemo(() => {
     const tags = new Set<string>();
-    // Get tags from ALL presets (not just filtered) so users can explore
     presets.forEach((preset) => {
       preset.tags.forEach((tag) => tags.add(tag));
     });
@@ -331,22 +327,22 @@ export function TemplateExplorerView({
             </div>
           </div>
 
-          {/* Tags Section */}
+          {/* Provider Tags */}
           <div className="space-y-2">
             <h3 className="text-xs font-medium text-neutral-500 uppercase tracking-wider">
-              Tags
+              Provider
             </h3>
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-col gap-1">
               {availableTags.map((tag) => (
                 <button
                   key={tag}
                   onClick={() => toggleTag(tag)}
                   className={`
-                    px-2 py-1 text-[10px] font-medium rounded transition-colors
+                    px-3 py-1.5 text-xs font-medium rounded-md text-left transition-colors
                     ${
                       selectedTags.has(tag)
-                        ? "bg-blue-500/30 text-blue-300 border border-blue-500/50"
-                        : "bg-neutral-700/30 text-neutral-500 hover:bg-neutral-700/50 hover:text-neutral-400 border border-transparent"
+                        ? "bg-blue-500/20 border border-blue-500/50 text-blue-300"
+                        : "bg-neutral-700/30 border border-transparent text-neutral-400 hover:bg-neutral-700/50 hover:text-neutral-300"
                     }
                   `}
                 >

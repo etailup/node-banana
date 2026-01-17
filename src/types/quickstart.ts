@@ -1,6 +1,6 @@
 export type QuickstartView = "initial" | "templates" | "vibe";
 
-export type TemplateCategory = "product" | "style" | "composition" | "community";
+export type TemplateCategory = "simple" | "advanced" | "community";
 
 export interface TemplateMetadata {
   nodeCount: number;

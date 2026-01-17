@@ -20,16 +20,14 @@ interface TemplateCardProps {
 }
 
 const CATEGORY_LABELS: Record<TemplateCategory, string> = {
-  product: "Product",
-  style: "Style",
-  composition: "Composition",
+  simple: "Simple",
+  advanced: "Advanced",
   community: "Community",
 };
 
 const CATEGORY_COLORS: Record<TemplateCategory, string> = {
-  product: "bg-blue-500/20 text-blue-300",
-  style: "bg-purple-500/20 text-purple-300",
-  composition: "bg-green-500/20 text-green-300",
+  simple: "bg-blue-500/20 text-blue-300",
+  advanced: "bg-purple-500/20 text-purple-300",
   community: "bg-amber-500/20 text-amber-300",
 };
 
@@ -127,6 +125,20 @@ export function TemplateCard({
         <p className="text-xs text-neutral-400 line-clamp-2 flex-1">
           {template.description}
         </p>
+
+        {/* Provider tags */}
+        {template.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {template.tags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-neutral-700/30 text-neutral-400"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Action row */}
         <div className="flex justify-end mt-2">
