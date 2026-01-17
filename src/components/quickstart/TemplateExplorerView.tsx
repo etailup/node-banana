@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { WorkflowFile } from "@/store/workflowStore";
-import { getAllPresets, PRESET_TEMPLATES, getTemplateContent } from "@/lib/quickstart/templates";
+import { getAllPresets, PRESET_TEMPLATES } from "@/lib/quickstart/templates";
 import { QuickstartBackButton } from "./QuickstartBackButton";
 import { TemplateCard } from "./TemplateCard";
 import { CommunityWorkflowMeta, TemplateCategory, TemplateMetadata } from "@/types/quickstart";
@@ -69,20 +69,17 @@ export function TemplateExplorerView({
     return metadata;
   }, []);
 
-  // Get primary thumbnail from template content (first image)
-  const primaryThumbnails = useMemo(() => {
-    const images: Record<string, string | undefined> = {};
-    PRESET_TEMPLATES.forEach((template) => {
-      const content = getTemplateContent(template.id, "full");
-      if (content?.images) {
-        const imageUrls = Object.values(content.images).map((img) => img.url);
-        images[template.id] = imageUrls[0];
-      }
-    });
-    return images;
-  }, []);
+  // Primary thumbnails (resized content images - 288px for 2x retina)
+  const primaryThumbnails: Record<string, string> = {
+    "product-shot": "/template-thumbnails/primary/product-shot.jpg",
+    "model-product": "/template-thumbnails/primary/model-product.jpg",
+    "color-variations": "/template-thumbnails/primary/color-variations.jpg",
+    "background-swap": "/template-thumbnails/primary/background-swap.jpg",
+    "style-transfer": "/template-thumbnails/primary/style-transfer.png",
+    "scene-composite": "/template-thumbnails/primary/scene-composite.jpg",
+  };
 
-  // Hover thumbnails (workflow screenshots)
+  // Hover thumbnails (workflow screenshots - 288px)
   const hoverThumbnails: Record<string, string> = {
     "product-shot": "/template-thumbnails/product-shot.png",
     "model-product": "/template-thumbnails/model-product.png",
