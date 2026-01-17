@@ -72,7 +72,8 @@ export function TemplateCard({
             <img
               src={previewImage}
               alt={`${template.name} preview`}
-              className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-300 ${hoverImage ? "group-hover:opacity-0" : ""}`}
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${hoverImage ? "group-hover:opacity-0" : ""}`}
+              style={{ imageRendering: "auto" }}
             />
             {/* Hover image (if provided) */}
             {hoverImage && (
@@ -80,7 +81,8 @@ export function TemplateCard({
               <img
                 src={hoverImage}
                 alt={`${template.name} hover preview`}
-                className="absolute inset-0 w-full h-full object-contain opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                style={{ imageRendering: "auto" }}
               />
             )}
           </>
