@@ -124,18 +124,6 @@ interface FalModel {
   openapi?: Record<string, unknown>;
 }
 
-interface FalPricingResponse {
-  prices: FalPrice[];
-  has_more: boolean;
-  next_cursor: string | null;
-}
-
-interface FalPrice {
-  endpoint_id: string;
-  unit_price: number;
-  unit: string; // "image", "video", "second", etc.
-  currency: string;
-}
 
 // ============ Response Types ============
 
@@ -293,68 +281,6 @@ function mapFalModel(model: FalModel): ProviderModel {
   };
 }
 
-/**
- * Fetch pricing for a list of fal.ai endpoint IDs
- * Returns a Map of endpoint_id -> pricing info
- * Best-effort: errors are logged but don't fail the request
- */
-async function fetchFalPricing(
-  endpointIds: string[],
-  apiKey: string | null
-): Promise<Map<string, ProviderModel["pricing"]>> {
-  const pricingMap = new Map<string, ProviderModel["pricing"]>();
-
-  if (endpointIds.length === 0) {
-    return pricingMap;
-  }
-
-  const headers: HeadersInit = {};
-  if (apiKey) {
-    headers["Authorization"] = `Key ${apiKey}`;
-  }
-
-  try {
-    // Batch endpoint IDs (API supports up to ~50 at once based on URL length limits)
-    const batchSize = 50;
-    for (let i = 0; i < endpointIds.length; i += batchSize) {
-      const batch = endpointIds.slice(i, i + batchSize);
-      const endpointIdsParam = batch.join(",");
-      const url = `${FAL_API_BASE}/models/pricing?endpoint_id=${encodeURIComponent(endpointIdsParam)}`;
-
-      const response = await fetch(url, { headers });
-
-      if (!response.ok) {
-        console.warn(`[Models] fal.ai pricing API error: ${response.status}`);
-        continue;
-      }
-
-      const data: FalPricingResponse = await response.json();
-
-      for (const price of data.prices) {
-        // Map fal.ai units to our pricing type
-        // "image" -> per-run (single generation)
-        // "video", "second" -> per-second (duration-based)
-        const pricingType: "per-run" | "per-second" =
-          price.unit === "image" ? "per-run" : "per-second";
-
-        pricingMap.set(price.endpoint_id, {
-          type: pricingType,
-          amount: price.unit_price,
-          currency: price.currency,
-        });
-      }
-    }
-  } catch (error) {
-    // Best-effort: log warning but don't fail
-    console.warn(
-      `[Models] Failed to fetch fal.ai pricing:`,
-      error instanceof Error ? error.message : "Unknown error"
-    );
-  }
-
-  return pricingMap;
-}
-
 async function fetchFalModels(
   apiKey: string | null,
   searchQuery?: string
@@ -395,19 +321,8 @@ async function fetchFalModels(
     pageCount++;
   }
 
-  // Fetch pricing for all models (best-effort)
-  if (allModels.length > 0) {
-    const endpointIds = allModels.map((m) => m.id);
-    const pricingMap = await fetchFalPricing(endpointIds, apiKey);
-
-    // Merge pricing into models
-    for (const model of allModels) {
-      const pricing = pricingMap.get(model.id);
-      if (pricing) {
-        model.pricing = pricing;
-      }
-    }
-  }
+  // Note: Pricing not fetched - external provider pricing is unreliable
+  // CostDialog shows model links instead of prices for fal.ai/Replicate
 
   return allModels;
 }

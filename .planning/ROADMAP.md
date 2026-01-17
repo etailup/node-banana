@@ -367,20 +367,21 @@ Plans:
 - [x] 25-01: Template types, TemplateCard component, TemplateExplorerView grid layout
 - [x] 25-02: Sidebar filters (search, category, tags), WelcomeModal integration
 
-#### Phase 26: Template Preview Rendering
+#### Phase 26: Template Preview Rendering ✅
 
 **Goal**: Visual preview of workflow templates showing node layout and connections before loading
 **Depends on**: Phase 25
 **Research**: Unlikely (React Flow rendering, existing patterns)
-**Plans**: TBD
+**Plans**: 1 plan
 
-**Features:**
-- Miniature workflow visualization in preview panel
-- Show nodes, connections, and overall structure
-- Non-interactive preview (view only)
+**Final Implementation:**
+- Horizontal card layout with thumbnail image, details, and "Use workflow" button
+- Two-column grid layout for better scanning
+- Conditional dialog width (6xl for explorer, 2xl for other views)
+- Direct workflow loading without intermediate modal
 
 Plans:
-- [ ] 26-01: TBD (run /gsd:plan-phase 26 to break down)
+- [x] 26-01: Horizontal cards with direct workflow loading, conditional dialog sizing
 
 #### Phase 27: Node Defaults Infrastructure
 
@@ -456,7 +457,7 @@ Phases execute in numeric order: 1 → 2 → ... → 24 → 25 → 26 → 27 →
 | 23. Model Browser Improvements | v1.2 | 1/1 | Complete | 2026-01-13 |
 | 24. Improved Cost Summary | v1.2 | 2/3 | In progress | - |
 | 25. Template Explorer UI | v1.3 | 2/2 | Complete | 2026-01-16 |
-| 26. Template Preview Rendering | v1.3 | 0/? | Not started | - |
+| 26. Template Preview Rendering | v1.3 | 1/1 | Complete | 2026-01-17 |
 | 27. Node Defaults Infrastructure | v1.3 | 0/? | Not started | - |
 | 28. Node Defaults UI | v1.3 | 0/? | Not started | - |
 | 29. Canvas Performance | v1.3 | 0/? | Not started | - |
