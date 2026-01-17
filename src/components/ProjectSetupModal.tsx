@@ -806,6 +806,50 @@ export function ProjectSetupModal({
           </button>
         </div>
       </div>
+
+      {/* Model Selection Dialogs */}
+      {showImageModelDialog && (
+        <ModelSearchDialog
+          isOpen={showImageModelDialog}
+          onClose={() => setShowImageModelDialog(false)}
+          onModelSelected={(model: ProviderModel) => {
+            setLocalNodeDefaults(prev => ({
+              ...prev,
+              generateImage: {
+                ...prev.generateImage,
+                selectedModel: {
+                  provider: model.provider,
+                  modelId: model.id,
+                  displayName: model.name,
+                }
+              }
+            }));
+            setShowImageModelDialog(false);
+          }}
+          initialCapabilityFilter="image"
+        />
+      )}
+      {showVideoModelDialog && (
+        <ModelSearchDialog
+          isOpen={showVideoModelDialog}
+          onClose={() => setShowVideoModelDialog(false)}
+          onModelSelected={(model: ProviderModel) => {
+            setLocalNodeDefaults(prev => ({
+              ...prev,
+              generateVideo: {
+                ...prev.generateVideo,
+                selectedModel: {
+                  provider: model.provider,
+                  modelId: model.id,
+                  displayName: model.name,
+                }
+              }
+            }));
+            setShowVideoModelDialog(false);
+          }}
+          initialCapabilityFilter="video"
+        />
+      )}
     </div>
   );
 }
