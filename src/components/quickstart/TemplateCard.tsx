@@ -54,10 +54,10 @@ export function TemplateCard({
         ${disabled && !isLoading ? "opacity-50" : ""}
       `}
     >
-      {/* Thumbnail - Left side */}
+      {/* Thumbnail - Left side (square) */}
       <div
         className={`
-          w-40 h-28 flex-shrink-0 rounded-lg overflow-hidden relative
+          w-36 h-36 flex-shrink-0 rounded-lg overflow-hidden relative
           ${
             isLoading
               ? "bg-blue-500/20"
@@ -72,7 +72,7 @@ export function TemplateCard({
             <img
               src={previewImage}
               alt={`${template.name} preview`}
-              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${hoverImage ? "group-hover:opacity-0" : ""}`}
+              className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-300 ${hoverImage ? "group-hover:opacity-0" : ""}`}
             />
             {/* Hover image (if provided) */}
             {hoverImage && (
@@ -80,7 +80,7 @@ export function TemplateCard({
               <img
                 src={hoverImage}
                 alt={`${template.name} hover preview`}
-                className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                className="absolute inset-0 w-full h-full object-contain opacity-0 group-hover:opacity-100 transition-opacity duration-300"
               />
             )}
           </>
