@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Provider infrastructure that dynamically discovers models from external APIs, enabling users to access hundreds of image/video generation models without hardcoding schemas.
-**Current focus:** Testing and modularization (v1.2)
+**Current focus:** Template explorer and UI improvements (v1.3)
 
 ## Current Position
 
@@ -47,7 +47,7 @@ Progress: █████████░ 92%
 | 22. Generate Node Dynamic Input Tests | 1/1 | 20 min | 20 min |
 | 23. Model Browser Improvements | 1/1 | 5 min | 5 min |
 | 20. Integration Tests | 2/2 | 11 min | 5.5 min |
-| 24. Improved Cost Summary | 2/3 | 10 min | 5 min |
+| 24. Improved Cost Summary | 3/3 | 25 min | 8 min |
 | 25. Template Explorer UI | 2/2 | 23 min | 11.5 min |
 | 26. Template Preview Rendering | 1/1 | 25 min | 25 min |
 
@@ -119,9 +119,9 @@ Recent decisions affecting current work:
 - Max 8 recent models stored in localStorage, 4 displayed in UI
 - Gemini models hardcoded in /api/models (not fetched from external API)
 - Green color theme for Gemini provider (bg-green-500/20 text-green-300)
-- Cost dialog: two-section layout (Known Costs vs Pricing Unavailable) grouping by provider
-- fal.ai pricing via API, Replicate excluded from cost tracking (no API available)
-- Incurred cost only tracks providers with known pricing (Gemini, fal.ai)
+- Cost dialog: Gemini Cost section (with prices) + External Providers section (with model links)
+- External provider pricing removed (fal.ai 429 errors, Replicate no API) - show model links instead
+- Incurred cost only tracks Gemini generations
 - Template category colors: blue=product, purple=style, green=composition, amber=community
 - Template grid layout: 2 cols mobile, 3 cols lg+
 - Template node count calculated at runtime from workflow.nodes.length
@@ -154,6 +154,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-17
-Stopped at: Completed 26-01-PLAN.md (horizontal cards with direct workflow loading)
+Stopped at: Completed 24-03-PLAN.md (simplified CostDialog with model links)
 Resume file: None
-Next action: Execute 24-03-PLAN.md (CostDialog UI) or Phase 27 (Node Defaults Infrastructure)
+Next action: Phase 27 (Node Defaults Infrastructure)

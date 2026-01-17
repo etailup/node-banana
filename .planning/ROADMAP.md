@@ -12,8 +12,8 @@ None
 
 - ✅ **v1.0 Multi-Provider Support** - Phases 1-6 (shipped 2026-01-11)
 - ✅ **v1.1 Improvements** - Phases 7-14 (shipped 2026-01-12)
-- 🚧 **v1.2 Improvements** - Phases 15-24 (in progress)
-- 📋 **v1.3 Improvements** - Phases 25-29 (planned)
+- ✅ **v1.2 Improvements** - Phases 15-24 (shipped 2026-01-17)
+- 🚧 **v1.3 Improvements** - Phases 25-29 (in progress)
 
 ## Phases
 
@@ -344,7 +344,7 @@ Plans:
 Plans:
 - [x] 24-01: fal.ai pricing API integration and ProviderModel.pricing population
 - [x] 24-02: Expand costCalculator to handle video nodes and external providers
-- [ ] 24-03: Update CostDialog UI for multi-provider breakdown
+- [x] 24-03: Update CostDialog UI for multi-provider breakdown
 
 ### 📋 v1.3 Improvements (Planned)
 
@@ -455,7 +455,7 @@ Phases execute in numeric order: 1 → 2 → ... → 24 → 25 → 26 → 27 →
 | 21. Fix Image Input & Deduplication | v1.2 | 1/1 | Complete | 2026-01-13 |
 | 22. Generate Node Dynamic Input Tests | v1.2 | 1/1 | Complete | 2026-01-13 |
 | 23. Model Browser Improvements | v1.2 | 1/1 | Complete | 2026-01-13 |
-| 24. Improved Cost Summary | v1.2 | 2/3 | In progress | - |
+| 24. Improved Cost Summary | v1.2 | 3/3 | Complete | 2026-01-17 |
 | 25. Template Explorer UI | v1.3 | 2/2 | Complete | 2026-01-16 |
 | 26. Template Preview Rendering | v1.3 | 1/1 | Complete | 2026-01-17 |
 | 27. Node Defaults Infrastructure | v1.3 | 0/? | Not started | - |
