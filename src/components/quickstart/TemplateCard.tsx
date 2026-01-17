@@ -13,6 +13,7 @@ interface TemplateCardProps {
   };
   nodeCount: number;
   previewImage?: string;
+  hoverImage?: string;
   isLoading?: boolean;
   onUseWorkflow: () => void;
   disabled?: boolean;
@@ -36,6 +37,7 @@ export function TemplateCard({
   template,
   nodeCount,
   previewImage,
+  hoverImage,
   isLoading = false,
   onUseWorkflow,
   disabled = false,
@@ -64,12 +66,24 @@ export function TemplateCard({
         `}
       >
         {previewImage ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={previewImage}
-            alt={`${template.name} preview`}
-            className="w-full h-full object-cover"
-          />
+          <>
+            {/* Primary image */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previewImage}
+              alt={`${template.name} preview`}
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${hoverImage ? "group-hover:opacity-0" : ""}`}
+            />
+            {/* Hover image (if provided) */}
+            {hoverImage && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={hoverImage}
+                alt={`${template.name} hover preview`}
+                className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              />
+            )}
+          </>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
             <svg

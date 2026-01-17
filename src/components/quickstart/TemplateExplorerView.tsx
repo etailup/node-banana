@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { WorkflowFile } from "@/store/workflowStore";
-import { getAllPresets, PRESET_TEMPLATES, getTemplateContent } from "@/lib/quickstart/templates";
+import { getAllPresets, PRESET_TEMPLATES } from "@/lib/quickstart/templates";
 import { QuickstartBackButton } from "./QuickstartBackButton";
 import { TemplateCard } from "./TemplateCard";
 import { CommunityWorkflowMeta, TemplateCategory, TemplateMetadata } from "@/types/quickstart";
@@ -69,18 +69,21 @@ export function TemplateExplorerView({
     return metadata;
   }, []);
 
-  // Get preview image for each template (first image from "full" content level)
-  const previewImages = useMemo(() => {
-    const images: Record<string, string | undefined> = {};
-    PRESET_TEMPLATES.forEach((template) => {
-      const content = getTemplateContent(template.id, "full");
-      if (content?.images) {
-        const imageUrls = Object.values(content.images).map((img) => img.url);
-        images[template.id] = imageUrls[0];
-      }
-    });
-    return images;
-  }, []);
+  // Template thumbnail images (static paths)
+  const templateThumbnails: Record<string, { primary: string; hover?: string }> = {
+    "product-shot": { primary: "/template-thumbnails/product-shot.png" },
+    "model-product": {
+      primary: "/template-thumbnails/model-product.png",
+      hover: "/template-thumbnails/model-product-hover.png"
+    },
+    "color-variations": { primary: "/template-thumbnails/color-variations.png" },
+    "background-swap": { primary: "/template-thumbnails/background-swap.png" },
+    "style-transfer": {
+      primary: "/template-thumbnails/style-transfer.png",
+      hover: "/template-thumbnails/style-transfer-hover.png"
+    },
+    "scene-composite": { primary: "/template-thumbnails/scene-composite.png" },
+  };
 
   // Filter presets based on search, category, and tags
   const filteredPresets = useMemo(() => {
@@ -405,7 +408,8 @@ export function TemplateExplorerView({
                     key={preset.id}
                     template={preset}
                     nodeCount={presetMetadata[preset.id]?.nodeCount ?? 0}
-                    previewImage={previewImages[preset.id]}
+                    previewImage={templateThumbnails[preset.id]?.primary}
+                    hoverImage={templateThumbnails[preset.id]?.hover}
                     isLoading={loadingWorkflowId === preset.id}
                     onUseWorkflow={() => handlePresetSelect(preset.id)}
                     disabled={isLoading && loadingWorkflowId !== preset.id}

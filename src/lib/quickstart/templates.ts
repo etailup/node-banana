@@ -48,6 +48,9 @@ export const SAMPLE_IMAGES = {
   // Animals
   donkey: "/sample-images/donkey.jpg",
   owl: "/sample-images/owl.jpg",
+  // Reference images for templates
+  newBgModelProduct: "/sample-images/new-bg-model-product.png",
+  styleTransferReference: "/sample-images/style-transfer-reference.png",
 };
 
 // Default node dimensions for consistent layouts
@@ -153,7 +156,7 @@ const TEMPLATE_CONTENT: Record<string, Record<ContentLevel, TemplateContent>> = 
       images: {
         "imageInput-1": { url: SAMPLE_IMAGES.model, filename: "model.jpg" },
         "imageInput-2": { url: SAMPLE_IMAGES.rayban, filename: "rayban.jpg" },
-        "imageInput-3": { url: SAMPLE_IMAGES.streetScene, filename: "street-scene.jpg" },
+        "imageInput-3": { url: SAMPLE_IMAGES.newBgModelProduct, filename: "new-bg-model-product.png" },
       },
     },
   },
@@ -216,7 +219,7 @@ const TEMPLATE_CONTENT: Record<string, Record<ContentLevel, TemplateContent>> = 
         "prompt-1": "Apply the warm, rustic color palette and painterly texture from the house by the lake image to the owl portrait. Maintain the owl's detailed features and pose, but transform it into an artistic interpretation that feels like it belongs in the same visual world as the landscape. The result should have the warm earth tones, soft lighting, and dreamy quality of the reference.",
       },
       images: {
-        "imageInput-1": { url: SAMPLE_IMAGES.houseLake, filename: "house-lake.jpg" },
+        "imageInput-1": { url: SAMPLE_IMAGES.styleTransferReference, filename: "style-transfer-reference.png" },
         "imageInput-2": { url: SAMPLE_IMAGES.owl, filename: "owl.jpg" },
       },
     },
