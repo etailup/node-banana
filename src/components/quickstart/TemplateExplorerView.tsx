@@ -75,7 +75,7 @@ export function TemplateExplorerView({
     "model-product": "/template-thumbnails/primary/model-product.jpg",
     "color-variations": "/template-thumbnails/primary/color-variations.jpg",
     "background-swap": "/template-thumbnails/primary/background-swap.jpg",
-    "style-transfer": "/template-thumbnails/primary/style-transfer.png",
+    "style-transfer": "/template-thumbnails/primary/style-transfer.jpg",
     "scene-composite": "/template-thumbnails/primary/scene-composite.jpg",
   };
 
