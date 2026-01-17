@@ -55,6 +55,7 @@ const GEMINI_IMAGE_MODELS: ProviderModel[] = [
     provider: "gemini",
     capabilities: ["text-to-image", "image-to-image"],
     coverImage: undefined,
+    pricing: { type: "per-run", amount: 0.039, currency: "USD" },
   },
   {
     id: "nano-banana-pro",
@@ -63,6 +64,7 @@ const GEMINI_IMAGE_MODELS: ProviderModel[] = [
     provider: "gemini",
     capabilities: ["text-to-image", "image-to-image"],
     coverImage: undefined,
+    pricing: { type: "per-run", amount: 0.134, currency: "USD" },
   },
 ];
 
@@ -121,6 +123,7 @@ interface FalModel {
   };
   openapi?: Record<string, unknown>;
 }
+
 
 // ============ Response Types ============
 
@@ -317,6 +320,9 @@ async function fetchFalModels(
     hasMore = data.has_more;
     pageCount++;
   }
+
+  // Note: Pricing not fetched - external provider pricing is unreliable
+  // CostDialog shows model links instead of prices for fal.ai/Replicate
 
   return allModels;
 }

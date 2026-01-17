@@ -1021,8 +1021,16 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 });
 
                 // Track cost
-                const generationCost = calculateGenerationCost(nodeData.model, nodeData.resolution);
-                get().addIncurredCost(generationCost);
+                // Cost tracking: Gemini (hardcoded), fal.ai (from API). Replicate excluded (no pricing API).
+                if (nodeData.selectedModel?.provider === "fal" && nodeData.selectedModel?.pricing) {
+                  // External fal.ai provider - use pricing from selectedModel
+                  get().addIncurredCost(nodeData.selectedModel.pricing.amount);
+                } else if (!nodeData.selectedModel || nodeData.selectedModel.provider === "gemini") {
+                  // Legacy Gemini or Gemini via selectedModel - use hardcoded pricing
+                  const generationCost = calculateGenerationCost(nodeData.model, nodeData.resolution);
+                  get().addIncurredCost(generationCost);
+                }
+                // Note: Replicate has no pricing API, so costs are not tracked
 
                 // Auto-save to generations folder if configured
                 const genPath = get().generationsPath;
@@ -1243,6 +1251,13 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   selectedVideoHistoryIndex: 0,
                 });
 
+                // Track cost for video generation
+                // Cost tracking: fal.ai (from API). Replicate excluded (no pricing API).
+                if (nodeData.selectedModel?.provider === "fal" && nodeData.selectedModel?.pricing) {
+                  get().addIncurredCost(nodeData.selectedModel.pricing.amount);
+                }
+                // Note: Replicate has no pricing API, so video costs are not tracked
+
                 // Auto-save video to generations folder if configured
                 const genPath = get().generationsPath;
                 if (genPath) {
@@ -1297,6 +1312,12 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   videoHistory: updatedHistory,
                   selectedVideoHistoryIndex: 0,
                 });
+
+                // Track cost for video generation (image fallback case)
+                // Cost tracking: fal.ai (from API). Replicate excluded (no pricing API).
+                if (nodeData.selectedModel?.provider === "fal" && nodeData.selectedModel?.pricing) {
+                  get().addIncurredCost(nodeData.selectedModel.pricing.amount);
+                }
 
                 // Auto-save image preview to generations folder if configured
                 const genPath = get().generationsPath;
@@ -1801,8 +1822,13 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           });
 
           // Track cost
-          const generationCost = calculateGenerationCost(nodeData.model, nodeData.resolution);
-          get().addIncurredCost(generationCost);
+          // Cost tracking: Gemini (hardcoded), fal.ai (from API). Replicate excluded (no pricing API).
+          if (nodeData.selectedModel?.provider === "fal" && nodeData.selectedModel?.pricing) {
+            get().addIncurredCost(nodeData.selectedModel.pricing.amount);
+          } else if (!nodeData.selectedModel || nodeData.selectedModel.provider === "gemini") {
+            const generationCost = calculateGenerationCost(nodeData.model, nodeData.resolution);
+            get().addIncurredCost(generationCost);
+          }
 
           // Auto-save to generations folder if configured
           const genPath = get().generationsPath;
@@ -2077,6 +2103,12 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             selectedVideoHistoryIndex: 0,
           });
 
+          // Track cost for video regeneration
+          // Cost tracking: fal.ai (from API). Replicate excluded (no pricing API).
+          if (nodeData.selectedModel?.provider === "fal" && nodeData.selectedModel?.pricing) {
+            get().addIncurredCost(nodeData.selectedModel.pricing.amount);
+          }
+
           // Auto-save video to generations folder if configured
           const genPath = get().generationsPath;
           if (genPath) {
@@ -2130,6 +2162,12 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             videoHistory: updatedHistory,
             selectedVideoHistoryIndex: 0,
           });
+
+          // Track cost for video regeneration (image fallback case)
+          // Cost tracking: fal.ai (from API). Replicate excluded (no pricing API).
+          if (nodeData.selectedModel?.provider === "fal" && nodeData.selectedModel?.pricing) {
+            get().addIncurredCost(nodeData.selectedModel.pricing.amount);
+          }
 
           // Auto-save image preview to generations folder if configured
           const genPath = get().generationsPath;
