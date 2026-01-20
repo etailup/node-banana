@@ -17,7 +17,7 @@ describe("templates", () => {
     });
 
     it("should have all expected model images", () => {
-      expect(SAMPLE_IMAGES.model).toBe("/sample-images/model.jpg");
+      expect(SAMPLE_IMAGES.model).toBe("/sample-images/model.png");
       expect(SAMPLE_IMAGES.model2).toBe("/sample-images/model-2.jpg");
       expect(SAMPLE_IMAGES.model3).toBe("/sample-images/model-3.jpg");
     });

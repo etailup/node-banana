@@ -414,5 +414,115 @@ describe("/api/save-generation route", () => {
       expect(data.imageId).not.toContain(".png");
       expect(data.imageId).toContain(expectedHash);
     });
+
+    it("should use custom filename when provided", async () => {
+      const imageContent = "content-for-custom-filename";
+      const base64Image = createBase64DataUrl(imageContent, "image/png");
+      const expectedHash = computeExpectedHash(Buffer.from(imageContent));
+
+      mockStat.mockResolvedValue({
+        isDirectory: () => true,
+      });
+      mockReaddir.mockResolvedValue([]);
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const request = createMockPostRequest({
+        directoryPath: "/test/outputs",
+        image: base64Image,
+        customFilename: "my-custom-output",
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(data.success).toBe(true);
+      expect(data.filename).toBe(`my-custom-output_${expectedHash}.png`);
+    });
+
+    it("should sanitize custom filename", async () => {
+      const imageContent = "content-for-sanitize-custom";
+      const base64Image = createBase64DataUrl(imageContent, "image/png");
+      const expectedHash = computeExpectedHash(Buffer.from(imageContent));
+
+      mockStat.mockResolvedValue({
+        isDirectory: () => true,
+      });
+      mockReaddir.mockResolvedValue([]);
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const request = createMockPostRequest({
+        directoryPath: "/test/outputs",
+        image: base64Image,
+        customFilename: "My File!@#$%Name",
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(data.success).toBe(true);
+      // Special chars should be replaced with underscores, multiple underscores collapsed
+      expect(data.filename).toBe(`My_File_Name_${expectedHash}.png`);
+    });
+
+    it("should create directory when createDirectory is true", async () => {
+      const imageContent = "content-for-create-dir";
+      const base64Image = createBase64DataUrl(imageContent, "image/png");
+
+      // Directory doesn't exist initially
+      mockStat.mockRejectedValue(new Error("ENOENT"));
+      mockMkdir.mockResolvedValue(undefined);
+      mockReaddir.mockResolvedValue([]);
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const request = createMockPostRequest({
+        directoryPath: "/test/outputs",
+        image: base64Image,
+        createDirectory: true,
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(data.success).toBe(true);
+      expect(mockMkdir).toHaveBeenCalledWith("/test/outputs", { recursive: true });
+    });
+
+    it("should not create directory when createDirectory is false", async () => {
+      // Directory doesn't exist
+      mockStat.mockRejectedValue(new Error("ENOENT"));
+
+      const request = createMockPostRequest({
+        directoryPath: "/test/nonexistent",
+        image: createBase64DataUrl("content"),
+        createDirectory: false,
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.success).toBe(false);
+      expect(data.error).toBe("Directory does not exist");
+      expect(mockMkdir).not.toHaveBeenCalled();
+    });
+
+    it("should handle mkdir failure", async () => {
+      // Directory doesn't exist
+      mockStat.mockRejectedValue(new Error("ENOENT"));
+      mockMkdir.mockRejectedValue(new Error("Permission denied"));
+
+      const request = createMockPostRequest({
+        directoryPath: "/test/outputs",
+        image: createBase64DataUrl("content"),
+        createDirectory: true,
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.success).toBe(false);
+      expect(data.error).toBe("Failed to create output directory");
+    });
   });
 });

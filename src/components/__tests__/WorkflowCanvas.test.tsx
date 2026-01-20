@@ -132,6 +132,10 @@ const createDefaultState = (overrides = {}) => ({
   providerSettings: defaultProviderSettings,
   edgeStyle: "angular" as const,
   currentNodeId: null,
+  navigationTarget: null,
+  setNavigationTarget: vi.fn(),
+  getNodesWithComments: vi.fn(() => []),
+  markCommentViewed: vi.fn(),
   ...overrides,
 });
 
@@ -638,6 +642,210 @@ describe("WorkflowCanvas", () => {
 
       // ReactFlow is configured with defaultEdgeOptions={{ type: "editable" }}
       expect(document.querySelector(".react-flow")).toBeInTheDocument();
+    });
+  });
+
+  describe("Clipboard Paste", () => {
+    // Helper to mock clipboard with image data
+    const mockClipboardWithImage = () => {
+      const mockBlob = new Blob(["fake-image-data"], { type: "image/png" });
+      const mockClipboardItem = {
+        types: ["image/png"],
+        getType: vi.fn().mockResolvedValue(mockBlob),
+      };
+      const mockRead = vi.fn().mockResolvedValue([mockClipboardItem]);
+      Object.defineProperty(navigator, "clipboard", {
+        value: { read: mockRead },
+        configurable: true,
+        writable: true,
+      });
+      return { mockRead, mockClipboardItem };
+    };
+
+    // Helper to mock FileReader
+    const mockFileReader = (dataUrl: string) => {
+      class MockFileReader {
+        onload: ((event: ProgressEvent<FileReader>) => void) | null = null;
+        result: string = dataUrl;
+        readAsDataURL() {
+          setTimeout(() => {
+            this.onload?.({ target: { result: this.result } } as ProgressEvent<FileReader>);
+          }, 0);
+        }
+      }
+      global.FileReader = MockFileReader as unknown as typeof FileReader;
+    };
+
+    // Helper to mock Image
+    const mockImage = (width: number, height: number) => {
+      class MockImage {
+        onload: (() => void) | null = null;
+        width: number = width;
+        height: number = height;
+        private _src: string = "";
+        get src() { return this._src; }
+        set src(value: string) {
+          this._src = value;
+          setTimeout(() => {
+            this.onload?.();
+          }, 0);
+        }
+      }
+      global.Image = MockImage as unknown as typeof Image;
+    };
+
+    it("should update selected imageInput node when pasting image from clipboard", async () => {
+      mockClipboardWithImage();
+      mockFileReader("data:image/png;base64,test123");
+      mockImage(1024, 768);
+
+      const selectedImageNode = createMockNode("image-1", "imageInput", {
+        selected: true,
+        data: { image: null, filename: null, dimensions: null },
+      });
+
+      mockUseWorkflowStore.mockImplementation((selector) => {
+        return selector(createDefaultState({
+          nodes: [selectedImageNode],
+          clipboard: null,
+        }));
+      });
+
+      render(
+        <TestWrapper>
+          <WorkflowCanvas />
+        </TestWrapper>
+      );
+
+      // Trigger Ctrl+V
+      fireEvent.keyDown(window, { key: "v", ctrlKey: true });
+
+      await waitFor(() => {
+        expect(mockUpdateNodeData).toHaveBeenCalledWith(
+          "image-1",
+          expect.objectContaining({
+            image: "data:image/png;base64,test123",
+            filename: expect.stringContaining("pasted-"),
+            dimensions: { width: 1024, height: 768 },
+          })
+        );
+      });
+
+      // Should NOT create a new node
+      expect(mockAddNode).not.toHaveBeenCalled();
+    });
+
+    it("should create new imageInput node when pasting image with no selection", async () => {
+      mockClipboardWithImage();
+      mockFileReader("data:image/png;base64,newimage");
+      mockImage(800, 600);
+
+      // No nodes selected
+      mockUseWorkflowStore.mockImplementation((selector) => {
+        return selector(createDefaultState({
+          nodes: [],
+          clipboard: null,
+        }));
+      });
+
+      render(
+        <TestWrapper>
+          <WorkflowCanvas />
+        </TestWrapper>
+      );
+
+      // Trigger Ctrl+V
+      fireEvent.keyDown(window, { key: "v", ctrlKey: true });
+
+      await waitFor(() => {
+        expect(mockAddNode).toHaveBeenCalledWith("imageInput", expect.any(Object));
+      });
+
+      await waitFor(() => {
+        expect(mockUpdateNodeData).toHaveBeenCalledWith(
+          "new-node-id",
+          expect.objectContaining({
+            image: "data:image/png;base64,newimage",
+            dimensions: { width: 800, height: 600 },
+          })
+        );
+      });
+    });
+
+    it("should create new imageInput node when pasting image with non-imageInput node selected", async () => {
+      mockClipboardWithImage();
+      mockFileReader("data:image/png;base64,anotherimage");
+      mockImage(640, 480);
+
+      // Prompt node selected (not imageInput)
+      const selectedPromptNode = createMockNode("prompt-1", "prompt", {
+        selected: true,
+        data: { prompt: "test" },
+      });
+
+      mockUseWorkflowStore.mockImplementation((selector) => {
+        return selector(createDefaultState({
+          nodes: [selectedPromptNode],
+          clipboard: null,
+        }));
+      });
+
+      render(
+        <TestWrapper>
+          <WorkflowCanvas />
+        </TestWrapper>
+      );
+
+      // Trigger Ctrl+V
+      fireEvent.keyDown(window, { key: "v", ctrlKey: true });
+
+      await waitFor(() => {
+        expect(mockAddNode).toHaveBeenCalledWith("imageInput", expect.any(Object));
+      });
+
+      await waitFor(() => {
+        expect(mockUpdateNodeData).toHaveBeenCalledWith(
+          "new-node-id",
+          expect.objectContaining({
+            image: "data:image/png;base64,anotherimage",
+            dimensions: { width: 640, height: 480 },
+          })
+        );
+      });
+    });
+
+    it("should prioritize internal clipboard over system clipboard when nodes are copied", async () => {
+      mockClipboardWithImage();
+      mockFileReader("data:image/png;base64,ignored");
+      mockImage(100, 100);
+
+      // Internal clipboard has nodes
+      mockUseWorkflowStore.mockImplementation((selector) => {
+        return selector(createDefaultState({
+          nodes: [],
+          clipboard: {
+            nodes: [createMockNode("copied-1", "prompt")],
+            edges: [],
+          },
+        }));
+      });
+
+      render(
+        <TestWrapper>
+          <WorkflowCanvas />
+        </TestWrapper>
+      );
+
+      // Trigger Ctrl+V
+      fireEvent.keyDown(window, { key: "v", ctrlKey: true });
+
+      // Should paste internal clipboard nodes, not system clipboard image
+      expect(mockPasteNodes).toHaveBeenCalled();
+      expect(mockClearClipboard).toHaveBeenCalled();
+
+      // Should NOT update or add nodes from system clipboard
+      expect(mockUpdateNodeData).not.toHaveBeenCalled();
+      expect(mockAddNode).not.toHaveBeenCalled();
     });
   });
 });

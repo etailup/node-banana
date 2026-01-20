@@ -186,14 +186,17 @@ export async function GET(request: NextRequest) {
     }
 
     if (!filePath) {
-      logger.warn('file.error', 'Workflow image load failed: file not found', {
+      // Return 200 with success: false to avoid Next.js error overlay
+      // Missing files are expected when workflow refs point to deleted/moved images
+      logger.info('file.load', 'Workflow image not found (expected for missing refs)', {
         imageId,
         searchedFolders: searchOrder,
       });
-      return NextResponse.json(
-        { success: false, error: "Image file not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({
+        success: false,
+        error: "Image file not found",
+        notFound: true,
+      });
     }
 
     // Read the image file

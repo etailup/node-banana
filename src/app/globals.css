@@ -39,6 +39,15 @@ body {
   font-family: inherit;
 }
 
+/* Remove default React Flow styling for output nodes to match custom nodes */
+.react-flow__node-output {
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 /* Base handle styles */
 .react-flow__handle {
   width: 10px;

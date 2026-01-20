@@ -5,6 +5,13 @@ import { createPortal } from "react-dom";
 import { NodeResizer, OnResize, useReactFlow } from "@xyflow/react";
 import { useWorkflowStore } from "@/store/workflowStore";
 
+export interface CommentNavigationProps {
+  currentIndex: number;
+  totalCount: number;
+  onPrevious: () => void;
+  onNext: () => void;
+}
+
 interface BaseNodeProps {
   id: string;
   title: string;
@@ -23,6 +30,7 @@ interface BaseNodeProps {
   minHeight?: number;
   headerAction?: ReactNode;
   titlePrefix?: ReactNode;
+  commentNavigation?: CommentNavigationProps;
 }
 
 export function BaseNode({
@@ -43,10 +51,13 @@ export function BaseNode({
   minHeight = 100,
   headerAction,
   titlePrefix,
+  commentNavigation,
 }: BaseNodeProps) {
   const currentNodeId = useWorkflowStore((state) => state.currentNodeId);
   const groups = useWorkflowStore((state) => state.groups);
   const nodes = useWorkflowStore((state) => state.nodes);
+  const focusedCommentNodeId = useWorkflowStore((state) => state.focusedCommentNodeId);
+  const setFocusedCommentNodeId = useWorkflowStore((state) => state.setFocusedCommentNodeId);
   const isCurrentlyExecuting = currentNodeId === id;
   const { getNodes, setNodes } = useReactFlow();
 
@@ -64,6 +75,10 @@ export function BaseNode({
   const titleInputRef = useRef<HTMLInputElement>(null);
   const commentPopoverRef = useRef<HTMLDivElement>(null);
   const commentButtonRef = useRef<HTMLButtonElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+
+  // Track if this node's comment is focused (for navigation tooltip)
+  const isCommentFocused = focusedCommentNodeId === id;
 
   // Sync state with props
   useEffect(() => {
@@ -86,18 +101,38 @@ export function BaseNode({
     }
   }, [isEditingTitle]);
 
-  // Calculate tooltip position when showing
+  // Continuously update tooltip position while showing (handles canvas pan/zoom animations)
   useEffect(() => {
-    if (showCommentTooltip && commentButtonRef.current) {
-      const rect = commentButtonRef.current.getBoundingClientRect();
-      setTooltipPosition({
-        top: rect.top - 8,
-        left: rect.right,
-      });
-    } else {
+    if (!(showCommentTooltip || isCommentFocused) || !commentButtonRef.current) {
       setTooltipPosition(null);
+      return;
     }
-  }, [showCommentTooltip]);
+
+    const updatePosition = () => {
+      if (commentButtonRef.current) {
+        const rect = commentButtonRef.current.getBoundingClientRect();
+        setTooltipPosition({
+          top: rect.top - 8,
+          left: rect.left + rect.width / 2,
+        });
+      }
+    };
+
+    // Initial position
+    updatePosition();
+
+    // Use animation frame to track position during canvas animations
+    let animationId: number;
+    const trackPosition = () => {
+      updatePosition();
+      animationId = requestAnimationFrame(trackPosition);
+    };
+    animationId = requestAnimationFrame(trackPosition);
+
+    return () => {
+      cancelAnimationFrame(animationId);
+    };
+  }, [showCommentTooltip, isCommentFocused]);
 
   // Title handlers
   const handleTitleSubmit = useCallback(() => {
@@ -152,6 +187,27 @@ export function BaseNode({
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isEditingComment, handleCommentSubmit]);
+
+  // Click outside handler for focused comment tooltip
+  useEffect(() => {
+    const handleClickOutsideTooltip = (e: MouseEvent) => {
+      if (tooltipRef.current && !tooltipRef.current.contains(e.target as Node)) {
+        setFocusedCommentNodeId(null);
+      }
+    };
+
+    if (isCommentFocused && !isEditingComment) {
+      // Small delay to avoid immediately closing when navigating
+      const timer = setTimeout(() => {
+        document.addEventListener("mousedown", handleClickOutsideTooltip);
+      }, 100);
+      return () => {
+        clearTimeout(timer);
+        document.removeEventListener("mousedown", handleClickOutsideTooltip);
+      };
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutsideTooltip);
+  }, [isCommentFocused, isEditingComment, setFocusedCommentNodeId]);
 
   // Synchronize resize across all selected nodes
   const handleResize: OnResize = useCallback(
@@ -237,11 +293,11 @@ export function BaseNode({
           )}
 
           {/* Comment Icon */}
-          <div className="relative ml-2 shrink-0" ref={commentPopoverRef}>
+          <div className="relative ml-2 shrink-0 flex items-center gap-1" ref={commentPopoverRef}>
             <button
               ref={commentButtonRef}
               onClick={() => setIsEditingComment(!isEditingComment)}
-              onMouseEnter={() => comment && setShowCommentTooltip(true)}
+              onMouseEnter={() => comment && !isCommentFocused && setShowCommentTooltip(true)}
               onMouseLeave={() => setShowCommentTooltip(false)}
               className={`nodrag nopan p-0.5 rounded transition-colors ${
                 comment
@@ -261,17 +317,52 @@ export function BaseNode({
               )}
             </button>
 
-            {/* Comment Tooltip on Hover - rendered via portal to escape stacking context */}
-            {showCommentTooltip && comment && !isEditingComment && tooltipPosition && createPortal(
+            {/* Comment Tooltip with Navigation - shown on hover OR when focused via navigation */}
+            {(showCommentTooltip || isCommentFocused) && comment && !isEditingComment && tooltipPosition && createPortal(
               <div
-                className="fixed z-[9999] w-48 p-2 text-xs text-neutral-200 bg-neutral-900 border border-neutral-700 rounded shadow-lg whitespace-pre-wrap break-words pointer-events-none"
+                ref={tooltipRef}
+                className="fixed z-[9999] p-3 text-sm text-neutral-200 bg-neutral-900 border border-neutral-700 rounded-lg shadow-xl"
                 style={{
                   top: tooltipPosition.top,
                   left: tooltipPosition.left,
-                  transform: "translateY(-100%) translateX(-100%)",
+                  transform: "translateY(-100%) translateX(-50%)",
                 }}
               >
-                {comment}
+                {/* Navigation controls - only show when focused and navigation available */}
+                {isCommentFocused && commentNavigation && (
+                  <div className="flex items-center justify-center gap-3 mb-2 pb-2 border-b border-neutral-700">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        commentNavigation.onPrevious();
+                      }}
+                      className="nodrag nopan w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-neutral-100 hover:bg-neutral-700 rounded transition-colors"
+                      title="Previous comment"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <span className="text-xs text-neutral-400 min-w-[32px] text-center">
+                      {commentNavigation.currentIndex}/{commentNavigation.totalCount}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        commentNavigation.onNext();
+                      }}
+                      className="nodrag nopan w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-neutral-100 hover:bg-neutral-700 rounded transition-colors"
+                      title="Next comment"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+                <div className="max-w-[240px] whitespace-pre-wrap break-words">
+                  {comment}
+                </div>
               </div>,
               document.body
             )}

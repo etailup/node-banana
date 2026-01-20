@@ -22,6 +22,7 @@ export interface WorkflowSaveConfig {
   directoryPath: string;
   generationsPath: string | null;
   lastSavedAt: number | null;
+  useExternalImageStorage?: boolean;  // Whether to store images as files vs embedded base64
 }
 
 // Cost tracking data stored per-workflow in localStorage

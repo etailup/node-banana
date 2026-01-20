@@ -3,6 +3,7 @@
 import { useCallback, useState, useMemo } from "react";
 import { Handle, Position, NodeProps, Node } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
+import { useCommentNavigation } from "@/hooks/useCommentNavigation";
 import { useWorkflowStore } from "@/store/workflowStore";
 import { OutputNodeData } from "@/types";
 
@@ -10,6 +11,7 @@ type OutputNodeType = Node<OutputNodeData, "output">;
 
 export function OutputNode({ id, data, selected }: NodeProps<OutputNodeType>) {
   const nodeData = data;
+  const commentNavigation = useCommentNavigation(id);
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const [showLightbox, setShowLightbox] = useState(false);
 
@@ -32,7 +34,11 @@ export function OutputNode({ id, data, selected }: NodeProps<OutputNodeType>) {
     if (!contentSrc) return;
 
     const timestamp = Date.now();
-    const filename = isVideo ? `generated-${timestamp}.mp4` : `generated-${timestamp}.png`;
+    const extension = isVideo ? "mp4" : "png";
+    // Use custom filename if provided, otherwise use timestamp
+    const filename = nodeData.outputFilename
+      ? `${nodeData.outputFilename}.${extension}`
+      : `generated-${timestamp}.${extension}`;
 
     // Handle URL-based content (needs fetch + blob conversion)
     if (contentSrc.startsWith("http://") || contentSrc.startsWith("https://")) {
@@ -61,7 +67,7 @@ export function OutputNode({ id, data, selected }: NodeProps<OutputNodeType>) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  }, [contentSrc, isVideo]);
+  }, [contentSrc, isVideo, nodeData.outputFilename]);
 
   return (
     <>
@@ -74,6 +80,7 @@ export function OutputNode({ id, data, selected }: NodeProps<OutputNodeType>) {
         onCommentChange={(comment) => updateNodeData(id, { comment: comment || undefined })}
         selected={selected}
         className="min-w-[200px]"
+        commentNavigation={commentNavigation ?? undefined}
       >
         <Handle
           type="target"
@@ -124,6 +131,17 @@ export function OutputNode({ id, data, selected }: NodeProps<OutputNodeType>) {
             <span className="text-neutral-500 text-[10px]">Waiting for image or video</span>
           </div>
         )}
+
+        {/* Filename input */}
+        <div className="mt-2 shrink-0">
+          <input
+            type="text"
+            value={nodeData.outputFilename || ""}
+            onChange={(e) => updateNodeData(id, { outputFilename: e.target.value })}
+            placeholder="Output filename (optional)"
+            className="nodrag nopan w-full px-2 py-1.5 text-[10px] bg-neutral-900/50 border border-neutral-700 rounded text-neutral-200 placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-600"
+          />
+        </div>
       </BaseNode>
 
       {/* Lightbox Modal */}

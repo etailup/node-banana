@@ -162,6 +162,7 @@ export interface OutputNodeData extends BaseNodeData {
   imageRef?: string; // External image reference for storage optimization
   video?: string | null; // Video data URL or HTTP URL
   contentType?: "image" | "video"; // Explicit content type hint
+  outputFilename?: string; // Custom filename for saved outputs (without extension)
 }
 
 /**

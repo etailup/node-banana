@@ -61,7 +61,7 @@ async function findExistingFileByHash(
   }
 }
 
-// POST: Save a generated image or video to the generations folder
+// POST: Save a generated image or video to the generations folder (or outputs folder)
 export async function POST(request: NextRequest) {
   let directoryPath: string | undefined;
   try {
@@ -71,6 +71,8 @@ export async function POST(request: NextRequest) {
     const video = body.video;
     const prompt = body.prompt;
     const imageId = body.imageId; // Optional ID for carousel support
+    const customFilename = body.customFilename; // Optional custom filename (without extension)
+    const createDirectory = body.createDirectory; // Optional flag to create directory if it doesn't exist
 
     const isVideo = !!video;
     const content = video || image;
@@ -80,6 +82,7 @@ export async function POST(request: NextRequest) {
       hasImage: !!image,
       hasVideo: !!video,
       prompt,
+      customFilename,
     });
 
     if (!directoryPath || !content) {
@@ -93,7 +96,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate directory exists
+    // Validate directory exists (or create if requested)
     try {
       const stats = await fs.stat(directoryPath);
       if (!stats.isDirectory()) {
@@ -106,13 +109,29 @@ export async function POST(request: NextRequest) {
         );
       }
     } catch (dirError) {
-      logger.warn('file.error', 'Generation save failed: directory does not exist', {
-        directoryPath,
-      });
-      return NextResponse.json(
-        { success: false, error: "Directory does not exist" },
-        { status: 400 }
-      );
+      // Directory doesn't exist - create it if requested
+      if (createDirectory) {
+        try {
+          await fs.mkdir(directoryPath, { recursive: true });
+          logger.info('file.save', 'Created output directory', { directoryPath });
+        } catch (mkdirError) {
+          logger.error('file.error', 'Failed to create output directory', {
+            directoryPath,
+          }, mkdirError instanceof Error ? mkdirError : undefined);
+          return NextResponse.json(
+            { success: false, error: "Failed to create output directory" },
+            { status: 500 }
+          );
+        }
+      } else {
+        logger.warn('file.error', 'Generation save failed: directory does not exist', {
+          directoryPath,
+        });
+        return NextResponse.json(
+          { success: false, error: "Directory does not exist" },
+          { status: 400 }
+        );
+      }
     }
 
     let buffer: Buffer;
@@ -201,16 +220,26 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Generate filename with hash suffix for deduplication
-    const promptSnippet = prompt
-      ? prompt
-          .slice(0, 30)
-          .replace(/[^a-zA-Z0-9]/g, "_")
-          .replace(/_+/g, "_")
-          .replace(/^_|_$/g, "")
-          .toLowerCase()
-      : "generation";
-    const filename = `${promptSnippet}_${contentHash}.${extension}`;
+    // Generate filename - use custom filename if provided, otherwise use prompt snippet
+    let filename: string;
+    if (customFilename) {
+      // Sanitize custom filename
+      const sanitizedFilename = customFilename
+        .replace(/[^a-zA-Z0-9-_]/g, "_")
+        .replace(/_+/g, "_")
+        .replace(/^_|_$/g, "");
+      filename = `${sanitizedFilename}_${contentHash}.${extension}`;
+    } else {
+      const promptSnippet = prompt
+        ? prompt
+            .slice(0, 30)
+            .replace(/[^a-zA-Z0-9]/g, "_")
+            .replace(/_+/g, "_")
+            .replace(/^_|_$/g, "")
+            .toLowerCase()
+        : "generation";
+      filename = `${promptSnippet}_${contentHash}.${extension}`;
+    }
     const filePath = path.join(directoryPath, filename);
 
     // Write the file

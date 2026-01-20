@@ -120,3 +120,39 @@ export function calculateNodeSize(
     height: Math.round(totalHeight),
   };
 }
+
+/**
+ * Calculate node dimensions while preserving the user's manually set height.
+ * When a user manually resizes a node, we should maintain their height preference
+ * and only adjust the width to match the new content's aspect ratio.
+ *
+ * @param aspectRatio - Width divided by height of the content
+ * @param currentHeight - The node's current height (if manually set)
+ * @returns {width, height} dimensions that preserve height when possible
+ */
+export function calculateNodeSizePreservingHeight(
+  aspectRatio: number,
+  currentHeight?: number
+): { width: number; height: number } {
+  // Handle invalid aspect ratios
+  if (!aspectRatio || aspectRatio <= 0 || !isFinite(aspectRatio)) {
+    return { width: 300, height: 300 };
+  }
+
+  // No current height or below minimum = use default behavior
+  if (!currentHeight || currentHeight < MIN_HEIGHT) {
+    return calculateNodeSize(aspectRatio);
+  }
+
+  // Preserve height, calculate width to maintain aspect ratio
+  const contentHeight = currentHeight - NODE_CHROME_HEIGHT;
+  let newWidth = contentHeight * aspectRatio;
+
+  // Clamp width to constraints
+  newWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, newWidth));
+
+  return {
+    width: Math.round(newWidth),
+    height: Math.round(currentHeight),
+  };
+}

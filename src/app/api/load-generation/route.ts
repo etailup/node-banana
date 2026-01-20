@@ -85,14 +85,17 @@ export async function POST(request: NextRequest) {
     }
 
     if (!foundExtension || !filePath) {
-      logger.warn('file.error', 'Generation load failed: file not found', {
+      // Return 200 with success: false to avoid Next.js error overlay
+      // Missing files are expected when workflow refs point to deleted/moved images
+      logger.info('file.load', 'Generation file not found (expected for missing refs)', {
         imageId,
         directoryPath,
       });
-      return NextResponse.json(
-        { success: false, error: "File not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({
+        success: false,
+        error: "File not found",
+        notFound: true,
+      });
     }
 
     // Read the file
