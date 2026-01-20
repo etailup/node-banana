@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import { Handle, Position, NodeProps, Node } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
+import { useCommentNavigation } from "@/hooks/useCommentNavigation";
 import { useWorkflowStore } from "@/store/workflowStore";
 import { PromptNodeData } from "@/types";
 import { PromptEditorModal } from "@/components/modals/PromptEditorModal";
@@ -12,6 +13,7 @@ type PromptNodeType = Node<PromptNodeData, "prompt">;
 
 export function PromptNode({ id, data, selected }: NodeProps<PromptNodeType>) {
   const nodeData = data;
+  const commentNavigation = useCommentNavigation(id);
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const incrementModalCount = useWorkflowStore((state) => state.incrementModalCount);
   const decrementModalCount = useWorkflowStore((state) => state.decrementModalCount);
@@ -52,6 +54,7 @@ export function PromptNode({ id, data, selected }: NodeProps<PromptNodeType>) {
         onCommentChange={(comment) => updateNodeData(id, { comment: comment || undefined })}
         onExpand={handleOpenModal}
         selected={selected}
+        commentNavigation={commentNavigation ?? undefined}
       >
         <textarea
           value={nodeData.prompt}

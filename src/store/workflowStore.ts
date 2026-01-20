@@ -19,6 +19,7 @@ import {
   GenerateVideoNodeData,
   LLMGenerateNodeData,
   SplitGridNodeData,
+  OutputNodeData,
   WorkflowNodeData,
   ImageHistoryItem,
   NodeGroup,
@@ -42,6 +43,7 @@ import {
   getRecentModels,
   saveRecentModels,
   MAX_RECENT_MODELS,
+  generateWorkflowId,
 } from "./utils/localStorage";
 import {
   createDefaultNodeData,
@@ -130,7 +132,7 @@ interface WorkflowStore {
 
   // Helpers
   getNodeById: (id: string) => WorkflowNode | undefined;
-  getConnectedInputs: (nodeId: string) => { images: string[]; text: string | null; dynamicInputs: Record<string, string> };
+  getConnectedInputs: (nodeId: string) => { images: string[]; videos: string[]; text: string | null; dynamicInputs: Record<string, string> };
   validateWorkflow: () => { valid: boolean; errors: string[] };
 
   // Global Image History
@@ -148,6 +150,7 @@ interface WorkflowStore {
   autoSaveEnabled: boolean;
   isSaving: boolean;
   useExternalImageStorage: boolean;  // Store images as separate files vs embedded base64
+  imageRefBasePath: string | null;  // Directory from which current imageRefs are valid
 
   // Auto-save actions
   setWorkflowMetadata: (id: string, name: string, path: string, generationsPath?: string | null) => void;
@@ -189,6 +192,19 @@ interface WorkflowStore {
 
   // Recent models actions
   trackModelUsage: (model: { provider: ProviderType; modelId: string; displayName: string }) => void;
+
+  // Comment navigation state
+  viewedCommentNodeIds: Set<string>;
+  navigationTarget: { nodeId: string; timestamp: number } | null;
+  focusedCommentNodeId: string | null;
+
+  // Comment navigation actions
+  getNodesWithComments: () => WorkflowNode[];
+  getUnviewedCommentCount: () => number;
+  markCommentViewed: (nodeId: string) => void;
+  setNavigationTarget: (nodeId: string | null) => void;
+  setFocusedCommentNodeId: (nodeId: string | null) => void;
+  resetViewedComments: () => void;
 }
 
 let nodeIdCounter = 0;
@@ -264,6 +280,21 @@ async function waitForPendingImageSyncs(): Promise<void> {
   await Promise.all(pendingImageSyncs.values());
 }
 
+// Clear all imageRefs from nodes (used when saving to a different directory)
+function clearNodeImageRefs(nodes: WorkflowNode[]): WorkflowNode[] {
+  return nodes.map(node => {
+    const data = { ...node.data } as Record<string, unknown>;
+
+    // Clear all ref fields regardless of node type
+    delete data.imageRef;
+    delete data.sourceImageRef;
+    delete data.outputImageRef;
+    delete data.inputImageRefs;
+
+    return { ...node, data: data as WorkflowNodeData } as WorkflowNode;
+  });
+}
+
 // Re-export for backward compatibility
 export { generateWorkflowId, saveGenerateImageDefaults, saveNanoBananaDefaults } from "./utils/localStorage";
 export { GROUP_COLORS } from "./utils/nodeDefaults";
@@ -292,6 +323,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   autoSaveEnabled: true,
   isSaving: false,
   useExternalImageStorage: true,  // Default: store images as separate files
+  imageRefBasePath: null,  // Directory from which current imageRefs are valid
 
   // Cost tracking initial state
   incurredCost: 0,
@@ -305,6 +337,11 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
   // Recent models initial state
   recentModels: getRecentModels(),
+
+  // Comment navigation initial state
+  viewedCommentNodeIds: new Set<string>(),
+  navigationTarget: null,
+  focusedCommentNodeId: null,
 
   setEdgeStyle: (style: EdgeStyle) => {
     set({ edgeStyle: style });
@@ -668,6 +705,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   getConnectedInputs: (nodeId: string) => {
     const { edges, nodes } = get();
     const images: string[] = [];
+    const videos: string[] = [];
     let text: string | null = null;
     const dynamicInputs: Record<string, string> = {};
 
@@ -742,7 +780,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         if (!sourceNode) return;
 
         const handleId = edge.targetHandle;
-        const { value } = getSourceOutput(sourceNode);
+        const { type, value } = getSourceOutput(sourceNode);
 
         if (!value) return;
 
@@ -752,15 +790,18 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           dynamicInputs[handleToSchemaName[handleId]] = value;
         }
 
-        // Also populate legacy arrays for backward compatibility
-        if (isImageHandle(handleId) || !handleId) {
-          images.push(value);
-        } else if (isTextHandle(handleId)) {
+        // Route to typed arrays based on source output type
+        // This preserves type information from the source node
+        if (type === "video") {
+          videos.push(value);
+        } else if (type === "text" || isTextHandle(handleId)) {
           text = value;
+        } else if (isImageHandle(handleId) || !handleId) {
+          images.push(value);
         }
       });
 
-    return { images, text, dynamicInputs };
+    return { images, videos, text, dynamicInputs };
   },
 
   validateWorkflow: () => {
@@ -1582,14 +1623,45 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           }
 
           case "output": {
-            const { images } = getConnectedInputs(node.id);
-            const content = images[0] || null;
-            if (content) {
-              // Detect if content is video (data URL or URL extension)
+            const { images, videos } = getConnectedInputs(node.id);
+
+            // Check videos array first (typed data from source)
+            if (videos.length > 0) {
+              const videoContent = videos[0];
+              updateNodeData(node.id, {
+                image: videoContent,
+                video: videoContent,
+                contentType: "video"
+              });
+
+              // Save to /outputs directory if we have a project path
+              const { saveDirectoryPath } = get();
+              if (saveDirectoryPath) {
+                const outputNodeData = node.data as OutputNodeData;
+                const outputsPath = `${saveDirectoryPath}/outputs`;
+
+                // Fire and forget - don't block workflow execution
+                fetch("/api/save-generation", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    directoryPath: outputsPath,
+                    video: videoContent,
+                    customFilename: outputNodeData.outputFilename || undefined,
+                    createDirectory: true, // Create /outputs if it doesn't exist
+                  }),
+                }).catch((err) => {
+                  console.error("Failed to save output:", err);
+                });
+              }
+            } else if (images.length > 0) {
+              const content = images[0];
+              // Fallback pattern matching for edge cases (video data that ended up in images array)
               const isVideoContent =
                 content.startsWith("data:video/") ||
                 content.includes(".mp4") ||
-                content.includes(".webm");
+                content.includes(".webm") ||
+                content.includes("fal.media");  // fal.ai video URLs
 
               if (isVideoContent) {
                 updateNodeData(node.id, {
@@ -1602,6 +1674,28 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   image: content,
                   video: null,
                   contentType: "image"
+                });
+              }
+
+              // Save to /outputs directory if we have a project path
+              const { saveDirectoryPath } = get();
+              if (saveDirectoryPath) {
+                const outputNodeData = node.data as OutputNodeData;
+                const outputsPath = `${saveDirectoryPath}/outputs`;
+
+                // Fire and forget - don't block workflow execution
+                fetch("/api/save-generation", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    directoryPath: outputsPath,
+                    image: isVideoContent ? undefined : content,
+                    video: isVideoContent ? content : undefined,
+                    customFilename: outputNodeData.outputFilename || undefined,
+                    createDirectory: true, // Create /outputs if it doesn't exist
+                  }),
+                }).catch((err) => {
+                  console.error("Failed to save output:", err);
                 });
               }
             }
@@ -2358,6 +2452,12 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       hasUnsavedChanges: false,
       // Restore cost data
       incurredCost: costData?.incurredCost || 0,
+      // Track where imageRefs are valid from
+      imageRefBasePath: directoryPath || null,
+      // Restore image storage setting (default to true for backwards compatibility)
+      useExternalImageStorage: savedConfig?.useExternalImageStorage ?? true,
+      // Reset viewed comments when loading new workflow
+      viewedCommentNodeIds: new Set<string>(),
     });
   },
 
@@ -2377,6 +2477,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       hasUnsavedChanges: false,
       // Reset cost tracking
       incurredCost: 0,
+      // Reset imageRef tracking
+      imageRefBasePath: null,
+      // Reset viewed comments when clearing workflow
+      viewedCommentNodeIds: new Set<string>(),
     });
   },
 
@@ -2435,7 +2539,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   },
 
   saveToFile: async () => {
-    const {
+    let {
       nodes,
       edges,
       edgeStyle,
@@ -2444,6 +2548,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       workflowName,
       saveDirectoryPath,
       useExternalImageStorage,
+      imageRefBasePath,
     } = get();
 
     if (!workflowId || !workflowName || !saveDirectoryPath) {
@@ -2458,7 +2563,38 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       await waitForPendingImageSyncs();
 
       // Re-fetch nodes after waiting, as imageHistory IDs may have been updated
-      const currentNodes = get().nodes;
+      let currentNodes = get().nodes;
+
+      // Check if any nodes have existing image refs
+      // This helps detect "save to new directory" when imageRefBasePath wasn't set
+      // (e.g., workflow loaded from file dialog without directory context)
+      const hasExistingRefs = currentNodes.some(node => {
+        const data = node.data as Record<string, unknown>;
+        return data.imageRef || data.outputImageRef || data.sourceImageRef || data.inputImageRefs;
+      });
+
+      // If saving to a different directory than where refs point, clear refs
+      // so images will be re-saved to the new location
+      const isNewDirectory = useExternalImageStorage && (
+        // Case 1: Known different directory
+        (imageRefBasePath !== null && imageRefBasePath !== saveDirectoryPath) ||
+        // Case 2: Has refs but unknown where they came from - treat as new directory to be safe
+        (imageRefBasePath === null && hasExistingRefs)
+      );
+
+      if (isNewDirectory) {
+        // Generate new workflow ID for the duplicate - prevents localStorage collision
+        // This ensures the new project has independent config and preserves the original
+        const newWorkflowId = generateWorkflowId();
+        workflowId = newWorkflowId;
+
+        // Clear refs so images get saved to new location
+        currentNodes = clearNodeImageRefs(currentNodes);
+        set({
+          nodes: currentNodes,
+          workflowId: newWorkflowId,
+        });
+      }
 
       let workflow: WorkflowFile = {
         version: 1,
@@ -2527,12 +2663,16 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             lastSavedAt: timestamp,
             hasUnsavedChanges: false,
             isSaving: false,
+            // Update imageRefBasePath to reflect new save location
+            imageRefBasePath: saveDirectoryPath,
           });
         } else {
           set({
             lastSavedAt: timestamp,
             hasUnsavedChanges: false,
             isSaving: false,
+            // Update imageRefBasePath to reflect save location
+            imageRefBasePath: useExternalImageStorage ? saveDirectoryPath : null,
           });
         }
 
@@ -2543,6 +2683,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           directoryPath: saveDirectoryPath,
           generationsPath: get().generationsPath,
           lastSavedAt: timestamp,
+          useExternalImageStorage,
         });
 
         return true;
@@ -2675,5 +2816,62 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     // Save to localStorage and update state
     saveRecentModels(updated);
     set({ recentModels: updated });
+  },
+
+  // Comment navigation actions
+  getNodesWithComments: () => {
+    const { nodes } = get();
+    // Filter nodes that have comments
+    const nodesWithComments = nodes.filter((node) => {
+      const data = node.data as { comment?: string };
+      return data.comment && data.comment.trim().length > 0;
+    });
+
+    // Sort by position: top-to-bottom (Y), then left-to-right (X)
+    // Use 50px threshold for row grouping
+    const ROW_THRESHOLD = 50;
+    return nodesWithComments.sort((a, b) => {
+      // Check if nodes are in the same "row" (within threshold)
+      const yDiff = a.position.y - b.position.y;
+      if (Math.abs(yDiff) <= ROW_THRESHOLD) {
+        // Same row, sort by X position
+        return a.position.x - b.position.x;
+      }
+      // Different rows, sort by Y position
+      return yDiff;
+    });
+  },
+
+  getUnviewedCommentCount: () => {
+    const { viewedCommentNodeIds } = get();
+    const nodesWithComments = get().getNodesWithComments();
+    return nodesWithComments.filter((node) => !viewedCommentNodeIds.has(node.id)).length;
+  },
+
+  markCommentViewed: (nodeId: string) => {
+    set((state) => {
+      const newViewedSet = new Set(state.viewedCommentNodeIds);
+      newViewedSet.add(nodeId);
+      return { viewedCommentNodeIds: newViewedSet };
+    });
+  },
+
+  setNavigationTarget: (nodeId: string | null) => {
+    if (nodeId === null) {
+      set({ navigationTarget: null });
+    } else {
+      // Use timestamp to ensure each navigation triggers a new effect even if same node
+      set({ navigationTarget: { nodeId, timestamp: Date.now() } });
+      // Also focus the comment tooltip on the target node
+      set({ focusedCommentNodeId: nodeId });
+    }
+  },
+
+  setFocusedCommentNodeId: (nodeId: string | null) => {
+    set({ focusedCommentNodeId: nodeId });
+  },
+
+  resetViewedComments: () => {
+    set({ viewedCommentNodeIds: new Set<string>() });
   },
 }));

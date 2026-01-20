@@ -8,16 +8,27 @@ const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
 // Mock templates
-vi.mock("@/lib/quickstart/templates", () => ({
-  getAllPresets: () => [
-    {
-      id: "product-shot",
+vi.mock("@/lib/quickstart/templates", () => {
+  const template = {
+    id: "product-shot",
+    name: "Product Shot",
+    description: "Place product in a new scene or environment",
+    icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4",
+    category: "product",
+    tags: ["Gemini"],
+    workflow: {
       name: "Product Shot",
-      description: "Place product in a new scene or environment",
-      icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4",
+      nodes: [{ id: "1", type: "imageInput", position: { x: 0, y: 0 }, data: {} }],
+      edges: [],
     },
-  ],
-}));
+  };
+  return {
+    getAllPresets: () => [template],
+    PRESET_TEMPLATES: [template],
+    getPresetTemplate: (id: string) => (id === "product-shot" ? { ...template, id: `workflow-${Date.now()}` } : null),
+    getTemplateContent: () => ({ prompts: {}, images: {} }),
+  };
+});
 
 describe("WelcomeModal", () => {
   const mockOnWorkflowGenerated = vi.fn();
@@ -99,7 +110,7 @@ describe("WelcomeModal", () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText("Workflow Templates")).toBeInTheDocument();
+        expect(screen.getByText("Template Explorer")).toBeInTheDocument();
         expect(screen.getByText("Quick Start")).toBeInTheDocument();
       });
     });
@@ -134,7 +145,7 @@ describe("WelcomeModal", () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText("Workflow Templates")).toBeInTheDocument();
+        expect(screen.getByText("Template Explorer")).toBeInTheDocument();
       });
 
       // Click back
@@ -370,7 +381,7 @@ describe("WelcomeModal", () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText("Workflow Templates")).toBeInTheDocument();
+        expect(screen.getByText("Template Explorer")).toBeInTheDocument();
       });
 
       // Verify templates view is showing - the actual workflow selection is tested in QuickstartTemplatesView tests

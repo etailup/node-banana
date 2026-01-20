@@ -176,9 +176,9 @@ const findScrollableAncestor = (target: HTMLElement, deltaX: number, deltaY: num
 };
 
 export function WorkflowCanvas() {
-  const { nodes, edges, groups, onNodesChange, onEdgesChange, onConnect, addNode, updateNodeData, loadWorkflow, getNodeById, addToGlobalHistory, setNodeGroupId, executeWorkflow, isModalOpen, showQuickstart, setShowQuickstart } =
+  const { nodes, edges, groups, onNodesChange, onEdgesChange, onConnect, addNode, updateNodeData, loadWorkflow, getNodeById, addToGlobalHistory, setNodeGroupId, executeWorkflow, isModalOpen, showQuickstart, setShowQuickstart, navigationTarget, setNavigationTarget } =
     useWorkflowStore();
-  const { screenToFlowPosition, getViewport, zoomIn, zoomOut, setViewport } = useReactFlow();
+  const { screenToFlowPosition, getViewport, zoomIn, zoomOut, setViewport, setCenter } = useReactFlow();
   const [isDragOver, setIsDragOver] = useState(false);
   const [dropType, setDropType] = useState<"image" | "workflow" | "node" | null>(null);
   const [connectionDrop, setConnectionDrop] = useState<ConnectionDropState | null>(null);
@@ -187,6 +187,25 @@ export function WorkflowCanvas() {
 
   // Detect if canvas is empty for showing quickstart
   const isCanvasEmpty = nodes.length === 0;
+
+  // Handle comment navigation - center viewport on target node
+  useEffect(() => {
+    if (navigationTarget) {
+      const targetNode = nodes.find((n) => n.id === navigationTarget.nodeId);
+      if (targetNode) {
+        // Calculate center of node
+        const nodeWidth = (targetNode.style?.width as number) || 300;
+        const nodeHeight = (targetNode.style?.height as number) || 280;
+        const centerX = targetNode.position.x + nodeWidth / 2;
+        const centerY = targetNode.position.y + nodeHeight / 2;
+
+        // Navigate to node center with animation, zoomed out to 0.7 for better context
+        setCenter(centerX, centerY, { duration: 300, zoom: 0.7 });
+      }
+      // Clear navigation target after navigating
+      setNavigationTarget(null);
+    }
+  }, [navigationTarget, nodes, setCenter, setNavigationTarget]);
 
   // Just pass regular nodes to React Flow - groups are rendered separately
   const allNodes = useMemo(() => {
@@ -819,19 +838,35 @@ export function WorkflowCanvas() {
               const reader = new FileReader();
               reader.onload = (e) => {
                 const dataUrl = e.target?.result as string;
-                const viewport = getViewport();
-                const centerX = (-viewport.x + window.innerWidth / 2) / viewport.zoom;
-                const centerY = (-viewport.y + window.innerHeight / 2) / viewport.zoom;
 
                 const img = new Image();
                 img.onload = () => {
-                  // ImageInput node default dimensions: 300x280
-                  const nodeId = addNode("imageInput", { x: centerX - 150, y: centerY - 140 });
-                  updateNodeData(nodeId, {
-                    image: dataUrl,
-                    filename: `pasted-${Date.now()}.png`,
-                    dimensions: { width: img.width, height: img.height },
-                  });
+                  // Check if an imageInput node is selected - if so, update it instead of creating new
+                  const selectedImageInputNode = nodes.find(
+                    (node) => node.selected && node.type === "imageInput"
+                  );
+
+                  if (selectedImageInputNode) {
+                    // Update the selected imageInput node with the pasted image
+                    updateNodeData(selectedImageInputNode.id, {
+                      image: dataUrl,
+                      filename: `pasted-${Date.now()}.png`,
+                      dimensions: { width: img.width, height: img.height },
+                    });
+                  } else {
+                    // No imageInput node selected - create a new one at viewport center
+                    const viewport = getViewport();
+                    const centerX = (-viewport.x + window.innerWidth / 2) / viewport.zoom;
+                    const centerY = (-viewport.y + window.innerHeight / 2) / viewport.zoom;
+
+                    // ImageInput node default dimensions: 300x280
+                    const nodeId = addNode("imageInput", { x: centerX - 150, y: centerY - 140 });
+                    updateNodeData(nodeId, {
+                      image: dataUrl,
+                      filename: `pasted-${Date.now()}.png`,
+                      dimensions: { width: img.width, height: img.height },
+                    });
+                  }
                 };
                 img.src = dataUrl;
               };

@@ -29,6 +29,12 @@ vi.mock("@/components/CostIndicator", () => ({
   CostIndicator: () => <div data-testid="cost-indicator">$0.00</div>,
 }));
 
+// Mock functions for comment navigation
+const mockGetNodesWithComments = vi.fn();
+const mockGetUnviewedCommentCount = vi.fn();
+const mockMarkCommentViewed = vi.fn();
+const mockSetNavigationTarget = vi.fn();
+
 // Default store state factory
 const createDefaultState = (overrides = {}) => ({
   workflowName: "",
@@ -40,6 +46,11 @@ const createDefaultState = (overrides = {}) => ({
   setWorkflowMetadata: mockSetWorkflowMetadata,
   saveToFile: mockSaveToFile,
   loadWorkflow: mockLoadWorkflow,
+  getNodesWithComments: mockGetNodesWithComments,
+  getUnviewedCommentCount: mockGetUnviewedCommentCount,
+  viewedCommentNodeIds: new Set<string>(),
+  markCommentViewed: mockMarkCommentViewed,
+  setNavigationTarget: mockSetNavigationTarget,
   ...overrides,
 });
 
@@ -47,6 +58,8 @@ describe("Header", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Default mock implementation - unconfigured project
+    mockGetNodesWithComments.mockReturnValue([]);
+    mockGetUnviewedCommentCount.mockReturnValue(0);
     mockUseWorkflowStore.mockImplementation((selector) => {
       return selector(createDefaultState());
     });
@@ -408,6 +421,142 @@ describe("Header", () => {
 
       // File input should accept .json files
       expect(fileInput).toHaveAttribute("accept", ".json");
+    });
+  });
+
+  describe("Comments Navigation Icon", () => {
+    it("should not render comments icon when no comments exist", () => {
+      mockGetNodesWithComments.mockReturnValue([]);
+      mockGetUnviewedCommentCount.mockReturnValue(0);
+
+      render(<Header />);
+
+      // No button with comment-related title should exist
+      expect(screen.queryByTitle(/unviewed comment/)).not.toBeInTheDocument();
+    });
+
+    it("should render comments icon with badge when comments exist", () => {
+      const mockNodes = [
+        { id: "node-1", position: { x: 0, y: 0 }, type: "prompt", data: { comment: "Test" } },
+        { id: "node-2", position: { x: 100, y: 0 }, type: "prompt", data: { comment: "Test 2" } },
+      ];
+      mockGetNodesWithComments.mockReturnValue(mockNodes);
+      mockGetUnviewedCommentCount.mockReturnValue(2);
+
+      mockUseWorkflowStore.mockImplementation((selector) => {
+        return selector(createDefaultState());
+      });
+
+      render(<Header />);
+
+      const commentsButton = screen.getByTitle(/2 unviewed comments/);
+      expect(commentsButton).toBeInTheDocument();
+    });
+
+    it("should show 9+ when unviewed count exceeds 9", () => {
+      const mockNodes = Array.from({ length: 10 }, (_, i) => ({
+        id: `node-${i}`,
+        position: { x: i * 100, y: 0 },
+        type: "prompt",
+        data: { comment: `Comment ${i}` },
+      }));
+      mockGetNodesWithComments.mockReturnValue(mockNodes);
+      mockGetUnviewedCommentCount.mockReturnValue(10);
+
+      mockUseWorkflowStore.mockImplementation((selector) => {
+        return selector(createDefaultState());
+      });
+
+      render(<Header />);
+
+      // Badge should show 9+
+      expect(screen.getByText("9+")).toBeInTheDocument();
+    });
+
+    it("should call setNavigationTarget when clicked", () => {
+      const mockNodes = [
+        { id: "node-1", position: { x: 0, y: 0 }, type: "prompt", data: { comment: "Test" } },
+      ];
+      mockGetNodesWithComments.mockReturnValue(mockNodes);
+      mockGetUnviewedCommentCount.mockReturnValue(1);
+
+      mockUseWorkflowStore.mockImplementation((selector) => {
+        return selector(createDefaultState());
+      });
+
+      render(<Header />);
+
+      const commentsButton = screen.getByTitle(/1 unviewed comment/);
+      fireEvent.click(commentsButton);
+
+      expect(mockSetNavigationTarget).toHaveBeenCalledWith("node-1");
+    });
+
+    it("should call markCommentViewed when clicked", () => {
+      const mockNodes = [
+        { id: "node-1", position: { x: 0, y: 0 }, type: "prompt", data: { comment: "Test" } },
+      ];
+      mockGetNodesWithComments.mockReturnValue(mockNodes);
+      mockGetUnviewedCommentCount.mockReturnValue(1);
+
+      mockUseWorkflowStore.mockImplementation((selector) => {
+        return selector(createDefaultState());
+      });
+
+      render(<Header />);
+
+      const commentsButton = screen.getByTitle(/1 unviewed comment/);
+      fireEvent.click(commentsButton);
+
+      expect(mockMarkCommentViewed).toHaveBeenCalledWith("node-1");
+    });
+
+    it("should navigate to first unviewed comment when clicked", () => {
+      const mockNodes = [
+        { id: "node-1", position: { x: 0, y: 0 }, type: "prompt", data: { comment: "Test" } },
+        { id: "node-2", position: { x: 100, y: 0 }, type: "prompt", data: { comment: "Test 2" } },
+      ];
+      mockGetNodesWithComments.mockReturnValue(mockNodes);
+      mockGetUnviewedCommentCount.mockReturnValue(1);
+
+      // node-1 is already viewed
+      mockUseWorkflowStore.mockImplementation((selector) => {
+        return selector(createDefaultState({
+          viewedCommentNodeIds: new Set(["node-1"]),
+        }));
+      });
+
+      render(<Header />);
+
+      const commentsButton = screen.getByTitle(/1 unviewed comment/);
+      fireEvent.click(commentsButton);
+
+      // Should navigate to node-2 (first unviewed)
+      expect(mockSetNavigationTarget).toHaveBeenCalledWith("node-2");
+    });
+
+    it("should navigate to first comment when all viewed", () => {
+      const mockNodes = [
+        { id: "node-1", position: { x: 0, y: 0 }, type: "prompt", data: { comment: "Test" } },
+        { id: "node-2", position: { x: 100, y: 0 }, type: "prompt", data: { comment: "Test 2" } },
+      ];
+      mockGetNodesWithComments.mockReturnValue(mockNodes);
+      mockGetUnviewedCommentCount.mockReturnValue(0);
+
+      // All comments are viewed
+      mockUseWorkflowStore.mockImplementation((selector) => {
+        return selector(createDefaultState({
+          viewedCommentNodeIds: new Set(["node-1", "node-2"]),
+        }));
+      });
+
+      render(<Header />);
+
+      const commentsButton = screen.getByTitle(/0 unviewed comments/);
+      fireEvent.click(commentsButton);
+
+      // Should navigate to node-1 (first comment)
+      expect(mockSetNavigationTarget).toHaveBeenCalledWith("node-1");
     });
   });
 });

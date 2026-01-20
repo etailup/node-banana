@@ -2007,4 +2007,177 @@ describe("workflowStore integration tests", () => {
       });
     });
   });
+
+  describe("Comment navigation actions", () => {
+    describe("getNodesWithComments", () => {
+      it("should return only nodes with comments", () => {
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("node-1", "prompt", { prompt: "test", comment: "Has comment" }, { x: 0, y: 0 }),
+            createTestNode("node-2", "prompt", { prompt: "test" }, { x: 100, y: 0 }), // No comment
+            createTestNode("node-3", "prompt", { prompt: "test", comment: "Another comment" }, { x: 200, y: 0 }),
+          ],
+        });
+
+        const store = useWorkflowStore.getState();
+        const result = store.getNodesWithComments();
+
+        expect(result).toHaveLength(2);
+        expect(result.map(n => n.id)).toContain("node-1");
+        expect(result.map(n => n.id)).toContain("node-3");
+        expect(result.map(n => n.id)).not.toContain("node-2");
+      });
+
+      it("should sort nodes by Y position (top to bottom)", () => {
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("bottom-node", "prompt", { prompt: "test", comment: "Bottom" }, { x: 0, y: 200 }),
+            createTestNode("top-node", "prompt", { prompt: "test", comment: "Top" }, { x: 0, y: 0 }),
+          ],
+        });
+
+        const store = useWorkflowStore.getState();
+        const result = store.getNodesWithComments();
+
+        expect(result[0].id).toBe("top-node");
+        expect(result[1].id).toBe("bottom-node");
+      });
+
+      it("should sort nodes by X position within same row", () => {
+        // Within 50px Y threshold, should sort by X
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("right-node", "prompt", { prompt: "test", comment: "Right" }, { x: 200, y: 10 }),
+            createTestNode("left-node", "prompt", { prompt: "test", comment: "Left" }, { x: 0, y: 0 }),
+          ],
+        });
+
+        const store = useWorkflowStore.getState();
+        const result = store.getNodesWithComments();
+
+        expect(result[0].id).toBe("left-node");
+        expect(result[1].id).toBe("right-node");
+      });
+    });
+
+    describe("getUnviewedCommentCount", () => {
+      it("should return total count when no comments viewed", () => {
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("node-1", "prompt", { prompt: "test", comment: "Comment 1" }, { x: 0, y: 0 }),
+            createTestNode("node-2", "prompt", { prompt: "test", comment: "Comment 2" }, { x: 100, y: 0 }),
+          ],
+          viewedCommentNodeIds: new Set<string>(),
+        });
+
+        const store = useWorkflowStore.getState();
+        expect(store.getUnviewedCommentCount()).toBe(2);
+      });
+
+      it("should return correct count when some comments viewed", () => {
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("node-1", "prompt", { prompt: "test", comment: "Comment 1" }, { x: 0, y: 0 }),
+            createTestNode("node-2", "prompt", { prompt: "test", comment: "Comment 2" }, { x: 100, y: 0 }),
+          ],
+          viewedCommentNodeIds: new Set<string>(["node-1"]),
+        });
+
+        const store = useWorkflowStore.getState();
+        expect(store.getUnviewedCommentCount()).toBe(1);
+      });
+
+      it("should return 0 when all comments viewed", () => {
+        useWorkflowStore.setState({
+          nodes: [
+            createTestNode("node-1", "prompt", { prompt: "test", comment: "Comment 1" }, { x: 0, y: 0 }),
+            createTestNode("node-2", "prompt", { prompt: "test", comment: "Comment 2" }, { x: 100, y: 0 }),
+          ],
+          viewedCommentNodeIds: new Set<string>(["node-1", "node-2"]),
+        });
+
+        const store = useWorkflowStore.getState();
+        expect(store.getUnviewedCommentCount()).toBe(0);
+      });
+    });
+
+    describe("markCommentViewed", () => {
+      it("should add nodeId to viewedCommentNodeIds", () => {
+        useWorkflowStore.setState({
+          viewedCommentNodeIds: new Set<string>(),
+        });
+
+        const store = useWorkflowStore.getState();
+        store.markCommentViewed("node-1");
+
+        expect(useWorkflowStore.getState().viewedCommentNodeIds.has("node-1")).toBe(true);
+      });
+
+      it("should preserve existing viewed comments", () => {
+        useWorkflowStore.setState({
+          viewedCommentNodeIds: new Set<string>(["existing-node"]),
+        });
+
+        const store = useWorkflowStore.getState();
+        store.markCommentViewed("new-node");
+
+        const state = useWorkflowStore.getState();
+        expect(state.viewedCommentNodeIds.has("existing-node")).toBe(true);
+        expect(state.viewedCommentNodeIds.has("new-node")).toBe(true);
+      });
+    });
+
+    describe("setNavigationTarget", () => {
+      it("should set navigation target with nodeId and timestamp", () => {
+        const store = useWorkflowStore.getState();
+        store.setNavigationTarget("node-1");
+
+        const state = useWorkflowStore.getState();
+        expect(state.navigationTarget?.nodeId).toBe("node-1");
+        expect(state.navigationTarget?.timestamp).toBeDefined();
+      });
+
+      it("should clear navigation target when null passed", () => {
+        useWorkflowStore.setState({
+          navigationTarget: { nodeId: "node-1", timestamp: Date.now() },
+        });
+
+        const store = useWorkflowStore.getState();
+        store.setNavigationTarget(null);
+
+        expect(useWorkflowStore.getState().navigationTarget).toBeNull();
+      });
+    });
+
+    describe("resetViewedComments", () => {
+      it("should clear all viewed comments", () => {
+        useWorkflowStore.setState({
+          viewedCommentNodeIds: new Set<string>(["node-1", "node-2", "node-3"]),
+        });
+
+        const store = useWorkflowStore.getState();
+        store.resetViewedComments();
+
+        expect(useWorkflowStore.getState().viewedCommentNodeIds.size).toBe(0);
+      });
+    });
+
+    describe("loadWorkflow resets viewed comments", () => {
+      it("should reset viewedCommentNodeIds when loading workflow", async () => {
+        useWorkflowStore.setState({
+          viewedCommentNodeIds: new Set<string>(["node-1", "node-2"]),
+        });
+
+        const store = useWorkflowStore.getState();
+        await store.loadWorkflow({
+          id: "test-workflow",
+          name: "Test",
+          nodes: [],
+          edges: [],
+        });
+
+        expect(useWorkflowStore.getState().viewedCommentNodeIds.size).toBe(0);
+      });
+    });
+  });
 });

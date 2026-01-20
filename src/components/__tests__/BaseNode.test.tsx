@@ -39,6 +39,8 @@ describe("BaseNode", () => {
         currentNodeId: null,
         groups: {},
         nodes: [],
+        focusedCommentNodeId: null,
+        setFocusedCommentNodeId: vi.fn(),
       };
       return selector(state);
     });
@@ -475,6 +477,209 @@ describe("BaseNode", () => {
       expect(
         screen.queryByTitle("This node is in a locked group and will be skipped during execution")
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Comment Navigation in Tooltip", () => {
+    // Navigation arrows now appear in the tooltip, which shows when the comment is "focused"
+    // (via focusedCommentNodeId in the store) or when hovering
+
+    it("should not render navigation arrows when commentNavigation is not provided even when focused", () => {
+      mockUseWorkflowStore.mockImplementation((selector) => {
+        const state = {
+          currentNodeId: null,
+          groups: {},
+          nodes: [],
+          focusedCommentNodeId: "test-node-1", // This node is focused
+          setFocusedCommentNodeId: vi.fn(),
+        };
+        return selector(state);
+      });
+
+      render(
+        <TestWrapper>
+          <BaseNode {...defaultProps} comment="Test comment" onCommentChange={vi.fn()} />
+        </TestWrapper>
+      );
+
+      // Tooltip shows but no navigation arrows since commentNavigation not provided
+      expect(screen.queryByTitle("Previous comment")).not.toBeInTheDocument();
+      expect(screen.queryByTitle("Next comment")).not.toBeInTheDocument();
+    });
+
+    it("should render navigation arrows in tooltip when focused, commentNavigation provided, and comment exists", () => {
+      mockUseWorkflowStore.mockImplementation((selector) => {
+        const state = {
+          currentNodeId: null,
+          groups: {},
+          nodes: [],
+          focusedCommentNodeId: "test-node-1", // This node is focused
+          setFocusedCommentNodeId: vi.fn(),
+        };
+        return selector(state);
+      });
+
+      const commentNavigation = {
+        currentIndex: 2,
+        totalCount: 5,
+        onPrevious: vi.fn(),
+        onNext: vi.fn(),
+      };
+
+      render(
+        <TestWrapper>
+          <BaseNode
+            {...defaultProps}
+            comment="Test comment"
+            onCommentChange={vi.fn()}
+            commentNavigation={commentNavigation}
+          />
+        </TestWrapper>
+      );
+
+      expect(screen.getByTitle("Previous comment")).toBeInTheDocument();
+      expect(screen.getByTitle("Next comment")).toBeInTheDocument();
+    });
+
+    it("should render index indicator in tooltip showing current position when focused", () => {
+      mockUseWorkflowStore.mockImplementation((selector) => {
+        const state = {
+          currentNodeId: null,
+          groups: {},
+          nodes: [],
+          focusedCommentNodeId: "test-node-1",
+          setFocusedCommentNodeId: vi.fn(),
+        };
+        return selector(state);
+      });
+
+      const commentNavigation = {
+        currentIndex: 2,
+        totalCount: 5,
+        onPrevious: vi.fn(),
+        onNext: vi.fn(),
+      };
+
+      render(
+        <TestWrapper>
+          <BaseNode
+            {...defaultProps}
+            comment="Test comment"
+            onCommentChange={vi.fn()}
+            commentNavigation={commentNavigation}
+          />
+        </TestWrapper>
+      );
+
+      expect(screen.getByText("2/5")).toBeInTheDocument();
+    });
+
+    it("should call onPrevious when previous button is clicked in tooltip", () => {
+      mockUseWorkflowStore.mockImplementation((selector) => {
+        const state = {
+          currentNodeId: null,
+          groups: {},
+          nodes: [],
+          focusedCommentNodeId: "test-node-1",
+          setFocusedCommentNodeId: vi.fn(),
+        };
+        return selector(state);
+      });
+
+      const mockOnPrevious = vi.fn();
+      const commentNavigation = {
+        currentIndex: 2,
+        totalCount: 5,
+        onPrevious: mockOnPrevious,
+        onNext: vi.fn(),
+      };
+
+      render(
+        <TestWrapper>
+          <BaseNode
+            {...defaultProps}
+            comment="Test comment"
+            onCommentChange={vi.fn()}
+            commentNavigation={commentNavigation}
+          />
+        </TestWrapper>
+      );
+
+      const prevButton = screen.getByTitle("Previous comment");
+      fireEvent.click(prevButton);
+
+      expect(mockOnPrevious).toHaveBeenCalled();
+    });
+
+    it("should call onNext when next button is clicked in tooltip", () => {
+      mockUseWorkflowStore.mockImplementation((selector) => {
+        const state = {
+          currentNodeId: null,
+          groups: {},
+          nodes: [],
+          focusedCommentNodeId: "test-node-1",
+          setFocusedCommentNodeId: vi.fn(),
+        };
+        return selector(state);
+      });
+
+      const mockOnNext = vi.fn();
+      const commentNavigation = {
+        currentIndex: 2,
+        totalCount: 5,
+        onPrevious: vi.fn(),
+        onNext: mockOnNext,
+      };
+
+      render(
+        <TestWrapper>
+          <BaseNode
+            {...defaultProps}
+            comment="Test comment"
+            onCommentChange={vi.fn()}
+            commentNavigation={commentNavigation}
+          />
+        </TestWrapper>
+      );
+
+      const nextButton = screen.getByTitle("Next comment");
+      fireEvent.click(nextButton);
+
+      expect(mockOnNext).toHaveBeenCalled();
+    });
+
+    it("should not render arrows when no comment exists even when focused with commentNavigation prop", () => {
+      mockUseWorkflowStore.mockImplementation((selector) => {
+        const state = {
+          currentNodeId: null,
+          groups: {},
+          nodes: [],
+          focusedCommentNodeId: "test-node-1",
+          setFocusedCommentNodeId: vi.fn(),
+        };
+        return selector(state);
+      });
+
+      const commentNavigation = {
+        currentIndex: 1,
+        totalCount: 1,
+        onPrevious: vi.fn(),
+        onNext: vi.fn(),
+      };
+
+      render(
+        <TestWrapper>
+          <BaseNode
+            {...defaultProps}
+            onCommentChange={vi.fn()}
+            commentNavigation={commentNavigation}
+          />
+        </TestWrapper>
+      );
+
+      // No comment means tooltip won't show, so arrows shouldn't appear
+      expect(screen.queryByTitle("Previous comment")).not.toBeInTheDocument();
+      expect(screen.queryByTitle("Next comment")).not.toBeInTheDocument();
     });
   });
 

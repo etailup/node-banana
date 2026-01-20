@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import { Handle, Position, NodeProps, Node } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
+import { useCommentNavigation } from "@/hooks/useCommentNavigation";
 import { useWorkflowStore } from "@/store/workflowStore";
 import { LLMGenerateNodeData, LLMProvider, LLMModelType } from "@/types";
 
@@ -27,6 +28,7 @@ type LLMGenerateNodeType = Node<LLMGenerateNodeData, "llmGenerate">;
 
 export function LLMGenerateNode({ id, data, selected }: NodeProps<LLMGenerateNodeType>) {
   const nodeData = data;
+  const commentNavigation = useCommentNavigation(id);
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
 
   const handleProviderChange = useCallback(
@@ -82,6 +84,7 @@ export function LLMGenerateNode({ id, data, selected }: NodeProps<LLMGenerateNod
       onCommentChange={(comment) => updateNodeData(id, { comment: comment || undefined })}
       selected={selected}
       hasError={nodeData.status === "error"}
+      commentNavigation={commentNavigation ?? undefined}
     >
       {/* Image input - optional */}
       <Handle

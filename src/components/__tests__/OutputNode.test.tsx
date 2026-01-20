@@ -42,6 +42,9 @@ describe("OutputNode", () => {
         currentNodeId: null,
         groups: {},
         nodes: [],
+        getNodesWithComments: vi.fn(() => []),
+        markCommentViewed: vi.fn(),
+        setNavigationTarget: vi.fn(),
       };
       return selector(state);
     });

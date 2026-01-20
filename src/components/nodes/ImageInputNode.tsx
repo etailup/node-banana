@@ -3,6 +3,7 @@
 import { useCallback, useRef } from "react";
 import { Handle, Position, NodeProps, Node } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
+import { useCommentNavigation } from "@/hooks/useCommentNavigation";
 import { useWorkflowStore } from "@/store/workflowStore";
 import { ImageInputNodeData } from "@/types";
 
@@ -10,6 +11,7 @@ type ImageInputNodeType = Node<ImageInputNodeData, "imageInput">;
 
 export function ImageInputNode({ id, data, selected }: NodeProps<ImageInputNodeType>) {
   const nodeData = data;
+  const commentNavigation = useCommentNavigation(id);
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -86,6 +88,7 @@ export function ImageInputNode({ id, data, selected }: NodeProps<ImageInputNodeT
       onCustomTitleChange={(title) => updateNodeData(id, { customTitle: title || undefined })}
       onCommentChange={(comment) => updateNodeData(id, { comment: comment || undefined })}
       selected={selected}
+      commentNavigation={commentNavigation ?? undefined}
     >
       {/* Reference input handle for visual links from Split Grid node */}
       <Handle

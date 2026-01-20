@@ -1,9 +1,60 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo, useCallback } from "react";
 import { useWorkflowStore, WorkflowFile } from "@/store/workflowStore";
 import { ProjectSetupModal } from "./ProjectSetupModal";
 import { CostIndicator } from "./CostIndicator";
+
+function CommentsNavigationIcon() {
+  // Subscribe to nodes so we re-render when comments change
+  const nodes = useWorkflowStore((state) => state.nodes);
+  const getNodesWithComments = useWorkflowStore((state) => state.getNodesWithComments);
+  const viewedCommentNodeIds = useWorkflowStore((state) => state.viewedCommentNodeIds);
+  const markCommentViewed = useWorkflowStore((state) => state.markCommentViewed);
+  const setNavigationTarget = useWorkflowStore((state) => state.setNavigationTarget);
+
+  // Recalculate when nodes change (nodes in dependency triggers re-render)
+  const nodesWithComments = useMemo(() => getNodesWithComments(), [getNodesWithComments, nodes]);
+  const unviewedCount = useMemo(() => {
+    return nodesWithComments.filter((node) => !viewedCommentNodeIds.has(node.id)).length;
+  }, [nodesWithComments, viewedCommentNodeIds]);
+  const totalCount = nodesWithComments.length;
+
+  const handleClick = useCallback(() => {
+    if (totalCount === 0) return;
+
+    // Find first unviewed comment, or first comment if all viewed
+    const targetNode = nodesWithComments.find((node) => !viewedCommentNodeIds.has(node.id)) || nodesWithComments[0];
+    if (targetNode) {
+      markCommentViewed(targetNode.id);
+      setNavigationTarget(targetNode.id);
+    }
+  }, [totalCount, nodesWithComments, viewedCommentNodeIds, markCommentViewed, setNavigationTarget]);
+
+  // Don't render if no comments
+  if (totalCount === 0) {
+    return null;
+  }
+
+  const displayCount = unviewedCount > 9 ? "9+" : unviewedCount.toString();
+
+  return (
+    <button
+      onClick={handleClick}
+      className="relative p-1.5 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 rounded transition-colors"
+      title={`${unviewedCount} unviewed comment${unviewedCount !== 1 ? 's' : ''} (${totalCount} total)`}
+    >
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+        <path fillRule="evenodd" d="M4.848 2.771A49.144 49.144 0 0112 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 01-3.476.383.39.39 0 00-.297.17l-2.755 4.133a.75.75 0 01-1.248 0l-2.755-4.133a.39.39 0 00-.297-.17 48.9 48.9 0 01-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97z" clipRule="evenodd" />
+      </svg>
+      {unviewedCount > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] flex items-center justify-center text-[9px] font-bold text-white bg-blue-500 rounded-full px-0.5">
+          {displayCount}
+        </span>
+      )}
+    </button>
+  );
+}
 
 export function Header() {
   const {
@@ -306,6 +357,7 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-3 text-xs">
+          <CommentsNavigationIcon />
           <span className="text-neutral-400">
             {isProjectConfigured ? (
               isSaving ? (
