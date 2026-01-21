@@ -5,6 +5,9 @@ const COMMUNITY_WORKFLOWS_API_URL =
   process.env.COMMUNITY_WORKFLOWS_API_URL ||
   "https://nodebananapro.com/api/public/community-workflows";
 
+// Allowed hostnames for presigned URL fetches (SSRF protection)
+const ALLOWED_R2_HOSTS = [".r2.cloudflarestorage.com"];
+
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
@@ -75,8 +78,34 @@ export async function GET(request: Request, { params }: RouteParams) {
       );
     }
 
-    // Step 2: Fetch the actual workflow from the presigned R2 URL
-    const workflowResponse = await fetch(urlData.downloadUrl, {
+    // Step 2: Validate presigned URL to prevent SSRF
+    let downloadUrl: URL;
+    try {
+      downloadUrl = new URL(urlData.downloadUrl);
+    } catch {
+      clearTimeout(timeoutId);
+      console.error("Invalid download URL received:", urlData.downloadUrl);
+      return NextResponse.json(
+        { success: false, error: "Invalid download URL" },
+        { status: 500 }
+      );
+    }
+
+    const isAllowedHost =
+      downloadUrl.protocol === "https:" &&
+      ALLOWED_R2_HOSTS.some((host) => downloadUrl.hostname.endsWith(host));
+
+    if (!isAllowedHost) {
+      clearTimeout(timeoutId);
+      console.error("Untrusted download URL hostname:", downloadUrl.hostname);
+      return NextResponse.json(
+        { success: false, error: "Untrusted download URL" },
+        { status: 403 }
+      );
+    }
+
+    // Step 3: Fetch the actual workflow from the presigned R2 URL
+    const workflowResponse = await fetch(downloadUrl.href, {
       signal: controller.signal,
     });
 
