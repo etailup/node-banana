@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 
-// Default to node-banana-pro hosted service
 const COMMUNITY_WORKFLOWS_API_URL =
-  process.env.COMMUNITY_WORKFLOWS_API_URL ||
   "https://nodebananapro.com/api/public/community-workflows";
 
 /**
