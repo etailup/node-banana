@@ -80,7 +80,7 @@ describe("PromptNode", () => {
     expect(textarea).toBeInTheDocument();
   });
 
-  it("should call updateNodeData when typing in textarea", () => {
+  it("should call updateNodeData when typing in textarea and blurring", () => {
     render(
       <TestWrapper>
         <PromptNode {...defaultProps} />
@@ -88,7 +88,9 @@ describe("PromptNode", () => {
     );
 
     const textarea = screen.getByPlaceholderText("Describe what to generate...");
+    fireEvent.focus(textarea);
     fireEvent.change(textarea, { target: { value: "New prompt text" } });
+    fireEvent.blur(textarea);
 
     expect(mockUpdateNodeData).toHaveBeenCalledWith("test-prompt-1", {
       prompt: "New prompt text",

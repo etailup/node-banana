@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Handle, Position, NodeProps, Node } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
@@ -19,12 +19,34 @@ export function PromptNode({ id, data, selected }: NodeProps<PromptNodeType>) {
   const decrementModalCount = useWorkflowStore((state) => state.decrementModalCount);
   const [isModalOpenLocal, setIsModalOpenLocal] = useState(false);
 
+  // Local state for prompt to prevent cursor jumping during typing
+  const [localPrompt, setLocalPrompt] = useState(nodeData.prompt);
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Sync from props when not actively editing
+  useEffect(() => {
+    if (!isEditing) {
+      setLocalPrompt(nodeData.prompt);
+    }
+  }, [nodeData.prompt, isEditing]);
+
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      updateNodeData(id, { prompt: e.target.value });
+      setLocalPrompt(e.target.value);
     },
-    [id, updateNodeData]
+    []
   );
+
+  const handleFocus = useCallback(() => {
+    setIsEditing(true);
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    setIsEditing(false);
+    if (localPrompt !== nodeData.prompt) {
+      updateNodeData(id, { prompt: localPrompt });
+    }
+  }, [id, localPrompt, nodeData.prompt, updateNodeData]);
 
   const handleOpenModal = useCallback(() => {
     setIsModalOpenLocal(true);
@@ -57,8 +79,10 @@ export function PromptNode({ id, data, selected }: NodeProps<PromptNodeType>) {
         commentNavigation={commentNavigation ?? undefined}
       >
         <textarea
-          value={nodeData.prompt}
+          value={localPrompt}
           onChange={handleChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           placeholder="Describe what to generate..."
           className="nodrag nopan nowheel w-full flex-1 min-h-[70px] p-2 text-xs leading-relaxed text-neutral-100 border border-neutral-700 rounded bg-neutral-900/50 resize-none focus:outline-none focus:ring-1 focus:ring-neutral-600 focus:border-neutral-600 placeholder:text-neutral-500"
         />

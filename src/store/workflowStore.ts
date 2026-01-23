@@ -819,11 +819,26 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       .filter((n) => n.type === "nanoBanana")
       .forEach((node) => {
         const textConnected = edges.some(
-          (e) => e.target === node.id && e.targetHandle === "text"
+          (e) => e.target === node.id &&
+                 (e.targetHandle === "text" || e.targetHandle?.startsWith("text-"))
         );
 
         if (!textConnected) {
           errors.push(`Generate node "${node.id}" missing text input`);
+        }
+      });
+
+    // Check generateVideo nodes have required text input
+    nodes
+      .filter((n) => n.type === "generateVideo")
+      .forEach((node) => {
+        const textConnected = edges.some(
+          (e) => e.target === node.id &&
+                 (e.targetHandle === "text" || e.targetHandle?.startsWith("text-"))
+        );
+
+        if (!textConnected) {
+          errors.push(`Video node "${node.id}" missing text input`);
         }
       });
 
