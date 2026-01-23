@@ -778,6 +778,27 @@ export function ProjectSetupModal({
                     className="flex-1 h-1 bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-neutral-400"
                   />
                 </div>
+
+                {/* Max Tokens slider */}
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-neutral-400 w-20">
+                    Tokens: {(localNodeDefaults.llm?.maxTokens ?? 8192).toLocaleString()}
+                  </label>
+                  <input
+                    type="range"
+                    min="256"
+                    max="16384"
+                    step="256"
+                    value={localNodeDefaults.llm?.maxTokens ?? 8192}
+                    onChange={(e) => {
+                      setLocalNodeDefaults(prev => ({
+                        ...prev,
+                        llm: { ...prev.llm, maxTokens: parseInt(e.target.value, 10) }
+                      }));
+                    }}
+                    className="flex-1 h-1 bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-neutral-400"
+                  />
+                </div>
               </div>
             </div>
 

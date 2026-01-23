@@ -1000,9 +1000,14 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             break;
           }
 
-          case "prompt":
-            // Nothing to execute, data is already set
+          case "prompt": {
+            // Check for connected text input and update prompt if connected
+            const { text: connectedText } = getConnectedInputs(node.id);
+            if (connectedText !== null) {
+              updateNodeData(node.id, { prompt: connectedText });
+            }
             break;
+          }
 
           case "nanoBanana": {
             const { images, text, dynamicInputs } = getConnectedInputs(node.id);
@@ -2368,7 +2373,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     const workflow: WorkflowFile = {
       version: 1,
       name: name || `workflow-${new Date().toISOString().slice(0, 10)}`,
-      nodes,
+      // Strip selected property - selection is transient UI state and should not be persisted
+      nodes: nodes.map(({ selected, ...rest }) => rest),
       edges,
       edgeStyle,
       groups: Object.keys(groups).length > 0 ? groups : undefined,
@@ -2452,7 +2458,16 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     const costData = workflow.id ? loadWorkflowCostData(workflow.id) : null;
 
     set({
-      nodes: hydratedWorkflow.nodes,
+      // Clear selected state - selection should not be persisted across sessions
+      // Also validate position to ensure coordinates are finite numbers
+      nodes: hydratedWorkflow.nodes.map(node => ({
+        ...node,
+        selected: false,
+        position: {
+          x: isFinite(node.position?.x) ? node.position.x : 0,
+          y: isFinite(node.position?.y) ? node.position.y : 0,
+        },
+      })),
       edges: hydratedWorkflow.edges,
       edgeStyle: hydratedWorkflow.edgeStyle || "angular",
       groups: hydratedWorkflow.groups || {},

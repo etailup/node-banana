@@ -194,14 +194,18 @@ describe("LLMGenerateNode", () => {
   });
 
   describe("Temperature Slider", () => {
-    it("should render temperature slider with current value", () => {
+    it("should render temperature slider with current value after expanding parameters", () => {
       render(
         <TestWrapper>
           <LLMGenerateNode {...createNodeProps({ temperature: 0.7 })} />
         </TestWrapper>
       );
 
-      expect(screen.getByText("Temp: 0.7")).toBeInTheDocument();
+      // Expand the Parameters section
+      const parametersButton = screen.getByText("Parameters");
+      fireEvent.click(parametersButton);
+
+      expect(screen.getByText("Temperature: 0.7")).toBeInTheDocument();
     });
 
     it("should call updateNodeData when temperature is changed", () => {
@@ -211,8 +215,14 @@ describe("LLMGenerateNode", () => {
         </TestWrapper>
       );
 
-      const slider = screen.getByRole("slider");
-      fireEvent.change(slider, { target: { value: "1.5" } });
+      // Expand the Parameters section
+      const parametersButton = screen.getByText("Parameters");
+      fireEvent.click(parametersButton);
+
+      // Get the first slider (temperature) - there are two sliders: temperature and maxTokens
+      const sliders = screen.getAllByRole("slider");
+      const temperatureSlider = sliders[0];
+      fireEvent.change(temperatureSlider, { target: { value: "1.5" } });
 
       expect(mockUpdateNodeData).toHaveBeenCalledWith("test-llm-1", {
         temperature: 1.5,
