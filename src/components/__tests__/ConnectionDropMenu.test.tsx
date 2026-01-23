@@ -226,14 +226,15 @@ describe("ConnectionDropMenu", () => {
     it("should wrap around when navigating past last item", () => {
       render(<ConnectionDropMenu {...defaultProps} handleType="text" connectionType="source" />);
 
-      // Text options: nanoBanana, generateVideo, llmGenerate (3 items)
-      // Navigate down 3 times to wrap to first
+      // Text target options: Prompt, nanoBanana, generateVideo, llmGenerate (4 items)
+      // Navigate down 4 times to wrap to first
+      fireEvent.keyDown(document, { key: "ArrowDown" });
       fireEvent.keyDown(document, { key: "ArrowDown" });
       fireEvent.keyDown(document, { key: "ArrowDown" });
       fireEvent.keyDown(document, { key: "ArrowDown" });
 
-      // Should be back on first item
-      const firstButton = screen.getByText("Generate Image").closest("button");
+      // Should be back on first item (Prompt)
+      const firstButton = screen.getByText("Prompt").closest("button");
       expect(firstButton).toHaveClass("bg-neutral-700");
     });
   });

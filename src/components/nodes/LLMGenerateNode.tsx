@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Handle, Position, NodeProps, Node } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
 import { useCommentNavigation } from "@/hooks/useCommentNavigation";
@@ -57,6 +57,15 @@ export function LLMGenerateNode({ id, data, selected }: NodeProps<LLMGenerateNod
     [id, updateNodeData]
   );
 
+  const handleMaxTokensChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      updateNodeData(id, { maxTokens: parseInt(e.target.value, 10) });
+    },
+    [id, updateNodeData]
+  );
+
+  const [showParams, setShowParams] = useState(false);
+
   const regenerateNode = useWorkflowStore((state) => state.regenerateNode);
   const isRunning = useWorkflowStore((state) => state.isRunning);
 
@@ -67,6 +76,20 @@ export function LLMGenerateNode({ id, data, selected }: NodeProps<LLMGenerateNod
   const handleClearOutput = useCallback(() => {
     updateNodeData(id, { outputText: null, status: "idle", error: null });
   }, [id, updateNodeData]);
+
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyOutput = useCallback(async () => {
+    if (nodeData.outputText) {
+      try {
+        await navigator.clipboard.writeText(nodeData.outputText);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      } catch (err) {
+        console.error("Failed to copy text:", err);
+      }
+    }
+  }, [nodeData.outputText]);
 
   const provider = nodeData.provider || "google";
   const availableModels = MODELS[provider] || MODELS.google;
@@ -146,6 +169,21 @@ export function LLMGenerateNode({ id, data, selected }: NodeProps<LLMGenerateNod
               </p>
               <div className="absolute top-1 right-1 flex gap-1">
                 <button
+                  onClick={handleCopyOutput}
+                  className={`w-5 h-5 ${copied ? "bg-green-600/80" : "bg-neutral-900/80 hover:bg-neutral-700/80"} rounded flex items-center justify-center text-neutral-400 hover:text-white transition-colors`}
+                  title={copied ? "Copied!" : "Copy to clipboard"}
+                >
+                  {copied ? (
+                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  )}
+                </button>
+                <button
                   onClick={handleRegenerate}
                   disabled={isRunning}
                   className="w-5 h-5 bg-neutral-900/80 hover:bg-blue-600/80 disabled:opacity-50 disabled:cursor-not-allowed rounded flex items-center justify-center text-neutral-400 hover:text-white transition-colors"
@@ -201,18 +239,53 @@ export function LLMGenerateNode({ id, data, selected }: NodeProps<LLMGenerateNod
           ))}
         </select>
 
-        {/* Temperature slider */}
-        <div className="flex flex-col gap-0.5 shrink-0">
-          <label className="text-[9px] text-neutral-500">Temp: {nodeData.temperature.toFixed(1)}</label>
-          <input
-            type="range"
-            min="0"
-            max="2"
-            step="0.1"
-            value={nodeData.temperature}
-            onChange={handleTemperatureChange}
-            className="w-full h-1 bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-neutral-400"
-          />
+        {/* Collapsible parameters section */}
+        <div className="shrink-0">
+          <button
+            onClick={() => setShowParams(!showParams)}
+            className="w-full flex items-center justify-between text-[9px] text-neutral-400 hover:text-neutral-300 py-1"
+          >
+            <span>Parameters</span>
+            <svg
+              className={`w-3 h-3 transition-transform ${showParams ? "rotate-180" : ""}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {showParams && (
+            <div className="flex flex-col gap-2 pt-1 border-t border-neutral-700/50">
+              {/* Temperature slider */}
+              <div className="flex flex-col gap-0.5">
+                <label className="text-[9px] text-neutral-500">Temperature: {nodeData.temperature.toFixed(1)}</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="0.1"
+                  value={nodeData.temperature}
+                  onChange={handleTemperatureChange}
+                  className="nodrag w-full h-1 bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-neutral-400"
+                />
+              </div>
+              {/* Max tokens slider */}
+              <div className="flex flex-col gap-0.5">
+                <label className="text-[9px] text-neutral-500">Max Tokens: {nodeData.maxTokens.toLocaleString()}</label>
+                <input
+                  type="range"
+                  min="256"
+                  max="16384"
+                  step="256"
+                  value={nodeData.maxTokens}
+                  onChange={handleMaxTokensChange}
+                  className="nodrag w-full h-1 bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-neutral-400"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </BaseNode>

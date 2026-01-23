@@ -17,6 +17,8 @@ vi.mock("@/store/workflowStore", () => ({
       currentNodeId: null,
       groups: {},
       nodes: [],
+      edges: [],
+      getConnectedInputs: vi.fn(() => ({ images: [], videos: [], text: null, dynamicInputs: {} })),
       getNodesWithComments: vi.fn(() => []),
       markCommentViewed: vi.fn(),
       setNavigationTarget: vi.fn(),
