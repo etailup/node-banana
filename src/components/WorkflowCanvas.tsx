@@ -65,10 +65,10 @@ const getHandleType = (handleId: string | null | undefined): "image" | "text" | 
   // Standard handles
   if (handleId === "video") return "video";
   if (handleId === "image" || handleId === "text") return handleId;
-  // Dynamic handles - check naming patterns
+  // Dynamic handles - check naming patterns (including indexed: text-0, image-0)
   if (handleId.includes("video")) return "video";
-  if (handleId.includes("image") || handleId.includes("frame")) return "image";
-  if (handleId === "prompt" || handleId === "negative_prompt" || handleId.includes("prompt")) return "text";
+  if (handleId.startsWith("image-") || handleId.includes("image") || handleId.includes("frame")) return "image";
+  if (handleId.startsWith("text-") || handleId === "prompt" || handleId === "negative_prompt" || handleId.includes("prompt")) return "text";
   return null;
 };
 
