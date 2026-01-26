@@ -42,8 +42,12 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
         </button>
       </div>
 
-      {/* Messages area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+      {/* Messages area - nowheel class prevents React Flow from intercepting scroll */}
+      <div
+        className="nowheel flex-1 overflow-y-auto p-4 space-y-4 min-h-0"
+        style={{ touchAction: 'pan-y' }}
+        onWheelCapture={(e) => e.stopPropagation()}
+      >
         {messages.length === 0 && (
           <div className="text-center text-neutral-500 text-sm py-8">
             <p>Ask me anything about creating workflows!</p>
