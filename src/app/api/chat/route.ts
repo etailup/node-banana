@@ -1,4 +1,4 @@
-import { streamText } from 'ai';
+import { streamText, convertToModelMessages, UIMessage } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
 export const maxDuration = 60; // 1 minute timeout
@@ -82,7 +82,7 @@ Would you like me to suggest a few background scene prompts, or do you have spec
 
 export async function POST(request: Request) {
   try {
-    const { messages } = await request.json();
+    const { messages } = await request.json() as { messages: UIMessage[] };
 
     // Get API key from environment
     const apiKey = process.env.GEMINI_API_KEY;
@@ -93,15 +93,18 @@ export async function POST(request: Request) {
     // Create Google provider with API key
     const google = createGoogleGenerativeAI({ apiKey });
 
+    // Convert UI messages to model messages format
+    const modelMessages = await convertToModelMessages(messages);
+
     // Create streaming response using Vercel AI SDK
     const result = streamText({
       model: google('gemini-2.5-flash'),
       system: SYSTEM_PROMPT,
-      messages,
+      messages: modelMessages,
     });
 
-    // Return the streaming response
-    return result.toTextStreamResponse();
+    // Return the UI message stream response for useChat compatibility
+    return result.toUIMessageStreamResponse();
   } catch (error) {
     console.error('[Chat API Error]', error);
 
