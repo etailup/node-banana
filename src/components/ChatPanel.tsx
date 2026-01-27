@@ -7,9 +7,11 @@ import { DefaultChatTransport } from "ai";
 interface ChatPanelProps {
   isOpen: boolean;
   onClose: () => void;
+  onBuildWorkflow?: (description: string) => Promise<void>;
+  isBuildingWorkflow?: boolean;
 }
 
-export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
+export function ChatPanel({ isOpen, onClose, onBuildWorkflow, isBuildingWorkflow = false }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
 
@@ -18,6 +20,34 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
   });
 
   const isLoading = status === "streaming" || status === "submitted";
+
+  // Extract conversation description from user messages
+  const getConversationDescription = () => {
+    const userMessages = messages
+      .filter((m) => m.role === "user")
+      .map((m) => {
+        const textContent = m.parts
+          ?.filter((part): part is { type: "text"; text: string } => part.type === "text")
+          .map((part) => part.text)
+          .join("") || "";
+        return textContent;
+      })
+      .filter((text) => text.trim().length > 0);
+
+    return userMessages.join("\n");
+  };
+
+  const handleBuildWorkflow = async () => {
+    if (!onBuildWorkflow) return;
+
+    const description = getConversationDescription();
+    if (!description.trim()) return;
+
+    await onBuildWorkflow(description);
+  };
+
+  // Check if conversation has started (has assistant messages)
+  const hasConversation = messages.some((m) => m.role === "assistant");
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -97,36 +127,58 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
       </div>
 
       {/* Input area */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (input.trim() && !isLoading) {
-            sendMessage({ text: input });
-            setInput("");
-          }
-        }}
-        className="p-3 border-t border-neutral-700"
-      >
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type a message..."
-            className="flex-1 bg-neutral-700 border border-neutral-600 rounded-lg px-3 py-2 text-sm text-neutral-200 placeholder-neutral-500 focus:outline-none focus:border-blue-500"
-            disabled={isLoading}
-          />
-          <button
-            type="submit"
-            disabled={isLoading || !input.trim()}
-            className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
-          </button>
-        </div>
-      </form>
+      <div className="border-t border-neutral-700">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (input.trim() && !isLoading) {
+              sendMessage({ text: input });
+              setInput("");
+            }
+          }}
+          className="p-3"
+        >
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type a message..."
+              className="flex-1 bg-neutral-700 border border-neutral-600 rounded-lg px-3 py-2 text-sm text-neutral-200 placeholder-neutral-500 focus:outline-none focus:border-blue-500"
+              disabled={isLoading}
+            />
+            <button
+              type="submit"
+              disabled={isLoading || !input.trim()}
+              className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            </button>
+          </div>
+        </form>
+
+        {/* Build Workflow button */}
+        {hasConversation && onBuildWorkflow && (
+          <div className="px-3 pb-3">
+            <button
+              onClick={handleBuildWorkflow}
+              disabled={isBuildingWorkflow || isLoading}
+              className="w-full bg-green-600 hover:bg-green-500 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            >
+              {isBuildingWorkflow ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Building...</span>
+                </>
+              ) : (
+                <span>Build Workflow</span>
+              )}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
