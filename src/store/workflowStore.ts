@@ -205,6 +205,21 @@ interface WorkflowStore {
   setNavigationTarget: (nodeId: string | null) => void;
   setFocusedCommentNodeId: (nodeId: string | null) => void;
   resetViewedComments: () => void;
+
+  // AI change snapshot state
+  previousWorkflowSnapshot: {
+    nodes: WorkflowNode[];
+    edges: WorkflowEdge[];
+    groups: Record<string, NodeGroup>;
+    edgeStyle: EdgeStyle;
+  } | null;
+  manualChangeCount: number;
+
+  // AI change snapshot actions
+  captureSnapshot: () => void;
+  revertToSnapshot: () => void;
+  clearSnapshot: () => void;
+  incrementManualChangeCount: () => void;
 }
 
 let nodeIdCounter = 0;
@@ -343,6 +358,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   navigationTarget: null,
   focusedCommentNodeId: null,
 
+  // AI change snapshot initial state
+  previousWorkflowSnapshot: null,
+  manualChangeCount: 0,
+
   setEdgeStyle: (style: EdgeStyle) => {
     set({ edgeStyle: style });
   },
@@ -389,6 +408,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       hasUnsavedChanges: true,
     }));
 
+    get().incrementManualChangeCount();
+
     return id;
   },
 
@@ -411,6 +432,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       ),
       hasUnsavedChanges: true,
     }));
+    get().incrementManualChangeCount();
   },
 
   onNodesChange: (changes: NodeChange<WorkflowNode>[]) => {
@@ -418,19 +440,33 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     const hasMeaningfulChange = changes.some(
       (c) => c.type !== "select" && c.type !== "dimensions"
     );
+    // Track manual changes only for remove operations (not position/selection/dimensions)
+    const hasRemoveChange = changes.some((c) => c.type === "remove");
+
     set((state) => ({
       nodes: applyNodeChanges(changes, state.nodes),
       ...(hasMeaningfulChange ? { hasUnsavedChanges: true } : {}),
     }));
+
+    if (hasRemoveChange) {
+      get().incrementManualChangeCount();
+    }
   },
 
   onEdgesChange: (changes: EdgeChange<WorkflowEdge>[]) => {
     // Only mark as unsaved for meaningful changes (not selection changes)
     const hasMeaningfulChange = changes.some((c) => c.type !== "select");
+    // Track manual changes only for remove operations (not selection)
+    const hasRemoveChange = changes.some((c) => c.type === "remove");
+
     set((state) => ({
       edges: applyEdgeChanges(changes, state.edges),
       ...(hasMeaningfulChange ? { hasUnsavedChanges: true } : {}),
     }));
+
+    if (hasRemoveChange) {
+      get().incrementManualChangeCount();
+    }
   },
 
   onConnect: (connection: Connection) => {
@@ -444,6 +480,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       ),
       hasUnsavedChanges: true,
     }));
+    get().incrementManualChangeCount();
   },
 
   addEdgeWithType: (connection: Connection, edgeType: string) => {
@@ -465,6 +502,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       edges: state.edges.filter((edge) => edge.id !== edgeId),
       hasUnsavedChanges: true,
     }));
+    get().incrementManualChangeCount();
   },
 
   toggleEdgePause: (edgeId: string) => {
@@ -2489,6 +2527,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       // Reset viewed comments when loading new workflow
       viewedCommentNodeIds: new Set<string>(),
     });
+
+    // Clear any snapshot when user manually loads a workflow
+    get().clearSnapshot();
   },
 
   clearWorkflow: () => {
@@ -2512,6 +2553,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       // Reset viewed comments when clearing workflow
       viewedCommentNodeIds: new Set<string>(),
     });
+    get().clearSnapshot();
   },
 
   addToGlobalHistory: (item: Omit<ImageHistoryItem, "id">) => {
@@ -2903,5 +2945,58 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
   resetViewedComments: () => {
     set({ viewedCommentNodeIds: new Set<string>() });
+  },
+
+  // AI change snapshot actions
+  captureSnapshot: () => {
+    const state = get();
+    // Deep copy the current workflow state to avoid reference sharing
+    const snapshot = {
+      nodes: JSON.parse(JSON.stringify(state.nodes)),
+      edges: JSON.parse(JSON.stringify(state.edges)),
+      groups: JSON.parse(JSON.stringify(state.groups)),
+      edgeStyle: state.edgeStyle,
+    };
+    set({
+      previousWorkflowSnapshot: snapshot,
+      manualChangeCount: 0,
+    });
+  },
+
+  revertToSnapshot: () => {
+    const state = get();
+    if (state.previousWorkflowSnapshot) {
+      set({
+        nodes: state.previousWorkflowSnapshot.nodes,
+        edges: state.previousWorkflowSnapshot.edges,
+        groups: state.previousWorkflowSnapshot.groups,
+        edgeStyle: state.previousWorkflowSnapshot.edgeStyle,
+        previousWorkflowSnapshot: null,
+        manualChangeCount: 0,
+        hasUnsavedChanges: true,
+      });
+    }
+  },
+
+  clearSnapshot: () => {
+    set({
+      previousWorkflowSnapshot: null,
+      manualChangeCount: 0,
+    });
+  },
+
+  incrementManualChangeCount: () => {
+    const state = get();
+    const newCount = state.manualChangeCount + 1;
+
+    // Automatically clear snapshot after 3 manual changes
+    if (newCount >= 3) {
+      set({
+        previousWorkflowSnapshot: null,
+        manualChangeCount: 0,
+      });
+    } else {
+      set({ manualChangeCount: newCount });
+    }
   },
 }));
