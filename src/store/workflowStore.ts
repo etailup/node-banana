@@ -2415,7 +2415,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       nodes: nodes.map(({ selected, ...rest }) => rest),
       edges,
       edgeStyle,
-      groups: Object.keys(groups).length > 0 ? groups : undefined,
+      groups: groups && Object.keys(groups).length > 0 ? groups : undefined,
     };
 
     const json = JSON.stringify(workflow, null, 2);
@@ -2675,7 +2675,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         nodes: currentNodes,
         edges,
         edgeStyle,
-        groups: Object.keys(groups).length > 0 ? groups : undefined,
+        groups: groups && Object.keys(groups).length > 0 ? groups : undefined,
       };
 
       // If external image storage is enabled, externalize images before saving
