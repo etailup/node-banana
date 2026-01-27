@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 ## Current Position
 
-Phase: 32 of 35 (Chat UI Foundation)
-Plan: 2 of 2 in current phase
-Status: Complete
-Last activity: 2026-01-27 - Completed 32-02-PLAN.md
+Phase: 33 of 35 (Workflow Edit Safety)
+Plan: 1 of 2 in current phase
+Status: In progress
+Last activity: 2026-01-27 - Completed 33-01-PLAN.md
 
 Progress: ░░░░░░░░░░ 6%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 30
+- Total plans completed: 31
 - Average duration: 7 min
-- Total execution time: 3.5 hours
+- Total execution time: 3.6 hours
 
 **By Phase:**
 
@@ -54,10 +54,11 @@ Progress: ░░░░░░░░░░ 6%
 | 28. Node Defaults UI | 1/1 | 32 min | 32 min |
 | 31. Workflow Proposal System | 2/2 | 6 min | 3 min |
 | 32. Chat UI Foundation | 2/2 | 9 min | 4.5 min |
+| 33. Workflow Edit Safety | 1/2 | 5 min | 5 min |
 
 **Recent Trend:**
-- Last 5 plans: 32 min, 4 min, 2 min, 4 min, 5 min
-- Trend: Chat integration and UI work completing quickly
+- Last 5 plans: 4 min, 2 min, 4 min, 5 min, 5 min
+- Trend: Store infrastructure and chat integration work completing quickly
 
 ## Accumulated Context
 
@@ -147,6 +148,11 @@ Recent decisions affecting current work:
 - Build Workflow button extracts user messages only (not assistant responses)
 - Workflow generation uses contentLevel "full" for complete workflows
 - Chat panel closes automatically after successful workflow generation
+- AI workflow snapshot state: previousWorkflowSnapshot + manualChangeCount
+- Deep copy workflow state using JSON.parse(JSON.stringify()) for snapshots
+- Snapshot auto-clears after 3 manual structural changes
+- Manual changes: add/remove nodes, add/remove edges (not position/selection)
+- clearSnapshot called in clearWorkflow and loadWorkflow
 
 ### Deferred Issues
 
@@ -176,6 +182,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed phase 32 (Chat UI Foundation)
+Stopped at: Completed plan 33-01 (Store snapshot infrastructure)
 Resume file: None
-Next action: Begin phase 33 (next in milestone v1.4)
+Next action: Execute plan 33-02 (UI integration - Revert AI Changes button)
