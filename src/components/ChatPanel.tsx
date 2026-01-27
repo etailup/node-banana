@@ -3,6 +3,7 @@
 import { useRef, useEffect, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
+import ReactMarkdown from "react-markdown";
 
 interface ChatPanelProps {
   isOpen: boolean;
@@ -118,7 +119,24 @@ export function ChatPanel({ isOpen, onClose, onBuildWorkflow, isBuildingWorkflow
                     : "bg-neutral-700 text-neutral-200"
                 }`}
               >
-                <p className="whitespace-pre-wrap">{textContent}</p>
+                {message.role === "user" ? (
+                  <p className="whitespace-pre-wrap">{textContent}</p>
+                ) : (
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                      strong: ({ children }) => <strong className="font-semibold text-neutral-100">{children}</strong>,
+                      em: ({ children }) => <em className="italic">{children}</em>,
+                      ul: ({ children }) => <ul className="list-disc pl-4 mb-2 last:mb-0 space-y-1">{children}</ul>,
+                      ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 last:mb-0 space-y-1">{children}</ol>,
+                      li: ({ children }) => <li>{children}</li>,
+                      blockquote: ({ children }) => <blockquote className="border-l-2 border-neutral-500 pl-2 my-2 text-neutral-300 italic">{children}</blockquote>,
+                      code: ({ children }) => <code className="bg-neutral-600 px-1 rounded text-xs">{children}</code>,
+                    }}
+                  >
+                    {textContent}
+                  </ReactMarkdown>
+                )}
               </div>
             </div>
           );
