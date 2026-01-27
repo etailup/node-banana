@@ -18,6 +18,7 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { useWorkflowStore, WorkflowFile } from "@/store/workflowStore";
+import { useToast } from "@/components/Toast";
 import {
   ImageInputNode,
   AnnotationNode,
@@ -181,11 +182,13 @@ export function WorkflowCanvas() {
   const { nodes, edges, groups, onNodesChange, onEdgesChange, onConnect, addNode, updateNodeData, loadWorkflow, getNodeById, addToGlobalHistory, setNodeGroupId, executeWorkflow, isModalOpen, showQuickstart, setShowQuickstart, navigationTarget, setNavigationTarget } =
     useWorkflowStore();
   const { screenToFlowPosition, getViewport, zoomIn, zoomOut, setViewport, setCenter } = useReactFlow();
+  const { show: showToast } = useToast();
   const [isDragOver, setIsDragOver] = useState(false);
   const [dropType, setDropType] = useState<"image" | "workflow" | "node" | null>(null);
   const [connectionDrop, setConnectionDrop] = useState<ConnectionDropState | null>(null);
   const [isSplitting, setIsSplitting] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isBuildingWorkflow, setIsBuildingWorkflow] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
   // Detect if canvas is empty for showing quickstart
@@ -559,6 +562,36 @@ export function WorkflowCanvas() {
         return null;
     }
   }, [getNodeById]);
+
+  // Handle workflow generation from chat conversation
+  const handleBuildWorkflow = useCallback(async (description: string) => {
+    setIsBuildingWorkflow(true);
+    try {
+      const response = await fetch("/api/quickstart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description,
+          contentLevel: "full",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.workflow) {
+        await loadWorkflow(data.workflow);
+        setIsChatOpen(false);
+        showToast("Workflow generated successfully", "success");
+      } else {
+        showToast(data.error || "Failed to generate workflow", "error");
+      }
+    } catch (error) {
+      console.error("Error generating workflow:", error);
+      showToast("Failed to generate workflow. Please try again.", "error");
+    } finally {
+      setIsBuildingWorkflow(false);
+    }
+  }, [loadWorkflow, showToast]);
 
   // Handle node selection from drop menu
   const handleMenuSelect = useCallback(
@@ -1350,7 +1383,12 @@ export function WorkflowCanvas() {
       </button>
 
       {/* Chat panel */}
-      <ChatPanel isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      <ChatPanel
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        onBuildWorkflow={handleBuildWorkflow}
+        isBuildingWorkflow={isBuildingWorkflow}
+      />
     </div>
   );
 }
