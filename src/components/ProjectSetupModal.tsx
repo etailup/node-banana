@@ -102,12 +102,14 @@ export function ProjectSetupModal({
     openai: false,
     replicate: false,
     fal: false,
+    kie: false,
   });
   const [overrideActive, setOverrideActive] = useState<Record<ProviderType, boolean>>({
     gemini: false,
     openai: false,
     replicate: false,
     fal: false,
+    kie: false,
   });
   const [envStatus, setEnvStatus] = useState<EnvStatusResponse | null>(null);
 
@@ -136,13 +138,14 @@ export function ProjectSetupModal({
 
       // Sync local providers state
       setLocalProviders(providerSettings);
-      setShowApiKey({ gemini: false, openai: false, replicate: false, fal: false });
+      setShowApiKey({ gemini: false, openai: false, replicate: false, fal: false, kie: false });
       // Initialize override as active if user already has a key set
       setOverrideActive({
         gemini: !!providerSettings.providers.gemini?.apiKey,
         openai: !!providerSettings.providers.openai?.apiKey,
         replicate: !!providerSettings.providers.replicate?.apiKey,
         fal: !!providerSettings.providers.fal?.apiKey,
+        kie: !!providerSettings.providers.kie?.apiKey,
       });
       setError(null);
 

@@ -14,7 +14,7 @@ import { getVideoDimensions, calculateNodeSizePreservingHeight } from "@/utils/n
 
 // Provider badge component - shows provider icon for all providers
 function ProviderBadge({ provider }: { provider: ProviderType }) {
-  const providerName = provider === "gemini" ? "Gemini" : provider === "replicate" ? "Replicate" : "fal.ai";
+  const providerName = provider === "gemini" ? "Gemini" : provider === "replicate" ? "Replicate" : provider === "kie" ? "Kie.ai" : "fal.ai";
 
   return (
     <span className="text-neutral-500 shrink-0" title={providerName}>
@@ -27,6 +27,10 @@ function ProviderBadge({ provider }: { provider: ProviderType }) {
           <polygon points="1000,427.6 1000,540.6 603.4,540.6 603.4,1000 477,1000 477,427.6" />
           <polygon points="1000,213.8 1000,327 364.8,327 364.8,1000 238.4,1000 238.4,213.8" />
           <polygon points="1000,0 1000,113.2 126.4,113.2 126.4,1000 0,1000 0,0" />
+        </svg>
+      ) : provider === "kie" ? (
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
         </svg>
       ) : (
         <svg className="w-4 h-4" viewBox="0 0 1855 1855" fill="currentColor">
@@ -66,6 +70,10 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
     if (providerSettings.providers.replicate?.enabled && providerSettings.providers.replicate?.apiKey) {
       providers.push({ id: "replicate", name: "Replicate" });
     }
+    // Add Kie.ai if configured
+    if (providerSettings.providers.kie?.enabled && providerSettings.providers.kie?.apiKey) {
+      providers.push({ id: "kie", name: "Kie.ai" });
+    }
     return providers;
   }, [providerSettings]);
 
@@ -81,6 +89,9 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
       }
       if (providerSettings.providers.fal?.apiKey) {
         headers["X-Fal-Key"] = providerSettings.providers.fal.apiKey;
+      }
+      if (providerSettings.providers.kie?.apiKey) {
+        headers["X-Kie-Key"] = providerSettings.providers.kie.apiKey;
       }
       const response = await fetch(`/api/models?provider=${currentProvider}&capabilities=${capabilities}`, { headers });
       if (response.ok) {

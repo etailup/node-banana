@@ -479,6 +479,181 @@ function extractParametersFromSchema(
   return { parameters, inputs };
 }
 
+/**
+ * Get hardcoded schema for Kie.ai models
+ * Kie.ai doesn't have a schema discovery API, so we define these manually
+ */
+function getKieSchema(modelId: string): ExtractedSchema {
+  // Common parameters for image models
+  const imageParams: ModelParameter[] = [
+    { name: "aspect_ratio", type: "string", description: "Output aspect ratio", enum: ["1:1", "16:9", "9:16", "4:3", "3:4", "21:9", "9:21"], default: "1:1" },
+    { name: "seed", type: "integer", description: "Random seed for reproducibility", minimum: 0 },
+  ];
+
+  // Common parameters for video models
+  const videoParams: ModelParameter[] = [
+    { name: "aspect_ratio", type: "string", description: "Output aspect ratio", enum: ["16:9", "9:16", "1:1"], default: "16:9" },
+    { name: "duration", type: "integer", description: "Video duration in seconds", minimum: 5, maximum: 20, default: 10 },
+    { name: "seed", type: "integer", description: "Random seed for reproducibility", minimum: 0 },
+  ];
+
+  // Model-specific schemas
+  const schemas: Record<string, ExtractedSchema> = {
+    // Image models
+    "z-image": {
+      parameters: imageParams,
+      inputs: [{ name: "prompt", type: "text", required: true, label: "Prompt" }],
+    },
+    "seedream/4.5-text-to-image": {
+      parameters: imageParams,
+      inputs: [{ name: "prompt", type: "text", required: true, label: "Prompt" }],
+    },
+    "seedream/4.5-edit": {
+      parameters: imageParams,
+      inputs: [
+        { name: "prompt", type: "text", required: true, label: "Prompt" },
+        { name: "image_urls", type: "image", required: true, label: "Image", isArray: true },
+      ],
+    },
+    "nano-banana-pro": {
+      parameters: [
+        ...imageParams,
+        { name: "resolution", type: "string", description: "Output resolution", enum: ["1K", "2K", "4K"], default: "1K" },
+      ],
+      inputs: [
+        { name: "prompt", type: "text", required: true, label: "Prompt" },
+        { name: "image_input", type: "image", required: false, label: "Image" },
+      ],
+    },
+    "gpt-image/1.5-text-to-image": {
+      parameters: [
+        { name: "size", type: "string", description: "Output size", enum: ["1024x1024", "1536x1024", "1024x1536", "auto"], default: "1024x1024" },
+        { name: "quality", type: "string", description: "Output quality", enum: ["low", "medium", "high"], default: "medium" },
+        { name: "seed", type: "integer", description: "Random seed for reproducibility", minimum: 0 },
+      ],
+      inputs: [{ name: "prompt", type: "text", required: true, label: "Prompt" }],
+    },
+    "gpt-image/1.5-image-to-image": {
+      parameters: [
+        { name: "size", type: "string", description: "Output size", enum: ["1024x1024", "1536x1024", "1024x1536", "auto"], default: "auto" },
+        { name: "quality", type: "string", description: "Output quality", enum: ["low", "medium", "high"], default: "medium" },
+        { name: "seed", type: "integer", description: "Random seed for reproducibility", minimum: 0 },
+      ],
+      inputs: [
+        { name: "prompt", type: "text", required: true, label: "Prompt" },
+        { name: "input_urls", type: "image", required: true, label: "Image", isArray: true },
+      ],
+    },
+    "google/nano-banana": {
+      parameters: imageParams,
+      inputs: [{ name: "prompt", type: "text", required: true, label: "Prompt" }],
+    },
+    "google/nano-banana-edit": {
+      parameters: imageParams,
+      inputs: [
+        { name: "prompt", type: "text", required: true, label: "Prompt" },
+        { name: "image_urls", type: "image", required: true, label: "Image", isArray: true },
+      ],
+    },
+    // Video models
+    "sora-2-text-to-video": {
+      parameters: videoParams,
+      inputs: [{ name: "prompt", type: "text", required: true, label: "Prompt" }],
+    },
+    "sora-2-image-to-video": {
+      parameters: videoParams,
+      inputs: [
+        { name: "prompt", type: "text", required: false, label: "Prompt" },
+        { name: "image_urls", type: "image", required: true, label: "Image", isArray: true },
+      ],
+    },
+    "sora-2-pro-text-to-video": {
+      parameters: videoParams,
+      inputs: [{ name: "prompt", type: "text", required: true, label: "Prompt" }],
+    },
+    "sora-2-pro-image-to-video": {
+      parameters: videoParams,
+      inputs: [
+        { name: "prompt", type: "text", required: false, label: "Prompt" },
+        { name: "image_urls", type: "image", required: true, label: "Image", isArray: true },
+      ],
+    },
+    "veo3_fast": {
+      parameters: [
+        { name: "aspectRatio", type: "string", description: "Output aspect ratio (camelCase for Veo)", enum: ["16:9", "9:16"], default: "16:9" },
+        { name: "duration", type: "integer", description: "Video duration in seconds", minimum: 5, maximum: 8, default: 8 },
+        { name: "seed", type: "integer", description: "Random seed for reproducibility", minimum: 0 },
+      ],
+      inputs: [
+        { name: "prompt", type: "text", required: true, label: "Prompt" },
+        { name: "imageUrls", type: "image", required: false, label: "Image", isArray: true },
+      ],
+    },
+    "veo3": {
+      parameters: [
+        { name: "aspectRatio", type: "string", description: "Output aspect ratio (camelCase for Veo)", enum: ["16:9", "9:16"], default: "16:9" },
+        { name: "duration", type: "integer", description: "Video duration in seconds", minimum: 5, maximum: 8, default: 8 },
+        { name: "seed", type: "integer", description: "Random seed for reproducibility", minimum: 0 },
+      ],
+      inputs: [
+        { name: "prompt", type: "text", required: true, label: "Prompt" },
+        { name: "imageUrls", type: "image", required: false, label: "Image", isArray: true },
+      ],
+    },
+    "bytedance/seedance-1.5-pro": {
+      parameters: [
+        { name: "aspect_ratio", type: "string", description: "Output aspect ratio", enum: ["16:9", "9:16", "1:1"], default: "16:9" },
+        { name: "duration", type: "number", description: "Video duration in seconds", minimum: 5, maximum: 10, default: 5 },
+        { name: "seed", type: "integer", description: "Random seed for reproducibility", minimum: 0 },
+      ],
+      inputs: [
+        { name: "prompt", type: "text", required: true, label: "Prompt" },
+        { name: "image_urls", type: "image", required: false, label: "Image", isArray: true },
+      ],
+    },
+    "kling-2.6/text-to-video": {
+      parameters: [
+        { name: "aspect_ratio", type: "string", description: "Output aspect ratio", enum: ["16:9", "9:16", "1:1"], default: "16:9" },
+        { name: "duration", type: "string", description: "Video duration", enum: ["5", "10"], default: "5" },
+        { name: "seed", type: "integer", description: "Random seed for reproducibility", minimum: 0 },
+      ],
+      inputs: [{ name: "prompt", type: "text", required: true, label: "Prompt" }],
+    },
+    "kling-2.6/image-to-video": {
+      parameters: [
+        { name: "aspect_ratio", type: "string", description: "Output aspect ratio", enum: ["16:9", "9:16", "1:1"], default: "16:9" },
+        { name: "duration", type: "string", description: "Video duration", enum: ["5", "10"], default: "5" },
+        { name: "seed", type: "integer", description: "Random seed for reproducibility", minimum: 0 },
+      ],
+      inputs: [
+        { name: "prompt", type: "text", required: false, label: "Prompt" },
+        { name: "image_urls", type: "image", required: true, label: "Image", isArray: true },
+      ],
+    },
+    "wan/2-6-text-to-video": {
+      parameters: [
+        { name: "aspect_ratio", type: "string", description: "Output aspect ratio", enum: ["16:9", "9:16", "1:1"], default: "16:9" },
+        { name: "duration", type: "integer", description: "Video duration in seconds", minimum: 5, maximum: 10, default: 5 },
+        { name: "seed", type: "integer", description: "Random seed for reproducibility", minimum: 0 },
+      ],
+      inputs: [{ name: "prompt", type: "text", required: true, label: "Prompt" }],
+    },
+    "wan/2-6-image-to-video": {
+      parameters: [
+        { name: "aspect_ratio", type: "string", description: "Output aspect ratio", enum: ["16:9", "9:16", "1:1"], default: "16:9" },
+        { name: "duration", type: "integer", description: "Video duration in seconds", minimum: 5, maximum: 10, default: 5 },
+        { name: "seed", type: "integer", description: "Random seed for reproducibility", minimum: 0 },
+      ],
+      inputs: [
+        { name: "prompt", type: "text", required: false, label: "Prompt" },
+        { name: "image_urls", type: "image", required: true, label: "Image", isArray: true },
+      ],
+    },
+  };
+
+  return schemas[modelId] || { parameters: [], inputs: [] };
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ modelId: string }> }
@@ -488,11 +663,11 @@ export async function GET(
   const decodedModelId = decodeURIComponent(modelId);
   const provider = request.nextUrl.searchParams.get("provider") as ProviderType | null;
 
-  if (!provider || (provider !== "replicate" && provider !== "fal")) {
+  if (!provider || (provider !== "replicate" && provider !== "fal" && provider !== "kie")) {
     return NextResponse.json<SchemaErrorResponse>(
       {
         success: false,
-        error: "Invalid or missing provider. Use ?provider=replicate or ?provider=fal",
+        error: "Invalid or missing provider. Use ?provider=replicate, ?provider=fal, or ?provider=kie",
       },
       { status: 400 }
     );
@@ -526,6 +701,9 @@ export async function GET(
         );
       }
       result = await fetchReplicateSchema(decodedModelId, apiKey);
+    } else if (provider === "kie") {
+      // Kie.ai uses hardcoded schemas (no schema discovery API)
+      result = getKieSchema(decodedModelId);
     } else {
       // User-provided key takes precedence over env variable
       const apiKey = request.headers.get("X-Fal-Key") || process.env.FAL_API_KEY || null;

@@ -17,6 +17,7 @@ Create `.env.local` in the root directory:
 ```
 GEMINI_API_KEY=your_gemini_api_key
 OPENAI_API_KEY=your_openai_api_key  # Optional, for OpenAI LLM provider
+KIE_API_KEY=your_kie_api_key        # Optional, for Kie.ai models (Sora, Veo, Kling, etc.)
 ```
 
 ## Architecture Overview
@@ -177,6 +178,7 @@ The app is deployed on Vercel from the `etailup/node-banana` fork. Pushes to `ma
 Environment variables required in Vercel dashboard:
 - `GEMINI_API_KEY`
 - `OPENAI_API_KEY` (optional)
+- `KIE_API_KEY` (optional, for Kie.ai models)
 
 ### Fork + Upstream Sync
 
