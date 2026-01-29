@@ -1275,6 +1275,7 @@ function isKieVeoModel(modelId: string): boolean {
 /**
  * Upload a base64 image to Kie.ai and get a URL
  * Required for image-to-image models since Kie doesn't accept base64 directly
+ * Uses multipart/form-data with 'file' and 'uploadPath' fields
  */
 async function uploadImageToKie(
   requestId: string,
@@ -1302,14 +1303,38 @@ async function uploadImageToKie(
 
   console.log(`[API:${requestId}] Uploading image to Kie.ai: ${filename} (${(binaryData.length / 1024).toFixed(1)}KB)`);
 
+  // Build multipart form data manually
+  const boundary = `----WebKitFormBoundary${Date.now().toString(16)}`;
+  const parts: Buffer[] = [];
+
+  // Add file field
+  parts.push(Buffer.from(
+    `--${boundary}\r\n` +
+    `Content-Disposition: form-data; name="file"; filename="${filename}"\r\n` +
+    `Content-Type: ${mimeType}\r\n\r\n`
+  ));
+  parts.push(binaryData);
+  parts.push(Buffer.from('\r\n'));
+
+  // Add uploadPath field
+  parts.push(Buffer.from(
+    `--${boundary}\r\n` +
+    `Content-Disposition: form-data; name="uploadPath"\r\n\r\n` +
+    `images\r\n`
+  ));
+
+  // End boundary
+  parts.push(Buffer.from(`--${boundary}--\r\n`));
+
+  const body = Buffer.concat(parts);
+
   const response = await fetch("https://kieai.redpandaai.co/api/file-stream-upload", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": mimeType,
-      "X-Filename": filename,
+      "Content-Type": `multipart/form-data; boundary=${boundary}`,
     },
-    body: binaryData,
+    body: body,
   });
 
   if (!response.ok) {
@@ -1318,10 +1343,14 @@ async function uploadImageToKie(
   }
 
   const result = await response.json();
-  const downloadUrl = result.downloadUrl || result.url;
+  console.log(`[API:${requestId}] Kie upload response:`, JSON.stringify(result).substring(0, 300));
+
+  // Response format: { success: true, code: 200, data: { downloadUrl: "...", fileName: "...", fileSize: 123 } }
+  const downloadUrl = result.data?.downloadUrl || result.downloadUrl || result.url;
 
   if (!downloadUrl) {
-    throw new Error("No download URL in upload response");
+    console.error(`[API:${requestId}] Upload response has no URL:`, result);
+    throw new Error(`No download URL in upload response. Response: ${JSON.stringify(result).substring(0, 200)}`);
   }
 
   console.log(`[API:${requestId}] Image uploaded: ${downloadUrl.substring(0, 80)}...`);
@@ -1398,19 +1427,17 @@ async function generateWithKie(
 
   console.log(`[API:${requestId}] Kie.ai generation - Model: ${modelId}, Images: ${input.images?.length || 0}, Prompt: ${input.prompt.length} chars, Veo: ${isVeo}`);
 
-  // Build request body
-  const requestBody: Record<string, unknown> = {
-    model: modelId,
-  };
+  // Build the input object (all parameters go inside "input" for Kie API)
+  const inputParams: Record<string, unknown> = {};
 
   // Add prompt
   if (input.prompt) {
-    requestBody.prompt = input.prompt;
+    inputParams.prompt = input.prompt;
   }
 
   // Add model parameters
   if (input.parameters) {
-    Object.assign(requestBody, input.parameters);
+    Object.assign(inputParams, input.parameters);
   }
 
   // Handle image inputs
@@ -1429,16 +1456,8 @@ async function generateWithKie(
 
     // Set the correct parameter name for this model
     const imageKey = getKieImageInputKey(modelId);
-    if (isVeo) {
-      // Veo models use camelCase and array format
-      requestBody[imageKey] = imageUrls;
-    } else if (modelId === "nano-banana-pro") {
-      // nano-banana-pro uses single image
-      requestBody[imageKey] = imageUrls[0];
-    } else {
-      // Most models use array format
-      requestBody[imageKey] = imageUrls;
-    }
+    // All image params are arrays in Kie API
+    inputParams[imageKey] = imageUrls;
   }
 
   // Handle dynamic inputs (from schema-mapped connections)
@@ -1448,12 +1467,40 @@ async function generateWithKie(
         // Check if this is an image input that needs uploading
         if (typeof value === 'string' && value.startsWith('data:image')) {
           const url = await uploadImageToKie(requestId, apiKey, value);
-          requestBody[key] = url;
+          // Image params should be arrays
+          inputParams[key] = [url];
         } else {
-          requestBody[key] = value;
+          inputParams[key] = value;
         }
       }
     }
+  }
+
+  // Build request body - Veo uses different format (no input wrapper, camelCase)
+  let requestBody: Record<string, unknown>;
+
+  if (isVeo) {
+    // Veo format: { model, prompt, aspectRatio, imageUrls, generationType }
+    requestBody = {
+      model: modelId,
+      prompt: inputParams.prompt,
+      aspectRatio: inputParams.aspectRatio || inputParams.aspect_ratio || "16:9",
+      generationType: inputParams.imageUrls || inputParams.image_urls
+        ? "FIRST_AND_LAST_FRAMES_2_VIDEO"
+        : "TEXT_2_VIDEO",
+    };
+    // Add image URLs if present
+    if (inputParams.imageUrls) {
+      requestBody.imageUrls = inputParams.imageUrls;
+    } else if (inputParams.image_urls) {
+      requestBody.imageUrls = inputParams.image_urls;
+    }
+  } else {
+    // Standard format: { model, input: { ... } }
+    requestBody = {
+      model: modelId,
+      input: inputParams,
+    };
   }
 
   // Select endpoint based on model type
@@ -1462,7 +1509,7 @@ async function generateWithKie(
     : "https://api.kie.ai/api/v1/jobs/createTask";
 
   console.log(`[API:${requestId}] Calling Kie.ai API: ${createUrl}`);
-  console.log(`[API:${requestId}] Request body keys: ${Object.keys(requestBody).join(", ")}`);
+  console.log(`[API:${requestId}] Request body:`, JSON.stringify(requestBody).substring(0, 500));
 
   // Create task
   const createResponse = await fetch(createUrl, {
@@ -1521,14 +1568,25 @@ async function generateWithKie(
   }
 
   // Extract output URL from result
+  // Kie API returns: { data: { status: "success", resultJson: { resultUrls: ["url1", "url2"] } } }
   const data = pollResult.data;
   let mediaUrl: string | null = null;
   let isVideo = false;
 
-  // Try various response formats
+  console.log(`[API:${requestId}] Kie poll result data:`, JSON.stringify(data).substring(0, 500));
+
+  // Try various response formats - Kie uses resultJson.resultUrls
   if (data) {
-    // Video outputs
-    if (data.videoUrl) {
+    const resultJson = data.resultJson as Record<string, unknown> | undefined;
+    const resultUrls = (resultJson?.resultUrls || data.resultUrls) as string[] | undefined;
+
+    if (resultUrls && resultUrls.length > 0) {
+      mediaUrl = resultUrls[0];
+      // Check if it's a video based on URL
+      isVideo = mediaUrl.includes('.mp4') || mediaUrl.includes('.webm') || mediaUrl.includes('video');
+    }
+    // Fallback to other formats
+    else if (data.videoUrl) {
       mediaUrl = data.videoUrl as string;
       isVideo = true;
     } else if (data.video_url) {
