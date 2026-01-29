@@ -1253,6 +1253,91 @@ async function generateWithFalQueue(
 // ============ Kie.ai Helpers ============
 
 /**
+ * Get default required parameters for a Kie model
+ * Many Kie models require specific parameters to be present even if not user-specified
+ */
+function getKieModelDefaults(modelId: string): Record<string, unknown> {
+  switch (modelId) {
+    // GPT Image models require aspect_ratio and quality
+    case "gpt-image/1.5-text-to-image":
+    case "gpt-image/1.5-image-to-image":
+      return {
+        aspect_ratio: "1:1",
+        quality: "medium",
+      };
+
+    // Z-Image model
+    case "z-image":
+      return {
+        aspect_ratio: "1:1",
+      };
+
+    // Seedream models
+    case "seedream/4.5-text-to-image":
+    case "seedream/4.5-edit":
+      return {
+        aspect_ratio: "1:1",
+      };
+
+    // Nano Banana Pro (Kie's version)
+    case "nano-banana-pro":
+      return {
+        aspect_ratio: "1:1",
+      };
+
+    // Google Nano Banana models
+    case "google/nano-banana":
+    case "google/nano-banana-edit":
+      return {
+        aspect_ratio: "1:1",
+      };
+
+    // Sora video models
+    case "sora-2-text-to-video":
+    case "sora-2-image-to-video":
+    case "sora-2-pro-text-to-video":
+    case "sora-2-pro-image-to-video":
+      return {
+        aspect_ratio: "16:9",
+        duration: "5",
+      };
+
+    // Veo video models (use camelCase)
+    case "veo3":
+    case "veo3_fast":
+      return {
+        aspectRatio: "16:9",
+      };
+
+    // Bytedance Seedance
+    case "bytedance/seedance-1.5-pro":
+      return {
+        aspect_ratio: "16:9",
+        duration: "5",
+      };
+
+    // Kling video models
+    case "kling-2.6/text-to-video":
+    case "kling-2.6/image-to-video":
+      return {
+        aspect_ratio: "16:9",
+        duration: "5",
+      };
+
+    // Wan video models
+    case "wan/2-6-text-to-video":
+    case "wan/2-6-image-to-video":
+      return {
+        aspect_ratio: "16:9",
+        duration: "5",
+      };
+
+    default:
+      return {};
+  }
+}
+
+/**
  * Get the correct image input parameter name for a Kie model
  */
 function getKieImageInputKey(modelId: string): string {
@@ -1428,14 +1513,16 @@ async function generateWithKie(
   console.log(`[API:${requestId}] Kie.ai generation - Model: ${modelId}, Images: ${input.images?.length || 0}, Prompt: ${input.prompt.length} chars, Veo: ${isVeo}`);
 
   // Build the input object (all parameters go inside "input" for Kie API)
-  const inputParams: Record<string, unknown> = {};
+  // Start with model-specific required defaults
+  const modelDefaults = getKieModelDefaults(modelId);
+  const inputParams: Record<string, unknown> = { ...modelDefaults };
 
   // Add prompt
   if (input.prompt) {
     inputParams.prompt = input.prompt;
   }
 
-  // Add model parameters
+  // Add model parameters (user params override defaults)
   if (input.parameters) {
     Object.assign(inputParams, input.parameters);
   }
