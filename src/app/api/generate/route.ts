@@ -1632,6 +1632,17 @@ async function generateWithKie(
   }
 
   const createResult = await createResponse.json();
+
+  // Kie API returns HTTP 200 even on errors, check the response code
+  if (createResult.code && createResult.code !== 200) {
+    const errorMsg = createResult.msg || createResult.message || "API error";
+    console.error(`[API:${requestId}] Kie API error (code ${createResult.code}):`, errorMsg);
+    return {
+      success: false,
+      error: `${input.model.name}: ${errorMsg}`,
+    };
+  }
+
   const taskId = createResult.taskId || createResult.data?.taskId || createResult.id;
 
   if (!taskId) {
