@@ -17,7 +17,7 @@ import { GenerateRequest, GenerateResponse, ModelType, SelectedModel, ProviderTy
 import { GenerationInput, GenerationOutput, ProviderModel } from "@/lib/providers/types";
 import { uploadImageForUrl, shouldUseImageUrl, deleteImages } from "@/lib/images";
 
-export const maxDuration = 600; // 10 minute timeout for video generation (Vercel only)
+export const maxDuration = 300; // 5 minute timeout (Vercel hobby plan limit)
 export const dynamic = 'force-dynamic'; // Ensure this route is always dynamic
 
 // Map model types to Gemini model IDs
