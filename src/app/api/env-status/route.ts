@@ -5,6 +5,7 @@ export interface EnvStatusResponse {
   openai: boolean;
   replicate: boolean;
   fal: boolean;
+  kie: boolean;
 }
 
 export async function GET() {
@@ -14,6 +15,7 @@ export async function GET() {
     openai: !!process.env.OPENAI_API_KEY,
     replicate: !!process.env.REPLICATE_API_KEY,
     fal: !!process.env.FAL_API_KEY,
+    kie: !!process.env.KIE_API_KEY,
   };
 
   return NextResponse.json(status);

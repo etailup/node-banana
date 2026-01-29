@@ -591,6 +591,60 @@ export function ProjectSetupModal({
               </div>
             </div>
 
+            {/* Kie.ai Provider */}
+            <div className="p-3 bg-neutral-900 rounded-lg border border-neutral-700">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-orange-400" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                  </svg>
+                  <span className="text-sm font-medium text-neutral-100">Kie.ai</span>
+                  <span className="text-xs text-neutral-500">(Sora, Veo, Kling, etc.)</span>
+                </div>
+                {envStatus?.kie && !overrideActive.kie ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-green-400">✓ From .env</span>
+                    <button
+                      type="button"
+                      onClick={() => setOverrideActive((prev) => ({ ...prev, kie: true }))}
+                      className="px-2 py-1 text-xs text-neutral-400 hover:text-neutral-200 transition-colors"
+                    >
+                      Override
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type={showApiKey.kie ? "text" : "password"}
+                      value={localProviders.providers.kie?.apiKey || ""}
+                      onChange={(e) => updateLocalProvider("kie", { apiKey: e.target.value || null, enabled: !!e.target.value })}
+                      placeholder="..."
+                      className="w-48 px-2 py-1 bg-neutral-800 border border-neutral-600 rounded text-neutral-100 text-xs focus:outline-none focus:border-neutral-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey((prev) => ({ ...prev, kie: !prev.kie }))}
+                      className="text-xs text-neutral-400 hover:text-neutral-200"
+                    >
+                      {showApiKey.kie ? "Hide" : "Show"}
+                    </button>
+                    {envStatus?.kie && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOverrideActive((prev) => ({ ...prev, kie: false }));
+                          updateLocalProvider("kie", { apiKey: null });
+                        }}
+                        className="text-xs text-neutral-500 hover:text-neutral-300"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
             <p className="text-xs text-neutral-500 mt-2">
               Add API keys via <code className="px-1 py-0.5 bg-neutral-800 rounded">.env.local</code> for better security. Keys added here override .env and are stored in your browser.
             </p>
