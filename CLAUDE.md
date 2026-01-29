@@ -165,3 +165,38 @@ All routes in `src/app/api/`:
 - `node-banana-workflow-configs` - Project metadata (paths)
 - `node-banana-workflow-costs` - Cost tracking per workflow
 - `node-banana-nanoBanana-defaults` - Sticky generation settings
+
+## Deployment & Git Workflow
+
+### Vercel Deployment
+
+Production URL: https://node-banana-nilas-projects-2f16eb79.vercel.app
+
+The app is deployed on Vercel from the `etailup/node-banana` fork. Pushes to `master` trigger automatic deployments.
+
+Environment variables required in Vercel dashboard:
+- `GEMINI_API_KEY`
+- `OPENAI_API_KEY` (optional)
+
+### Fork + Upstream Sync
+
+This repo is a fork that tracks the original upstream:
+
+| Remote | Repository | Purpose |
+|--------|------------|---------|
+| origin | `etailup/node-banana` | Your fork (push here, deploys to Vercel) |
+| upstream | `shrimbly/node-banana` | Original source (pull updates from here) |
+
+**Pull updates from original while keeping your modifications:**
+
+```bash
+git fetch upstream
+git merge upstream/master
+# Resolve conflicts if any
+git push origin master
+```
+
+**Check remotes:**
+```bash
+git remote -v
+```
