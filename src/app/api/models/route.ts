@@ -46,6 +46,183 @@ const RELEVANT_CATEGORIES = [
   "image-to-video",
 ];
 
+// Kie.ai models (hardcoded - no discovery API available)
+const KIE_MODELS: ProviderModel[] = [
+  // Image Models
+  {
+    id: "z-image",
+    name: "Z-Image",
+    description: "Fast, affordable text-to-image generation. Great for quick iterations.",
+    provider: "kie",
+    capabilities: ["text-to-image"],
+    coverImage: undefined,
+    pricing: { type: "per-run", amount: 0.004, currency: "USD" },
+  },
+  {
+    id: "seedream/4.5-text-to-image",
+    name: "Seedream 4.5",
+    description: "High-quality text-to-image generation with excellent prompt following.",
+    provider: "kie",
+    capabilities: ["text-to-image"],
+    coverImage: undefined,
+    pricing: { type: "per-run", amount: 0.032, currency: "USD" },
+  },
+  {
+    id: "seedream/4.5-edit",
+    name: "Seedream 4.5 Edit",
+    description: "Image editing and transformation using Seedream 4.5.",
+    provider: "kie",
+    capabilities: ["image-to-image"],
+    coverImage: undefined,
+    pricing: { type: "per-run", amount: 0.032, currency: "USD" },
+  },
+  {
+    id: "nano-banana-pro",
+    name: "Nano Banana Pro (Kie)",
+    description: "High-quality image generation supporting both text-to-image and image-to-image.",
+    provider: "kie",
+    capabilities: ["text-to-image", "image-to-image"],
+    coverImage: undefined,
+    pricing: { type: "per-run", amount: 0.10, currency: "USD" },
+  },
+  {
+    id: "gpt-image/1.5-text-to-image",
+    name: "GPT Image 1.5",
+    description: "OpenAI-style image generation with excellent prompt understanding.",
+    provider: "kie",
+    capabilities: ["text-to-image"],
+    coverImage: undefined,
+    pricing: { type: "per-run", amount: 0.06, currency: "USD" },
+  },
+  {
+    id: "gpt-image/1.5-image-to-image",
+    name: "GPT Image 1.5 Edit",
+    description: "Image editing using GPT Image 1.5 model.",
+    provider: "kie",
+    capabilities: ["image-to-image"],
+    coverImage: undefined,
+    pricing: { type: "per-run", amount: 0.06, currency: "USD" },
+  },
+  {
+    id: "google/nano-banana",
+    name: "Google Nano Banana (Kie)",
+    description: "Google's image generation model via Kie.ai.",
+    provider: "kie",
+    capabilities: ["text-to-image"],
+    coverImage: undefined,
+    pricing: { type: "per-run", amount: 0.05, currency: "USD" },
+  },
+  {
+    id: "google/nano-banana-edit",
+    name: "Google Nano Banana Edit",
+    description: "Google's image editing model via Kie.ai.",
+    provider: "kie",
+    capabilities: ["image-to-image"],
+    coverImage: undefined,
+    pricing: { type: "per-run", amount: 0.05, currency: "USD" },
+  },
+  // Video Models
+  {
+    id: "sora-2-text-to-video",
+    name: "Sora 2",
+    description: "OpenAI Sora video generation from text prompts.",
+    provider: "kie",
+    capabilities: ["text-to-video"],
+    coverImage: undefined,
+    pricing: { type: "per-second", amount: 0.015, currency: "USD" },
+  },
+  {
+    id: "sora-2-image-to-video",
+    name: "Sora 2 Image-to-Video",
+    description: "OpenAI Sora video generation from images.",
+    provider: "kie",
+    capabilities: ["image-to-video"],
+    coverImage: undefined,
+    pricing: { type: "per-second", amount: 0.015, currency: "USD" },
+  },
+  {
+    id: "sora-2-pro-text-to-video",
+    name: "Sora 2 Pro",
+    description: "Premium Sora video generation with higher quality output.",
+    provider: "kie",
+    capabilities: ["text-to-video"],
+    coverImage: undefined,
+    pricing: { type: "per-second", amount: 0.10, currency: "USD" },
+  },
+  {
+    id: "sora-2-pro-image-to-video",
+    name: "Sora 2 Pro Image-to-Video",
+    description: "Premium Sora video generation from images.",
+    provider: "kie",
+    capabilities: ["image-to-video"],
+    coverImage: undefined,
+    pricing: { type: "per-second", amount: 0.10, currency: "USD" },
+  },
+  {
+    id: "veo3_fast",
+    name: "Veo 3 Fast",
+    description: "Google Veo 3 fast video generation. Supports text and image inputs.",
+    provider: "kie",
+    capabilities: ["text-to-video", "image-to-video"],
+    coverImage: undefined,
+    pricing: { type: "per-run", amount: 0.30, currency: "USD" },
+  },
+  {
+    id: "veo3",
+    name: "Veo 3",
+    description: "Google Veo 3 high-quality video generation. Supports text and image inputs.",
+    provider: "kie",
+    capabilities: ["text-to-video", "image-to-video"],
+    coverImage: undefined,
+    pricing: { type: "per-run", amount: 1.25, currency: "USD" },
+  },
+  {
+    id: "bytedance/seedance-1.5-pro",
+    name: "Seedance 1.5 Pro",
+    description: "ByteDance video generation model. Supports text and image inputs.",
+    provider: "kie",
+    capabilities: ["text-to-video", "image-to-video"],
+    coverImage: undefined,
+    pricing: { type: "per-run", amount: 0.20, currency: "USD" },
+  },
+  {
+    id: "kling-2.6/text-to-video",
+    name: "Kling 2.6",
+    description: "Kling 2.6 video generation from text.",
+    provider: "kie",
+    capabilities: ["text-to-video"],
+    coverImage: undefined,
+    pricing: { type: "per-run", amount: 0.60, currency: "USD" },
+  },
+  {
+    id: "kling-2.6/image-to-video",
+    name: "Kling 2.6 Image-to-Video",
+    description: "Kling 2.6 video generation from images.",
+    provider: "kie",
+    capabilities: ["image-to-video"],
+    coverImage: undefined,
+    pricing: { type: "per-run", amount: 0.60, currency: "USD" },
+  },
+  {
+    id: "wan/2-6-text-to-video",
+    name: "Wan 2.6",
+    description: "Wan 2.6 video generation from text.",
+    provider: "kie",
+    capabilities: ["text-to-video"],
+    coverImage: undefined,
+    pricing: { type: "per-run", amount: 0.90, currency: "USD" },
+  },
+  {
+    id: "wan/2-6-image-to-video",
+    name: "Wan 2.6 Image-to-Video",
+    description: "Wan 2.6 video generation from images.",
+    provider: "kie",
+    capabilities: ["image-to-video"],
+    coverImage: undefined,
+    pricing: { type: "per-run", amount: 0.90, currency: "USD" },
+  },
+];
+
 // Gemini image models (hardcoded - these don't come from an external API)
 const GEMINI_IMAGE_MODELS: ProviderModel[] = [
   {
@@ -346,15 +523,20 @@ export async function GET(
   // Get API keys from headers, falling back to env variables
   const replicateKey = request.headers.get("X-Replicate-Key") || process.env.REPLICATE_API_KEY || null;
   const falKey = request.headers.get("X-Fal-Key") || process.env.FAL_API_KEY || null;
+  const kieKey = request.headers.get("X-Kie-Key") || process.env.KIE_API_KEY || null;
 
-  // Determine which providers to fetch from (excluding gemini - handled separately)
+  // Determine which providers to fetch from (excluding gemini/kie - handled separately as hardcoded)
   const providersToFetch: ProviderType[] = [];
   let includeGemini = false;
+  let includeKie = false;
 
   if (providerFilter) {
     if (providerFilter === "gemini") {
       // Only Gemini requested - no external API calls needed
       includeGemini = true;
+    } else if (providerFilter === "kie") {
+      // Only Kie requested - no external API calls needed (hardcoded models)
+      includeKie = true;
     } else if (providerFilter === "replicate" && replicateKey) {
       providersToFetch.push("replicate");
     } else if (providerFilter === "fal") {
@@ -364,6 +546,7 @@ export async function GET(
   } else {
     // Include all providers
     includeGemini = true; // Gemini always available
+    includeKie = kieKey ? true : false; // Kie only if API key is configured
     if (replicateKey) {
       providersToFetch.push("replicate");
     }
@@ -371,13 +554,13 @@ export async function GET(
     providersToFetch.push("fal");
   }
 
-  // Gemini is always available, so we don't fail if no external providers
-  if (providersToFetch.length === 0 && !includeGemini) {
+  // Gemini and Kie are always available (with key for Kie), so we don't fail if no external providers
+  if (providersToFetch.length === 0 && !includeGemini && !includeKie) {
     return NextResponse.json<ModelsErrorResponse>(
       {
         success: false,
         error:
-          "No providers available. Add REPLICATE_API_KEY or FAL_API_KEY to .env.local or configure in Settings.",
+          "No providers available. Add REPLICATE_API_KEY, FAL_API_KEY, or KIE_API_KEY to .env.local or configure in Settings.",
       },
       { status: 400 }
     );
@@ -400,6 +583,22 @@ export async function GET(
     providerResults["gemini"] = {
       success: true,
       count: geminiModels.length,
+      cached: true, // Hardcoded models are effectively "cached"
+    };
+    anyFromCache = true;
+  }
+
+  // Add Kie models if included (hardcoded, no API call needed)
+  if (includeKie) {
+    // Filter by search query if provided
+    let kieModels = KIE_MODELS;
+    if (searchQuery) {
+      kieModels = filterModelsBySearch(kieModels, searchQuery);
+    }
+    allModels.push(...kieModels);
+    providerResults["kie"] = {
+      success: true,
+      count: kieModels.length,
       cached: true, // Hardcoded models are effectively "cached"
     };
     anyFromCache = true;

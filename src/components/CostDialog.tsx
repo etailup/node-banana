@@ -20,6 +20,7 @@ function ProviderIcon({ provider }: { provider: ProviderType }) {
     fal: { bg: "bg-purple-500/20", text: "text-purple-300" },
     replicate: { bg: "bg-blue-500/20", text: "text-blue-300" },
     openai: { bg: "bg-teal-500/20", text: "text-teal-300" },
+    kie: { bg: "bg-orange-500/20", text: "text-orange-300" },
   };
 
   const labels: Record<ProviderType, string> = {
@@ -27,6 +28,7 @@ function ProviderIcon({ provider }: { provider: ProviderType }) {
     fal: "f",
     replicate: "R",
     openai: "O",
+    kie: "K",
   };
 
   const color = colors[provider] || colors.gemini;
@@ -47,6 +49,7 @@ function getProviderDisplayName(provider: ProviderType): string {
     fal: "fal.ai",
     replicate: "Replicate",
     openai: "OpenAI",
+    kie: "Kie.ai",
   };
   return names[provider] || provider;
 }
