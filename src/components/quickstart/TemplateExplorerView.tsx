@@ -252,16 +252,22 @@ export function TemplateExplorerView({
       setError(null);
 
       try {
+        // Step 1: Get presigned download URL from API
         const response = await fetch(`/api/community-workflows/${workflowId}`);
         const result = await response.json();
 
-        if (!result.success) {
-          throw new Error(result.error || "Failed to load workflow");
+        if (!result.success || !result.downloadUrl) {
+          throw new Error(result.error || "Failed to get download URL");
         }
 
-        if (result.workflow) {
-          onWorkflowSelected(result.workflow);
+        // Step 2: Download workflow directly from R2
+        const workflowResponse = await fetch(result.downloadUrl);
+        if (!workflowResponse.ok) {
+          throw new Error("Failed to download workflow");
         }
+
+        const workflow = await workflowResponse.json();
+        onWorkflowSelected(workflow);
       } catch (err) {
         console.error("Error loading community workflow:", err);
         setError(err instanceof Error ? err.message : "Failed to load workflow");
