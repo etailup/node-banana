@@ -480,19 +480,29 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 33-01-PLAN.md — Store snapshot state, capture/revert/clear actions, manual change tracking
-- [ ] 33-02-PLAN.md — Wire snapshot capture in AI flow, Revert AI Changes button in Header
+- [x] 33-01-PLAN.md — Store snapshot state, capture/revert/clear actions, manual change tracking
+- [x] 33-02-PLAN.md — Wire snapshot capture in AI flow, Revert AI Changes button in Header
 
-#### Phase 34: Agentic Workflow Editing
+#### Phase 34: Context-Aware Agentic Workflow Editing
 
-**Goal**: Agent interprets edit requests and modifies workflow JSON with change narration
+**Goal**: Make the chat agent context-aware and multi-modal — routing user messages by intent to different behaviors: answering app usage questions, creating new workflows from scratch, or making targeted edits to the current workflow with full project context awareness and change narration
 **Depends on**: Phase 33
-**Research**: Likely (system prompts for structured edits)
-**Research topics**: System prompts for JSON file updates, structured output for workflow modifications, change explanation patterns
-**Plans**: TBD
+**Research**: Likely (intent classification, context-aware prompting, structured edits)
+**Research topics**: Intent classification approaches (keyword vs LLM-based), system prompt design for context-aware editing, workflow JSON mutation strategies, project context injection, change explanation patterns
+**Plans**: 3 plans
+
+**Features:**
+1. Intent detection: classify user messages as help/question, new workflow creation, or workflow editing
+2. Help mode: answer questions about how to use the app without modifying anything
+3. Create mode: build new workflows from scratch (existing behavior)
+4. Edit mode: interpret edit requests against the current workflow, make targeted JSON modifications
+5. Project context awareness: agent understands current nodes, connections, models, and parameters
+6. Change narration: explain what was modified and why
 
 Plans:
-- [ ] 34-01: TBD (run /gsd:plan-phase 34 to break down)
+- [ ] 34-01-PLAN.md — Chat agent library: tool definitions, edit operations, context builder
+- [ ] 34-02-PLAN.md — Enhanced /api/chat route with tool calling for intent routing
+- [ ] 34-03-PLAN.md — Store applyEditOperations, ChatPanel tool result handling, end-to-end wiring
 
 #### Phase 35: Large Workflow Handling
 
@@ -655,8 +665,8 @@ Phases execute in numeric order: 1 → 2 → ... → 35 → 36 → 37 → 38 →
 | 30. Small Fixes | v1.3 | 0/0 | Deferred | - |
 | 31. Workflow Proposal System | v1.4 | 2/2 | Complete | 2026-01-26 |
 | 32. Chat UI Foundation | v1.4 | 2/2 | Complete | 2026-01-27 |
-| 33. Workflow Edit Safety | v1.4 | 0/? | Not started | - |
-| 34. Agentic Workflow Editing | v1.4 | 0/? | Not started | - |
+| 33. Workflow Edit Safety | v1.4 | 2/2 | Complete | 2026-01-30 |
+| 34. Context-Aware Agentic Editing | v1.4 | 0/? | Not started | - |
 | 35. Large Workflow Handling | v1.4 | 0/? | Not started | - |
 | 36. Execution Engine Extraction | v1.5 | 0/3 | Not started | - |
 | 37. Pure Helpers Extraction | v1.5 | 0/2 | Not started | - |
