@@ -40,6 +40,7 @@ import { detectAndSplitGrid } from "@/utils/gridSplitter";
 import { logger } from "@/utils/logger";
 import { WelcomeModal } from "./quickstart";
 import { ChatPanel } from "./ChatPanel";
+import { EditOperation } from "@/lib/chat/editOperations";
 
 const nodeTypes: NodeTypes = {
   imageInput: ImageInputNode,
@@ -179,7 +180,7 @@ const findScrollableAncestor = (target: HTMLElement, deltaX: number, deltaY: num
 };
 
 export function WorkflowCanvas() {
-  const { nodes, edges, groups, onNodesChange, onEdgesChange, onConnect, addNode, updateNodeData, loadWorkflow, getNodeById, addToGlobalHistory, setNodeGroupId, executeWorkflow, isModalOpen, showQuickstart, setShowQuickstart, navigationTarget, setNavigationTarget, captureSnapshot } =
+  const { nodes, edges, groups, onNodesChange, onEdgesChange, onConnect, addNode, updateNodeData, loadWorkflow, getNodeById, addToGlobalHistory, setNodeGroupId, executeWorkflow, isModalOpen, showQuickstart, setShowQuickstart, navigationTarget, setNavigationTarget, captureSnapshot, applyEditOperations } =
     useWorkflowStore();
   const { screenToFlowPosition, getViewport, zoomIn, zoomOut, setViewport, setCenter } = useReactFlow();
   const { show: showToast } = useToast();
@@ -593,6 +594,35 @@ export function WorkflowCanvas() {
       setIsBuildingWorkflow(false);
     }
   }, [loadWorkflow, showToast, captureSnapshot]);
+
+  // Create lightweight workflow state for chat (strip base64 images)
+  const chatWorkflowState = useMemo(() => ({
+    nodes: nodes.map(n => ({
+      id: n.id,
+      type: n.type || '',
+      data: { customTitle: (n.data as { customTitle?: string }).customTitle },
+    })),
+    edges: edges.map(e => ({
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      sourceHandle: e.sourceHandle || undefined,
+      targetHandle: e.targetHandle || undefined,
+    })),
+  }), [nodes, edges]);
+
+  // Handle applying edit operations from chat
+  const handleApplyEdits = useCallback((operations: EditOperation[]) => {
+    captureSnapshot(); // Snapshot before AI edits
+    const result = applyEditOperations(operations);
+    if (result.applied > 0) {
+      showToast(`Applied ${result.applied} edit(s)`, "success");
+    }
+    if (result.skipped.length > 0) {
+      console.warn('Skipped operations:', result.skipped);
+    }
+    return result;
+  }, [captureSnapshot, applyEditOperations, showToast]);
 
   // Handle node selection from drop menu
   const handleMenuSelect = useCallback(
@@ -1389,6 +1419,8 @@ export function WorkflowCanvas() {
         onClose={() => setIsChatOpen(false)}
         onBuildWorkflow={handleBuildWorkflow}
         isBuildingWorkflow={isBuildingWorkflow}
+        onApplyEdits={handleApplyEdits}
+        workflowState={chatWorkflowState}
       />
     </div>
   );

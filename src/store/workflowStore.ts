@@ -32,6 +32,7 @@ import { useToast } from "@/components/Toast";
 import { calculateGenerationCost } from "@/utils/costCalculator";
 import { logger } from "@/utils/logger";
 import { externalizeWorkflowImages, hydrateWorkflowImages } from "@/utils/imageStorage";
+import { EditOperation, applyEditOperations as executeEditOps } from "@/lib/chat/editOperations";
 import {
   loadSaveConfigs,
   saveSaveConfig,
@@ -220,6 +221,7 @@ interface WorkflowStore {
   revertToSnapshot: () => void;
   clearSnapshot: () => void;
   incrementManualChangeCount: () => void;
+  applyEditOperations: (operations: EditOperation[]) => { applied: number; skipped: string[] };
 }
 
 let nodeIdCounter = 0;
@@ -3011,5 +3013,21 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     } else {
       set({ manualChangeCount: newCount });
     }
+  },
+
+  applyEditOperations: (operations) => {
+    const state = get();
+    const result = executeEditOps(operations, {
+      nodes: state.nodes,
+      edges: state.edges,
+    });
+
+    set({
+      nodes: result.nodes,
+      edges: result.edges,
+      hasUnsavedChanges: true,
+    });
+
+    return { applied: result.applied, skipped: result.skipped };
   },
 }));

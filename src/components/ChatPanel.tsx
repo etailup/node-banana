@@ -1,26 +1,85 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import ReactMarkdown from "react-markdown";
+import { EditOperation } from "@/lib/chat/editOperations";
 
 interface ChatPanelProps {
   isOpen: boolean;
   onClose: () => void;
   onBuildWorkflow?: (description: string) => Promise<void>;
   isBuildingWorkflow?: boolean;
+  onApplyEdits?: (operations: EditOperation[]) => { applied: number; skipped: string[] };
+  workflowState?: {
+    nodes: { id: string; type: string; data: Record<string, unknown> }[];
+    edges: { id: string; source: string; target: string; sourceHandle?: string; targetHandle?: string }[]
+  };
 }
 
-export function ChatPanel({ isOpen, onClose, onBuildWorkflow, isBuildingWorkflow = false }: ChatPanelProps) {
+export function ChatPanel({ isOpen, onClose, onBuildWorkflow, isBuildingWorkflow = false, onApplyEdits, workflowState }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
 
+  // Create a custom fetch function that includes workflowState
+  const customFetch = useCallback(async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (!init?.body) {
+      return fetch(input, init);
+    }
+
+    const body = JSON.parse(init.body as string);
+    const bodyWithWorkflow = {
+      ...body,
+      workflowState,
+    };
+
+    return fetch(input, {
+      ...init,
+      body: JSON.stringify(bodyWithWorkflow),
+    });
+  }, [workflowState]);
+
   const { messages, sendMessage, setMessages, status } = useChat({
-    transport: new DefaultChatTransport({ api: "/api/chat" }),
+    transport: new DefaultChatTransport({ api: "/api/chat", fetch: customFetch }),
   });
 
   const isLoading = status === "streaming" || status === "submitted";
+
+  // Track processed tool calls to avoid re-applying
+  const processedToolCalls = useRef<Set<string>>(new Set());
+
+  // Process tool invocations from AI responses
+  useEffect(() => {
+    messages.forEach((msg) => {
+      msg.parts?.forEach((part) => {
+        if (!part.type.startsWith("tool-")) return;
+        if (!("state" in part) || !("toolCallId" in part) || !("input" in part)) return;
+        if (part.state !== "output-available") return;
+
+        const callId = part.toolCallId;
+        if (processedToolCalls.current.has(callId)) return;
+        processedToolCalls.current.add(callId);
+
+        const toolName = part.type.replace("tool-", "");
+        if (toolName === "createWorkflow" && onBuildWorkflow) {
+          // Extract description from tool args (input is the args)
+          const description = (part.input as { description?: string }).description;
+          if (description) {
+            onBuildWorkflow(description);
+          }
+        }
+
+        if (toolName === "editWorkflow" && onApplyEdits) {
+          // Extract operations from tool args (input is the args)
+          const operations = (part.input as { operations?: EditOperation[] }).operations;
+          if (operations) {
+            onApplyEdits(operations);
+          }
+        }
+      });
+    });
+  }, [messages, onBuildWorkflow, onApplyEdits]);
 
   // Extract conversation description from user messages
   const getConversationDescription = () => {
@@ -107,6 +166,14 @@ export function ChatPanel({ isOpen, onClose, onBuildWorkflow, isBuildingWorkflow
             .map((part) => part.text)
             .join("") || "";
 
+          // Extract tool invocations for display
+          const toolInvocations = message.parts
+            ?.filter((part) => {
+              if (!part.type.startsWith("tool-")) return false;
+              if (!("state" in part)) return false;
+              return part.state === "output-available";
+            }) || [];
+
           return (
             <div
               key={message.id}
@@ -122,20 +189,49 @@ export function ChatPanel({ isOpen, onClose, onBuildWorkflow, isBuildingWorkflow
                 {message.role === "user" ? (
                   <p className="whitespace-pre-wrap">{textContent}</p>
                 ) : (
-                  <ReactMarkdown
-                    components={{
-                      p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                      strong: ({ children }) => <strong className="font-semibold text-neutral-100">{children}</strong>,
-                      em: ({ children }) => <em className="italic">{children}</em>,
-                      ul: ({ children }) => <ul className="list-disc pl-4 mb-2 last:mb-0 space-y-1">{children}</ul>,
-                      ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 last:mb-0 space-y-1">{children}</ol>,
-                      li: ({ children }) => <li>{children}</li>,
-                      blockquote: ({ children }) => <blockquote className="border-l-2 border-neutral-500 pl-2 my-2 text-neutral-300 italic">{children}</blockquote>,
-                      code: ({ children }) => <code className="bg-neutral-600 px-1 rounded text-xs">{children}</code>,
-                    }}
-                  >
-                    {textContent}
-                  </ReactMarkdown>
+                  <>
+                    {/* Display tool invocation explanations */}
+                    {toolInvocations.map((tool, idx) => {
+                      if (!("input" in tool)) return null;
+                      const toolName = tool.type.replace("tool-", "");
+                      if (toolName === "editWorkflow") {
+                        const explanation = (tool.input as { explanation?: string }).explanation;
+                        if (explanation) {
+                          return (
+                            <div key={idx} className="mb-2 text-green-300 text-xs italic">
+                              {explanation}
+                            </div>
+                          );
+                        }
+                      }
+                      if (toolName === "createWorkflow") {
+                        return (
+                          <div key={idx} className="mb-2 text-blue-300 text-xs italic">
+                            Building workflow...
+                          </div>
+                        );
+                      }
+                      return null;
+                    })}
+
+                    {/* Display text content */}
+                    {textContent && (
+                      <ReactMarkdown
+                        components={{
+                          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                          strong: ({ children }) => <strong className="font-semibold text-neutral-100">{children}</strong>,
+                          em: ({ children }) => <em className="italic">{children}</em>,
+                          ul: ({ children }) => <ul className="list-disc pl-4 mb-2 last:mb-0 space-y-1">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 last:mb-0 space-y-1">{children}</ol>,
+                          li: ({ children }) => <li>{children}</li>,
+                          blockquote: ({ children }) => <blockquote className="border-l-2 border-neutral-500 pl-2 my-2 text-neutral-300 italic">{children}</blockquote>,
+                          code: ({ children }) => <code className="bg-neutral-600 px-1 rounded text-xs">{children}</code>,
+                        }}
+                      >
+                        {textContent}
+                      </ReactMarkdown>
+                    )}
+                  </>
                 )}
               </div>
             </div>
