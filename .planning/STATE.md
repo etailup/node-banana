@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 ## Current Position
 
 Phase: 34 of 35 (Context-Aware Agentic Workflow Editing)
-Plan: 1 of ? in current phase
+Plan: 2 of ? in current phase
 Status: In progress
-Last activity: 2026-01-30 - Completed plan 01 (Chat Agent Library)
+Last activity: 2026-01-30 - Completed plan 02 (Enhanced Chat API Route with Tool Calling)
 
 Progress: ░░░░░░░░░░ 6%
 
@@ -55,11 +55,11 @@ Progress: ░░░░░░░░░░ 6%
 | 31. Workflow Proposal System | 2/2 | 6 min | 3 min |
 | 32. Chat UI Foundation | 2/2 | 9 min | 4.5 min |
 | 33. Workflow Edit Safety | 2/2 | 5 min | 5 min |
-| 34. Agentic Workflow Editing | 1/? | 5 min | 5 min |
+| 34. Agentic Workflow Editing | 2/? | 13 min | 6.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 2 min, 4 min, 5 min, 5 min, 5 min
-- Trend: Chat and agentic features shipping quickly with consistent 5-min execution
+- Last 5 plans: 4 min, 5 min, 5 min, 5 min, 8 min
+- Trend: Chat and agentic features shipping quickly with consistent 5-8 min execution
 
 ## Accumulated Context
 
@@ -162,6 +162,10 @@ Recent decisions affecting current work:
 - Edit operations use batched immutable updates with skip tracking for invalid operations
 - Node IDs for AI-generated nodes: ${nodeType}-ai-${Date.now()}-${index} pattern
 - Workflow context builder strips base64 data, history arrays, and internal state for LLM consumption
+- /api/chat accepts optional workflowState (nodes/edges) from client for context-aware routing
+- AI SDK v6 uses stopWhen: stepCountIs(N) for multi-step tool execution (not maxSteps)
+- Chat API uses toolChoice: 'auto' to let LLM decide which tool to call based on intent
+- System prompt dynamically built per request with workflow context via buildEditSystemPrompt
 
 ### Deferred Issues
 
@@ -197,6 +201,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Completed Phase 34 Plan 01 (Chat Agent Library)
+Stopped at: Completed Phase 34 Plan 02 (Enhanced Chat API Route with Tool Calling)
 Resume file: None
-Next action: Execute Phase 34 Plan 02 (Enhance chat API route with tool calling)
+Next action: Execute Phase 34 Plan 03 (ChatPanel client integration for tool result handling)
