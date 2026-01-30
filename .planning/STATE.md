@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 ## Current Position
 
-Phase: 33 of 35 (Workflow Edit Safety)
-Plan: 1 of 2 in current phase
+Phase: 34 of 35 (Context-Aware Agentic Workflow Editing)
+Plan: 1 of ? in current phase
 Status: In progress
-Last activity: 2026-01-30 - Completed quick-001 (Fix multiple image inputs lost in dynamicInputs)
+Last activity: 2026-01-30 - Completed plan 01 (Chat Agent Library)
 
 Progress: ░░░░░░░░░░ 6%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 31
+- Total plans completed: 32
 - Average duration: 7 min
-- Total execution time: 3.6 hours
+- Total execution time: 3.7 hours
 
 **By Phase:**
 
@@ -54,11 +54,12 @@ Progress: ░░░░░░░░░░ 6%
 | 28. Node Defaults UI | 1/1 | 32 min | 32 min |
 | 31. Workflow Proposal System | 2/2 | 6 min | 3 min |
 | 32. Chat UI Foundation | 2/2 | 9 min | 4.5 min |
-| 33. Workflow Edit Safety | 1/2 | 5 min | 5 min |
+| 33. Workflow Edit Safety | 2/2 | 5 min | 5 min |
+| 34. Agentic Workflow Editing | 1/? | 5 min | 5 min |
 
 **Recent Trend:**
-- Last 5 plans: 4 min, 2 min, 4 min, 5 min, 5 min
-- Trend: Store infrastructure and chat integration work completing quickly
+- Last 5 plans: 2 min, 4 min, 5 min, 5 min, 5 min
+- Trend: Chat and agentic features shipping quickly with consistent 5-min execution
 
 ## Accumulated Context
 
@@ -156,6 +157,11 @@ Recent decisions affecting current work:
 - dynamicInputs type is Record<string, string | string[]> to support multi-image aggregation
 - Single image stays as string; only multiple images to same schema key become array
 - Array.isArray guard on dynamicInputs.prompt access (takes first element)
+- AI SDK v6 tool pattern uses inputSchema (not parameters) for zod schemas
+- Chat agent tools use "generate" pattern (no execute function) - LLM provides structured output
+- Edit operations use batched immutable updates with skip tracking for invalid operations
+- Node IDs for AI-generated nodes: ${nodeType}-ai-${Date.now()}-${index} pattern
+- Workflow context builder strips base64 data, history arrays, and internal state for LLM consumption
 
 ### Deferred Issues
 
@@ -191,6 +197,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Completed quick-001 (Fix multiple image inputs lost in dynamicInputs)
+Stopped at: Completed Phase 34 Plan 01 (Chat Agent Library)
 Resume file: None
-Next action: Execute plan 33-02 (UI integration - Revert AI Changes button)
+Next action: Execute Phase 34 Plan 02 (Enhance chat API route with tool calling)

@@ -500,7 +500,7 @@ Plans:
 6. Change narration: explain what was modified and why
 
 Plans:
-- [ ] 34-01-PLAN.md — Chat agent library: tool definitions, edit operations, context builder
+- [x] 34-01-PLAN.md — Chat agent library: tool definitions, edit operations, context builder
 - [ ] 34-02-PLAN.md — Enhanced /api/chat route with tool calling for intent routing
 - [ ] 34-03-PLAN.md — Store applyEditOperations, ChatPanel tool result handling, end-to-end wiring
 
@@ -666,7 +666,7 @@ Phases execute in numeric order: 1 → 2 → ... → 35 → 36 → 37 → 38 →
 | 31. Workflow Proposal System | v1.4 | 2/2 | Complete | 2026-01-26 |
 | 32. Chat UI Foundation | v1.4 | 2/2 | Complete | 2026-01-27 |
 | 33. Workflow Edit Safety | v1.4 | 2/2 | Complete | 2026-01-30 |
-| 34. Context-Aware Agentic Editing | v1.4 | 0/? | Not started | - |
+| 34. Context-Aware Agentic Editing | v1.4 | 1/3 | In progress | - |
 | 35. Large Workflow Handling | v1.4 | 0/? | Not started | - |
 | 36. Execution Engine Extraction | v1.5 | 0/3 | Not started | - |
 | 37. Pure Helpers Extraction | v1.5 | 0/2 | Not started | - |
