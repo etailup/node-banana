@@ -464,7 +464,13 @@ describe("QuickstartTemplatesView", () => {
         if (url === "/api/community-workflows/comm-1") {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ success: true, workflow: mockWorkflow }),
+            json: () => Promise.resolve({ success: true, downloadUrl: "https://r2.example.com/comm-1.json" }),
+          });
+        }
+        if (url === "https://r2.example.com/comm-1.json") {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockWorkflow),
           });
         }
         return Promise.resolve({
@@ -517,7 +523,13 @@ describe("QuickstartTemplatesView", () => {
         if (url === "/api/community-workflows/comm-1") {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ success: true, workflow: mockWorkflow }),
+            json: () => Promise.resolve({ success: true, downloadUrl: "https://r2.example.com/comm-1.json" }),
+          });
+        }
+        if (url === "https://r2.example.com/comm-1.json") {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockWorkflow),
           });
         }
         return Promise.resolve({

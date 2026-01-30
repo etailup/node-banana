@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 Phase: 33 of 35 (Workflow Edit Safety)
 Plan: 1 of 2 in current phase
 Status: In progress
-Last activity: 2026-01-27 - Completed 33-01-PLAN.md
+Last activity: 2026-01-30 - Completed quick-001 (Fix multiple image inputs lost in dynamicInputs)
 
 Progress: ░░░░░░░░░░ 6%
 
@@ -153,6 +153,9 @@ Recent decisions affecting current work:
 - Snapshot auto-clears after 3 manual structural changes
 - Manual changes: add/remove nodes, add/remove edges (not position/selection)
 - clearSnapshot called in clearWorkflow and loadWorkflow
+- dynamicInputs type is Record<string, string | string[]> to support multi-image aggregation
+- Single image stays as string; only multiple images to same schema key become array
+- Array.isArray guard on dynamicInputs.prompt access (takes first element)
 
 ### Deferred Issues
 
@@ -162,6 +165,12 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 - Pre-existing lint configuration issue (ESLint not configured). Not blocking development.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 001 | Fix multiple image inputs lost in dynamicInputs | 2026-01-30 | 1564a1b | [001-fix-multiple-image-inputs-lost-in-dynamicinputs](./quick/001-fix-multiple-image-inputs-lost-in-dynamicinputs/) |
 
 ### Roadmap Evolution
 
@@ -181,7 +190,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-01-27
-Stopped at: Completed plan 33-01 (Store snapshot infrastructure)
+Last session: 2026-01-30
+Stopped at: Completed quick-001 (Fix multiple image inputs lost in dynamicInputs)
 Resume file: None
 Next action: Execute plan 33-02 (UI integration - Revert AI Changes button)
