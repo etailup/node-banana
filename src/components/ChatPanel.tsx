@@ -22,7 +22,12 @@ export function ChatPanel({ isOpen, onClose, onBuildWorkflow, isBuildingWorkflow
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
 
-  // Create a custom fetch function that includes workflowState
+  // Use a ref so the fetch closure always reads the latest workflowState
+  // without needing to re-create the transport
+  const workflowStateRef = useRef(workflowState);
+  workflowStateRef.current = workflowState;
+
+  // Stable fetch function that reads workflowState from ref
   const customFetch = useCallback(async (input: RequestInfo | URL, init?: RequestInit) => {
     if (!init?.body) {
       return fetch(input, init);
@@ -31,17 +36,19 @@ export function ChatPanel({ isOpen, onClose, onBuildWorkflow, isBuildingWorkflow
     const body = JSON.parse(init.body as string);
     const bodyWithWorkflow = {
       ...body,
-      workflowState,
+      workflowState: workflowStateRef.current,
     };
 
     return fetch(input, {
       ...init,
       body: JSON.stringify(bodyWithWorkflow),
     });
-  }, [workflowState]);
+  }, []);
+
+  const [transport] = useState(() => new DefaultChatTransport({ api: "/api/chat", fetch: customFetch }));
 
   const { messages, sendMessage, setMessages, status } = useChat({
-    transport: new DefaultChatTransport({ api: "/api/chat", fetch: customFetch }),
+    transport,
   });
 
   const isLoading = status === "streaming" || status === "submitted";
@@ -57,22 +64,20 @@ export function ChatPanel({ isOpen, onClose, onBuildWorkflow, isBuildingWorkflow
         if (!("state" in part) || !("toolCallId" in part) || !("input" in part)) return;
         if (part.state !== "output-available") return;
 
-        const callId = part.toolCallId;
+        const callId = (part as Record<string, unknown>).toolCallId as string;
         if (processedToolCalls.current.has(callId)) return;
         processedToolCalls.current.add(callId);
 
         const toolName = part.type.replace("tool-", "");
         if (toolName === "createWorkflow" && onBuildWorkflow) {
-          // Extract description from tool args (input is the args)
-          const description = (part.input as { description?: string }).description;
+          const description = ((part as Record<string, unknown>).input as { description?: string }).description;
           if (description) {
             onBuildWorkflow(description);
           }
         }
 
         if (toolName === "editWorkflow" && onApplyEdits) {
-          // Extract operations from tool args (input is the args)
-          const operations = (part.input as { operations?: EditOperation[] }).operations;
+          const operations = ((part as Record<string, unknown>).input as { operations?: EditOperation[] }).operations;
           if (operations) {
             onApplyEdits(operations);
           }

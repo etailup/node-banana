@@ -108,7 +108,18 @@ ${formatContextForPrompt(workflowContext)}`;
 - Use **editWorkflow** when the user wants to ADD, REMOVE, CHANGE, or MODIFY nodes/connections in the CURRENT workflow.
 - Always explain what you're about to do BEFORE calling a tool.
 - When editing, reference nodes by their ID from the current workflow state.
-- After editing, summarize what changed.`;
+- After editing, summarize what changed.
+
+## EDITABLE NODE PROPERTIES
+
+When using editWorkflow with updateNode, you MUST use these exact property names in the data object:
+
+- **prompt** node: \`{ "prompt": "the text" }\`
+- **nanoBanana** (Generate Image) node: \`{ "resolution": "1K"|"2K"|"4K", "aspectRatio": "1:1"|"2:3"|"3:2"|"3:4"|"4:3"|"4:5"|"5:4"|"9:16"|"16:9"|"21:9", "useGoogleSearch": true|false }\`
+- **llmGenerate** node: \`{ "temperature": 0-2, "maxTokens": 256-16384 }\`
+- **Any node** title: \`{ "customTitle": "New Name" }\`
+
+Do NOT use "text", "content", or other guessed property names. Use ONLY the exact names listed above.`;
 
   return baseDomainExpertise + contextSection + toolUsageRules;
 }
@@ -130,8 +141,7 @@ export function createChatTools(nodeIds: string[]) {
           .string()
           .describe("The helpful answer to the user question"),
       }),
-      // No execute function - this is a "generate" tool pattern
-      // The LLM provides the answer directly in the tool call result
+      execute: async ({ answer }) => ({ answer }),
     }),
 
     createWorkflow: tool({
@@ -142,7 +152,7 @@ export function createChatTools(nodeIds: string[]) {
           .string()
           .describe("Description of what the workflow should do"),
       }),
-      // No execute function - the client handles calling quickstart API
+      execute: async ({ description }) => ({ description }),
     }),
 
     editWorkflow: tool({
@@ -199,7 +209,7 @@ export function createChatTools(nodeIds: string[]) {
             "Brief explanation of what changes are being made and why"
           ),
       }),
-      // No execute function - results are returned to client for application
+      execute: async ({ operations, explanation }) => ({ operations, explanation }),
     }),
   };
 }
