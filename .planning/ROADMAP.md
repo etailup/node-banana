@@ -501,8 +501,8 @@ Plans:
 
 Plans:
 - [x] 34-01-PLAN.md — Chat agent library: tool definitions, edit operations, context builder
-- [ ] 34-02-PLAN.md — Enhanced /api/chat route with tool calling for intent routing
-- [ ] 34-03-PLAN.md — Store applyEditOperations, ChatPanel tool result handling, end-to-end wiring
+- [x] 34-02-PLAN.md — Enhanced /api/chat route with tool calling for intent routing
+- [x] 34-03-PLAN.md — Store applyEditOperations, ChatPanel tool result handling, end-to-end wiring
 
 #### Phase 35: Large Workflow Handling
 
@@ -510,10 +510,12 @@ Plans:
 **Depends on**: Phase 34
 **Research**: Likely (chunking, context window strategies)
 **Research topics**: Token optimization for large payloads, base64 extraction/reinsertion, workflow summarization techniques
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 35-01: TBD (run /gsd:plan-phase 35 to break down)
+- [ ] 35-01-PLAN.md — Binary stripping utility and rich workflow context builder (TDD)
+- [ ] 35-02-PLAN.md — Selection-aware subgraph extraction (TDD)
+- [ ] 35-03-PLAN.md — Client-side wiring, ChatPanel selection chip, API subgraph integration
 
 ### 📋 v1.5 Store Refactoring (Planned)
 
