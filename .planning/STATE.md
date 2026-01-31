@@ -11,17 +11,17 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 Phase: 35 of 35 (Large Workflow Handling)
 Plan: 1 of 3 in current phase
-Status: In Progress
-Last activity: 2026-01-31 - Completed plan 02 (Selection-Aware Subgraph Extraction)
+Status: Complete
+Last activity: 2026-01-31 - Completed plan 01 (Binary Stripping and Rich Workflow Context)
 
 Progress: ░░░░░░░░░░ 6%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 34
+- Total plans completed: 35
 - Average duration: 7 min
-- Total execution time: 3.9 hours
+- Total execution time: 4.0 hours
 
 **By Phase:**
 
@@ -56,11 +56,11 @@ Progress: ░░░░░░░░░░ 6%
 | 32. Chat UI Foundation | 2/2 | 9 min | 4.5 min |
 | 33. Workflow Edit Safety | 2/2 | 5 min | 5 min |
 | 34. Agentic Workflow Editing | 3/3 | 13 min | 4.3 min |
-| 35. Large Workflow Handling | 1/3 | 10 min | 10 min |
+| 35. Large Workflow Handling | 1/3 | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 5 min, 5 min, 8 min, <1 min, 10 min
-- Trend: Phase 35 started - selection-aware context scoping for large workflows
+- Last 5 plans: 5 min, 8 min, <1 min, 10 min, 3 min
+- Trend: Phase 35 plan 01 complete - binary stripping and rich context system implemented with TDD
 
 ## Accumulated Context
 
@@ -173,6 +173,13 @@ Recent decisions affecting current work:
 - AI edits do NOT increment manualChangeCount (only manual edits clear snapshot)
 - Snapshot captured before AI edits via captureSnapshot() in handleApplyEdits
 - chatWorkflowState strips base64 from nodes to reduce API request size
+- stripBinaryData() utility strips all base64, history arrays, and ref fields with metadata placeholders
+- Binary field metadata format: [image: context, sizeKB] or [video: sizeKB] or [N image(s)]
+- Base64 size estimation: (dataUrl.length * 3) / 4 / 1024 for KB (no library needed)
+- History arrays (imageHistory, videoHistory) completely removed from LLM context
+- Ref fields (imageRef, outputImageRef, etc.) completely removed from LLM context
+- All node parameters, positions, and model settings preserved in stripped context
+- Enhanced WorkflowContext includes full StrippedNode[] with all non-binary data
 
 ### Deferred Issues
 
