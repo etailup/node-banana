@@ -3,62 +3,38 @@ import { NextResponse } from "next/server";
 const COMMUNITY_WORKFLOWS_API_URL =
   "https://nodebananapro.com/api/public/community-workflows";
 
-// Allowed hostnames for presigned URL fetches (SSRF protection)
-const ALLOWED_R2_HOSTS = [".r2.cloudflarestorage.com"];
-
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
 /**
- * GET: Load a specific community workflow by ID from the remote API
+ * GET: Get a presigned download URL for a community workflow
  *
- * This proxies to the node-banana-pro hosted service which stores
- * community workflows in R2 storage. The API returns a presigned URL
- * which we use to fetch the actual workflow data directly from R2.
+ * Returns { success: true, downloadUrl: "..." } so the client can
+ * download the workflow directly from R2 (avoids proxying 80-275MB files
+ * through a serverless function).
  */
 export async function GET(request: Request, { params }: RouteParams) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout
-
   try {
     const { id } = await params;
 
-    // Step 1: Get the presigned URL from the API
     const urlResponse = await fetch(
       `${COMMUNITY_WORKFLOWS_API_URL}/${encodeURIComponent(id)}`,
       {
-        headers: {
-          Accept: "application/json",
-        },
-        signal: controller.signal,
-        // Short cache since presigned URLs expire
+        headers: { Accept: "application/json" },
         next: { revalidate: 60 },
       }
     );
 
     if (!urlResponse.ok) {
-      clearTimeout(timeoutId);
       if (urlResponse.status === 404) {
         return NextResponse.json(
-          {
-            success: false,
-            error: `Workflow not found: ${id}`,
-          },
+          { success: false, error: `Workflow not found: ${id}` },
           { status: 404 }
         );
       }
-
-      console.error(
-        "Error fetching community workflow URL:",
-        urlResponse.status,
-        urlResponse.statusText
-      );
       return NextResponse.json(
-        {
-          success: false,
-          error: "Failed to load workflow",
-        },
+        { success: false, error: "Failed to load workflow" },
         { status: urlResponse.status }
       );
     }
@@ -66,90 +42,20 @@ export async function GET(request: Request, { params }: RouteParams) {
     const urlData = await urlResponse.json();
 
     if (!urlData.success || !urlData.downloadUrl) {
-      clearTimeout(timeoutId);
       return NextResponse.json(
-        {
-          success: false,
-          error: urlData.error || "Failed to get download URL",
-        },
+        { success: false, error: urlData.error || "Failed to get download URL" },
         { status: 500 }
       );
     }
-
-    // Step 2: Validate presigned URL to prevent SSRF
-    let downloadUrl: URL;
-    try {
-      downloadUrl = new URL(urlData.downloadUrl);
-    } catch {
-      clearTimeout(timeoutId);
-      console.error("Invalid download URL received:", urlData.downloadUrl);
-      return NextResponse.json(
-        { success: false, error: "Invalid download URL" },
-        { status: 500 }
-      );
-    }
-
-    const isAllowedHost =
-      downloadUrl.protocol === "https:" &&
-      ALLOWED_R2_HOSTS.some((host) => downloadUrl.hostname.endsWith(host));
-
-    if (!isAllowedHost) {
-      clearTimeout(timeoutId);
-      console.error("Untrusted download URL hostname:", downloadUrl.hostname);
-      return NextResponse.json(
-        { success: false, error: "Untrusted download URL" },
-        { status: 403 }
-      );
-    }
-
-    // Step 3: Fetch the actual workflow from the presigned R2 URL
-    const workflowResponse = await fetch(downloadUrl.href, {
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!workflowResponse.ok) {
-      console.error(
-        "Error fetching workflow from R2:",
-        workflowResponse.status,
-        workflowResponse.statusText
-      );
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Failed to download workflow",
-        },
-        { status: 500 }
-      );
-    }
-
-    const workflow = await workflowResponse.json();
 
     return NextResponse.json({
       success: true,
-      workflow,
+      downloadUrl: urlData.downloadUrl,
     });
   } catch (error) {
-    clearTimeout(timeoutId);
-
-    if (error instanceof Error && error.name === "AbortError") {
-      console.error("Community workflow fetch timed out");
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Request timed out",
-        },
-        { status: 504 }
-      );
-    }
-
-    console.error("Error loading community workflow:", error);
+    console.error("Error getting community workflow URL:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to load workflow",
-      },
+      { success: false, error: "Failed to load workflow" },
       { status: 500 }
     );
   }

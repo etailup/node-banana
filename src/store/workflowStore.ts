@@ -132,7 +132,7 @@ interface WorkflowStore {
 
   // Helpers
   getNodeById: (id: string) => WorkflowNode | undefined;
-  getConnectedInputs: (nodeId: string) => { images: string[]; videos: string[]; text: string | null; dynamicInputs: Record<string, string> };
+  getConnectedInputs: (nodeId: string) => { images: string[]; videos: string[]; text: string | null; dynamicInputs: Record<string, string | string[]> };
   validateWorkflow: () => { valid: boolean; errors: string[] };
 
   // Global Image History
@@ -707,7 +707,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     const images: string[] = [];
     const videos: string[] = [];
     let text: string | null = null;
-    const dynamicInputs: Record<string, string> = {};
+    const dynamicInputs: Record<string, string | string[]> = {};
 
     // Get the target node to check for inputSchema
     const targetNode = nodes.find((n) => n.id === nodeId);
@@ -787,7 +787,15 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         // Map normalized handle ID to schema name for dynamicInputs
         // This allows API to receive schema-specific parameter names
         if (handleId && handleToSchemaName[handleId]) {
-          dynamicInputs[handleToSchemaName[handleId]] = value;
+          const schemaName = handleToSchemaName[handleId];
+          const existing = dynamicInputs[schemaName];
+          if (existing !== undefined) {
+            dynamicInputs[schemaName] = Array.isArray(existing)
+              ? [...existing, value]
+              : [existing, value];
+          } else {
+            dynamicInputs[schemaName] = value;
+          }
         }
 
         // Route to typed arrays based on source output type
@@ -874,11 +882,11 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       return;
     }
 
-    // Start logging session
-    await logger.startSession();
-
     const isResuming = startFromNodeId === get().pausedAtNodeId;
     set({ isRunning: true, pausedAtNodeId: null });
+
+    // Start logging session
+    await logger.startSession();
 
     logger.info('workflow.start', 'Workflow execution started', {
       nodeCount: nodes.length,
@@ -1013,7 +1021,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             const { images, text, dynamicInputs } = getConnectedInputs(node.id);
 
             // For dynamic inputs, check if we have at least a prompt
-            const promptText = text || dynamicInputs.prompt || null;
+            const promptFromDynamic = Array.isArray(dynamicInputs.prompt)
+              ? dynamicInputs.prompt[0]
+              : dynamicInputs.prompt;
+            const promptText = text || promptFromDynamic || null;
             if (!promptText) {
               logger.error('node.error', 'nanoBanana node missing text input', {
                 nodeId: node.id,
@@ -1790,13 +1801,13 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       return;
     }
 
+    set({ isRunning: true, currentNodeId: nodeId });
+
     await logger.startSession();
     logger.info('node.execution', 'Regenerating node', {
       nodeId,
       nodeType: node.type,
     });
-
-    set({ isRunning: true, currentNodeId: nodeId });
 
     try {
       if (node.type === "nanoBanana") {

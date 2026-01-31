@@ -33,7 +33,7 @@ interface MultiProviderGenerateRequest extends GenerateRequest {
   selectedModel?: SelectedModel;
   parameters?: Record<string, unknown>;
   /** Dynamic inputs from schema-based connections (e.g., image_url, tail_image_url, prompt) */
-  dynamicInputs?: Record<string, string>;
+  dynamicInputs?: Record<string, string | string[]>;
 }
 
 /**
@@ -1796,7 +1796,11 @@ export async function POST(request: NextRequest) {
     // - Provided via dynamicInputs
     // - Images are provided (image-to-video/image-to-image models)
     // - Dynamic inputs contain image frames (first_frame, last_frame, etc.)
-    const hasPrompt = prompt || (dynamicInputs && dynamicInputs.prompt);
+    const hasPrompt = prompt || (dynamicInputs && (
+      typeof dynamicInputs.prompt === 'string'
+        ? dynamicInputs.prompt
+        : Array.isArray(dynamicInputs.prompt) && dynamicInputs.prompt.length > 0
+    ));
     const hasImages = (images && images.length > 0);
     const hasImageInputs = dynamicInputs && Object.keys(dynamicInputs).some(key =>
       key.includes('frame') || key.includes('image')
@@ -1834,14 +1838,14 @@ export async function POST(request: NextRequest) {
       const processedImages: string[] = images ? [...images] : [];
 
       // Process dynamicInputs: filter empty values, keep Data URIs
-      let processedDynamicInputs: Record<string, string> | undefined = undefined;
+      let processedDynamicInputs: Record<string, string | string[]> | undefined = undefined;
 
       if (dynamicInputs) {
         processedDynamicInputs = {};
         for (const key of Object.keys(dynamicInputs)) {
           const value = dynamicInputs[key];
 
-          // Skip empty/null/undefined values
+          // Skip empty/null/undefined values (arrays pass through)
           if (value === null || value === undefined || value === '') {
             continue;
           }
@@ -1918,14 +1922,14 @@ export async function POST(request: NextRequest) {
       const processedImages: string[] = images ? [...images] : [];
 
       // Process dynamicInputs: filter empty values
-      let processedDynamicInputs: Record<string, string> | undefined = undefined;
+      let processedDynamicInputs: Record<string, string | string[]> | undefined = undefined;
 
       if (dynamicInputs) {
         processedDynamicInputs = {};
         for (const key of Object.keys(dynamicInputs)) {
           const value = dynamicInputs[key];
 
-          // Skip empty/null/undefined values
+          // Skip empty/null/undefined values (arrays pass through)
           if (value === null || value === undefined || value === '') {
             continue;
           }
