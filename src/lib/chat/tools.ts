@@ -2,6 +2,7 @@ import { tool } from "ai";
 import { z } from "zod";
 import { EditOperation } from "./editOperations";
 import { WorkflowContext, formatContextForPrompt } from "./contextBuilder";
+import { SubgraphResult } from "./subgraphExtractor";
 import { NodeType } from "@/types";
 
 /**
@@ -23,9 +24,13 @@ const VALID_NODE_TYPES: NodeType[] = [
  * Builds the enhanced system prompt with current workflow context and tool usage rules.
  *
  * @param workflowContext - Current workflow state summary
+ * @param restSummary - Optional summary of unselected nodes (when selection scoped)
  * @returns Complete system prompt with context and rules
  */
-export function buildEditSystemPrompt(workflowContext: WorkflowContext): string {
+export function buildEditSystemPrompt(
+  workflowContext: WorkflowContext,
+  restSummary?: SubgraphResult['restSummary']
+): string {
   // Base domain expertise from existing SYSTEM_PROMPT
   const baseDomainExpertise = `You are a workflow expert for Node Banana, a visual node-based AI image generation tool. Be concise and direct — short bullet points, no fluff. Use the same language the user sees in the UI. Never expose internal property names, JSON structure, or code.
 
@@ -92,11 +97,38 @@ Displays the final generated image or video. Connect any image or video output h
 - Ask one clarifying question at a time if goal is unclear`;
 
   // Current workflow context
-  const contextSection = `
+  let contextSection = `
 
 ## CURRENT WORKFLOW
 
 ${formatContextForPrompt(workflowContext)}`;
+
+  // Add subgraph summary if scoped to selected nodes
+  if (restSummary && restSummary.nodeCount > 0) {
+    const typeBreakdown = Object.entries(restSummary.typeBreakdown)
+      .map(([type, count]) => `${count} ${type}`)
+      .join(', ');
+
+    const boundaryInfo = restSummary.boundaryConnections.length > 0
+      ? `\nConnections to selected nodes: ${restSummary.boundaryConnections.map(bc =>
+          `${bc.direction === 'incoming' ? 'Input from' : 'Output to'} ${bc.otherNodeId} (${bc.handleType})`
+        ).join(', ')}`
+      : '';
+
+    contextSection += `
+
+## WORKFLOW CONTEXT (SELECTED SUBSET)
+
+You are focused on the selected nodes. The rest of the workflow:
+- ${restSummary.nodeCount} other node(s): ${typeBreakdown}${boundaryInfo}
+
+Note: Binary data (images, videos) has been replaced with metadata descriptions like [image: 1024x768, 245KB]. These are not editable - they represent existing content that will be preserved.`;
+  } else if (!restSummary) {
+    // Full workflow - add metadata note
+    contextSection += `
+
+Note: Binary data (images, videos) has been replaced with metadata descriptions like [image: 1024x768, 245KB]. These are not editable - they represent existing content that will be preserved.`;
+  }
 
   // Tool usage rules
   const toolUsageRules = `

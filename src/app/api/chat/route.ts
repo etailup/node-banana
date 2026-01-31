@@ -2,6 +2,7 @@ import { streamText, convertToModelMessages, UIMessage, stepCountIs } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createChatTools, buildEditSystemPrompt } from '@/lib/chat/tools';
 import { buildWorkflowContext } from '@/lib/chat/contextBuilder';
+import { extractSubgraph } from '@/lib/chat/subgraphExtractor';
 import { WorkflowNode } from '@/types';
 import { WorkflowEdge } from '@/types/workflow';
 
@@ -9,9 +10,10 @@ export const maxDuration = 60; // 1 minute timeout
 
 export async function POST(request: Request) {
   try {
-    const { messages, workflowState } = await request.json() as {
+    const { messages, workflowState, selectedNodeIds } = await request.json() as {
       messages: UIMessage[];
       workflowState?: { nodes: WorkflowNode[]; edges: WorkflowEdge[] };
+      selectedNodeIds?: string[];
     };
 
     // Get API key from environment
@@ -20,14 +22,21 @@ export async function POST(request: Request) {
       return new Response('GEMINI_API_KEY not configured', { status: 500 });
     }
 
-    // Build workflow context from client-provided state
-    const context = buildWorkflowContext(
+    // Extract subgraph if nodes are selected, otherwise use full workflow
+    const subgraph = extractSubgraph(
       workflowState?.nodes || [],
-      workflowState?.edges || []
+      workflowState?.edges || [],
+      selectedNodeIds || []
     );
 
-    // Build context-aware system prompt
-    const systemPrompt = buildEditSystemPrompt(context);
+    // Build workflow context from selected subgraph
+    const context = buildWorkflowContext(
+      subgraph.selectedNodes,
+      subgraph.selectedEdges
+    );
+
+    // Build context-aware system prompt with optional rest summary
+    const systemPrompt = buildEditSystemPrompt(context, subgraph.restSummary);
 
     // Extract node IDs for tool validation
     const nodeIds = (workflowState?.nodes || []).map(n => n.id);
@@ -58,6 +67,14 @@ export async function POST(request: Request) {
 
     if (error instanceof Error && error.message.includes('429')) {
       return new Response('Rate limit reached. Please wait and try again.', { status: 429 });
+    }
+
+    // Check for token/size errors and return 413
+    if (error instanceof Error) {
+      const errorMsg = error.message.toLowerCase();
+      if (errorMsg.includes('too large') || errorMsg.includes('token limit') || errorMsg.includes('payload') || errorMsg.includes('request entity too large')) {
+        return new Response('This workflow is too large for the AI to process. Try selecting fewer nodes.', { status: 413 });
+      }
     }
 
     return new Response(
