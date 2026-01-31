@@ -52,7 +52,7 @@ export async function POST(request: Request) {
 
     // Create streaming response with tool calling
     const result = streamText({
-      model: google('gemini-2.5-flash'),
+      model: google('gemini-3-flash-preview'),
       system: systemPrompt,
       messages: modelMessages,
       tools: tools,
