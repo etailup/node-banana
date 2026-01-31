@@ -41,6 +41,7 @@ import { logger } from "@/utils/logger";
 import { WelcomeModal } from "./quickstart";
 import { ChatPanel } from "./ChatPanel";
 import { EditOperation } from "@/lib/chat/editOperations";
+import { stripBinaryData } from "@/lib/chat/contextBuilder";
 
 const nodeTypes: NodeTypes = {
   imageInput: ImageInputNode,
@@ -596,20 +597,27 @@ export function WorkflowCanvas() {
   }, [loadWorkflow, showToast, captureSnapshot]);
 
   // Create lightweight workflow state for chat (strip base64 images)
-  const chatWorkflowState = useMemo(() => ({
-    nodes: nodes.map(n => ({
-      id: n.id,
-      type: n.type || '',
-      data: { customTitle: (n.data as { customTitle?: string }).customTitle },
-    })),
-    edges: edges.map(e => ({
-      id: e.id,
-      source: e.source,
-      target: e.target,
-      sourceHandle: e.sourceHandle || undefined,
-      targetHandle: e.targetHandle || undefined,
-    })),
-  }), [nodes, edges]);
+  const chatWorkflowState = useMemo(() => {
+    const strippedNodes = stripBinaryData(nodes);
+    return {
+      nodes: strippedNodes.map(n => ({
+        id: n.id,
+        type: n.type,
+        position: n.position,
+        data: n.data,
+      })),
+      edges: edges.map(e => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        sourceHandle: e.sourceHandle || undefined,
+        targetHandle: e.targetHandle || undefined,
+      })),
+    };
+  }, [nodes, edges]);
+
+  // Compute selected node IDs for chat context scoping
+  const selectedNodeIds = useMemo(() => nodes.filter(n => n.selected).map(n => n.id), [nodes]);
 
   // Handle applying edit operations from chat
   const handleApplyEdits = useCallback((operations: EditOperation[]) => {
@@ -1421,6 +1429,7 @@ export function WorkflowCanvas() {
         isBuildingWorkflow={isBuildingWorkflow}
         onApplyEdits={handleApplyEdits}
         workflowState={chatWorkflowState}
+        selectedNodeIds={selectedNodeIds}
       />
     </div>
   );

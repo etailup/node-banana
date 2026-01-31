@@ -16,18 +16,23 @@ interface ChatPanelProps {
     nodes: { id: string; type: string; data: Record<string, unknown> }[];
     edges: { id: string; source: string; target: string; sourceHandle?: string; targetHandle?: string }[]
   };
+  selectedNodeIds?: string[];
 }
 
-export function ChatPanel({ isOpen, onClose, onBuildWorkflow, isBuildingWorkflow = false, onApplyEdits, workflowState }: ChatPanelProps) {
+export function ChatPanel({ isOpen, onClose, onBuildWorkflow, isBuildingWorkflow = false, onApplyEdits, workflowState, selectedNodeIds }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
+  const [chipDismissed, setChipDismissed] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Use a ref so the fetch closure always reads the latest workflowState
+  // Use a ref so the fetch closure always reads the latest workflowState and selectedNodeIds
   // without needing to re-create the transport
   const workflowStateRef = useRef(workflowState);
   workflowStateRef.current = workflowState;
+  const selectedNodeIdsRef = useRef(selectedNodeIds);
+  selectedNodeIdsRef.current = selectedNodeIds;
 
-  // Stable fetch function that reads workflowState from ref
+  // Stable fetch function that reads workflowState and selectedNodeIds from ref
   const customFetch = useCallback(async (input: RequestInfo | URL, init?: RequestInit) => {
     if (!init?.body) {
       return fetch(input, init);
@@ -37,6 +42,7 @@ export function ChatPanel({ isOpen, onClose, onBuildWorkflow, isBuildingWorkflow
     const bodyWithWorkflow = {
       ...body,
       workflowState: workflowStateRef.current,
+      selectedNodeIds: selectedNodeIdsRef.current,
     };
 
     return fetch(input, {
@@ -49,6 +55,15 @@ export function ChatPanel({ isOpen, onClose, onBuildWorkflow, isBuildingWorkflow
 
   const { messages, sendMessage, setMessages, status } = useChat({
     transport,
+    onError: (error) => {
+      // Check if this is an oversized payload error (413 or token limit)
+      const errorMsg = error.message.toLowerCase();
+      if (errorMsg.includes("413") || errorMsg.includes("too large") || errorMsg.includes("token limit") || errorMsg.includes("payload")) {
+        setErrorMessage("This workflow is too large for the AI to process. Try selecting fewer nodes.");
+      } else {
+        setErrorMessage(error.message);
+      }
+    },
   });
 
   const isLoading = status === "streaming" || status === "submitted";
@@ -119,6 +134,11 @@ export function ChatPanel({ isOpen, onClose, onBuildWorkflow, isBuildingWorkflow
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Reset chip dismissed state when selection changes
+  useEffect(() => {
+    setChipDismissed(false);
+  }, [selectedNodeIds]);
+
   if (!isOpen) return null;
 
   return (
@@ -157,7 +177,27 @@ export function ChatPanel({ isOpen, onClose, onBuildWorkflow, isBuildingWorkflow
         style={{ touchAction: 'pan-y' }}
         onWheelCapture={(e) => e.stopPropagation()}
       >
-        {messages.length === 0 && (
+        {/* Error message display */}
+        {errorMessage && (
+          <div className="bg-red-900/30 border border-red-700 rounded-lg p-3 text-sm text-red-200">
+            <div className="flex items-start gap-2">
+              <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="flex-1">
+                <p>{errorMessage}</p>
+                <button
+                  onClick={() => setErrorMessage(null)}
+                  className="text-xs text-red-300 hover:text-red-100 underline mt-2"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {messages.length === 0 && !errorMessage && (
           <div className="text-center text-neutral-500 text-sm py-8">
             <p>Ask me anything about creating workflows!</p>
             <p className="text-xs mt-2">e.g., &quot;How do I create product photos with different backgrounds?&quot;</p>
@@ -261,6 +301,23 @@ export function ChatPanel({ isOpen, onClose, onBuildWorkflow, isBuildingWorkflow
 
       {/* Input area */}
       <div className="border-t border-neutral-700">
+        {/* Selection focus chip */}
+        {selectedNodeIds && selectedNodeIds.length > 0 && !chipDismissed && (
+          <div className="px-3 pt-3">
+            <div className="flex items-center gap-2 bg-neutral-700/50 border border-neutral-600 rounded-lg px-3 py-1.5 text-xs text-neutral-300">
+              <span>Focused on {selectedNodeIds.length} selected node{selectedNodeIds.length !== 1 ? 's' : ''}</span>
+              <button
+                onClick={() => setChipDismissed(true)}
+                className="text-neutral-400 hover:text-neutral-200 transition-colors"
+                aria-label="Dismiss"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
         <form
           onSubmit={(e) => {
             e.preventDefault();
