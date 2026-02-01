@@ -1,6 +1,7 @@
 "use client";
 
 import { useWorkflowStore } from "@/store/workflowStore";
+import { WorkflowEdgeData } from "@/types";
 import { useMemo, useEffect, useState, useRef } from "react";
 
 export function EdgeToolbar() {
@@ -12,6 +13,41 @@ export function EdgeToolbar() {
     () => edges.find((edge) => edge.selected),
     [edges]
   );
+
+  // Helper function to compute the image connection sequence number
+  const getImageSequenceNumber = (edge: typeof selectedEdge): number | null => {
+    if (!edge) return null;
+
+    // Only show for image connections
+    const sourceHandle = edge.sourceHandle;
+    const targetHandle = edge.targetHandle;
+    const isImageConnection =
+      (sourceHandle === "image" || sourceHandle?.startsWith("image-")) ||
+      (targetHandle === "image" || targetHandle?.startsWith("image-"));
+
+    if (!isImageConnection) return null;
+
+    // Find all image edges going to the same target + target handle
+    const siblingEdges = edges.filter(
+      (e) => e.target === edge.target && e.targetHandle === edge.targetHandle
+    );
+
+    // If only one connection, no need for numbering
+    if (siblingEdges.length <= 1) return null;
+
+    // Sort by createdAt timestamp (fallback to edge ID for legacy edges without timestamp)
+    const sorted = [...siblingEdges].sort((a, b) => {
+      const timeA = (a.data as WorkflowEdgeData)?.createdAt || 0;
+      const timeB = (b.data as WorkflowEdgeData)?.createdAt || 0;
+      if (timeA !== timeB) return timeA - timeB;
+      return a.id.localeCompare(b.id);
+    });
+
+    const index = sorted.findIndex((e) => e.id === edge.id);
+    return index >= 0 ? index + 1 : null;
+  };
+
+  const sequenceNumber = getImageSequenceNumber(selectedEdge);
 
   // Track mouse position when edge selection changes
   useEffect(() => {
@@ -62,6 +98,11 @@ export function EdgeToolbar() {
         transform: "translateX(-50%)",
       }}
     >
+      {sequenceNumber !== null && (
+        <span className="text-[10px] font-medium text-neutral-300 px-2 border-r border-neutral-600">
+          Image {sequenceNumber}
+        </span>
+      )}
       <button
         onClick={handleTogglePause}
         className={`p-1.5 rounded hover:bg-neutral-700 transition-colors ${

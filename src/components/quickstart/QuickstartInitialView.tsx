@@ -1,14 +1,14 @@
 "use client";
 
 interface QuickstartInitialViewProps {
-  onSelectBlankCanvas: () => void;
+  onNewProject: () => void;
   onSelectTemplates: () => void;
   onSelectVibe: () => void;
   onSelectLoad: () => void;
 }
 
 export function QuickstartInitialView({
-  onSelectBlankCanvas,
+  onNewProject,
   onSelectTemplates,
   onSelectVibe,
   onSelectLoad,
@@ -89,7 +89,7 @@ export function QuickstartInitialView({
         {/* Right column - Options */}
         <div className="flex-1 flex flex-col gap-2 justify-end">
           <OptionButton
-            onClick={onSelectBlankCanvas}
+            onClick={onNewProject}
             icon={
               <path
                 strokeLinecap="round"
@@ -97,8 +97,8 @@ export function QuickstartInitialView({
                 d="M12 4.5v15m7.5-7.5h-15"
               />
             }
-            title="Blank canvas"
-            description="Start from scratch"
+            title="New project"
+            description="Start a new workflow"
           />
 
           <OptionButton

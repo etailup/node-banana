@@ -10,18 +10,20 @@ import { PromptWorkflowView } from "./PromptWorkflowView";
 interface WelcomeModalProps {
   onWorkflowGenerated: (workflow: WorkflowFile) => void;
   onClose: () => void;
+  onNewProject: () => void;
 }
 
 export function WelcomeModal({
   onWorkflowGenerated,
   onClose,
+  onNewProject,
 }: WelcomeModalProps) {
   const [currentView, setCurrentView] = useState<QuickstartView>("initial");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSelectBlankCanvas = useCallback(() => {
-    onClose();
-  }, [onClose]);
+  const handleNewProject = useCallback(() => {
+    onNewProject();
+  }, [onNewProject]);
 
   const handleSelectTemplates = useCallback(() => {
     setCurrentView("templates");
@@ -86,7 +88,7 @@ export function WelcomeModal({
       <div className={`w-full ${dialogWidth} mx-4 bg-neutral-800 rounded-xl border border-neutral-700 shadow-2xl overflow-clip ${dialogHeight} flex flex-col`}>
         {currentView === "initial" && (
           <QuickstartInitialView
-            onSelectBlankCanvas={handleSelectBlankCanvas}
+            onNewProject={handleNewProject}
             onSelectTemplates={handleSelectTemplates}
             onSelectVibe={handleSelectVibe}
             onSelectLoad={handleSelectLoad}

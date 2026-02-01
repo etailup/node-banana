@@ -165,3 +165,6 @@ All routes in `src/app/api/`:
 - `node-banana-workflow-configs` - Project metadata (paths)
 - `node-banana-workflow-costs` - Cost tracking per workflow
 - `node-banana-nanoBanana-defaults` - Sticky generation settings
+
+#Commits
+- the .planning directory is untracked, do not attempt to commit any changes to the files in this directory.
