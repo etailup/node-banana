@@ -28,6 +28,7 @@ import {
   ProviderType,
   ProviderSettings,
   RecentModel,
+  OutputGalleryNodeData,
 } from "@/types";
 import { useToast } from "@/components/Toast";
 import { calculateGenerationCost } from "@/utils/costCalculator";
@@ -811,7 +812,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       } else if (sourceNode.type === "prompt") {
         return { type: "text", value: (sourceNode.data as PromptNodeData).prompt };
       } else if (sourceNode.type === "promptConstructor") {
-        return { type: "text", value: (sourceNode.data as PromptConstructorNodeData).outputText };
+        const pcData = sourceNode.data as PromptConstructorNodeData;
+        return { type: "text", value: pcData.outputText || pcData.template || null };
       } else if (sourceNode.type === "llmGenerate") {
         return { type: "text", value: (sourceNode.data as LLMGenerateNodeData).outputText };
       }
@@ -1254,6 +1256,19 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   imageHistory: updatedHistory,
                   selectedHistoryIndex: 0,
                 });
+
+                // Push new image to connected downstream outputGallery nodes
+                get().edges
+                  .filter(e => e.source === node.id)
+                  .forEach(e => {
+                    const target = get().nodes.find(n => n.id === e.target);
+                    if (target?.type === "outputGallery") {
+                      const gData = target.data as OutputGalleryNodeData;
+                      updateNodeData(target.id, {
+                        images: [result.image, ...(gData.images || [])],
+                      });
+                    }
+                  });
 
                 // Track cost
                 // Cost tracking: Gemini (hardcoded), fal.ai (from API). Replicate excluded (no pricing API).
@@ -1829,7 +1844,14 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
           case "outputGallery": {
             const { images } = getConnectedInputs(node.id);
-            updateNodeData(node.id, { images });
+            const galleryData = node.data as OutputGalleryNodeData;
+            const existing = new Set(galleryData.images || []);
+            const newImages = images.filter(img => !existing.has(img));
+            if (newImages.length > 0) {
+              updateNodeData(node.id, {
+                images: [...newImages, ...(galleryData.images || [])],
+              });
+            }
             break;
           }
 
@@ -2039,6 +2061,19 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             imageHistory: updatedHistory,
             selectedHistoryIndex: 0,
           });
+
+          // Push new image to connected downstream outputGallery nodes
+          get().edges
+            .filter(e => e.source === nodeId)
+            .forEach(e => {
+              const target = get().nodes.find(n => n.id === e.target);
+              if (target?.type === "outputGallery") {
+                const gData = target.data as OutputGalleryNodeData;
+                updateNodeData(target.id, {
+                  images: [result.image, ...(gData.images || [])],
+                });
+              }
+            });
 
           // Track cost
           // Cost tracking: Gemini (hardcoded), fal.ai (from API). Replicate excluded (no pricing API).

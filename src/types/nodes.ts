@@ -68,6 +68,15 @@ export interface PromptConstructorNodeData extends BaseNodeData {
 }
 
 /**
+ * Available variable from connected Prompt nodes (for PromptConstructor autocomplete)
+ */
+export interface AvailableVariable {
+  name: string;
+  value: string;
+  nodeId: string;
+}
+
+/**
  * Image history item for tracking generated images
  */
 export interface ImageHistoryItem {

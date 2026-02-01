@@ -115,6 +115,26 @@ export function PromptNode({ id, data, selected }: NodeProps<PromptNodeType>) {
         onExpand={handleOpenModal}
         selected={selected}
         commentNavigation={commentNavigation ?? undefined}
+        headerButtons={
+          <div className="relative ml-2 shrink-0 group">
+            <button
+              onClick={() => setShowVarDialog(true)}
+              className={`nodrag nopan p-0.5 rounded transition-all duration-200 ease-in-out flex items-center overflow-hidden group-hover:pr-2 ${
+                nodeData.variableName
+                  ? "text-blue-400 hover:text-blue-200 border border-blue-500/50"
+                  : "text-neutral-500 group-hover:text-neutral-200 border border-neutral-600"
+              }`}
+              title={nodeData.variableName ? `Variable: @${nodeData.variableName}` : "Set variable name"}
+            >
+              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 12h4m0 0l-4-4m4 4l-4 4m-8-4H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+              <span className="max-w-0 opacity-0 whitespace-nowrap text-[10px] transition-all duration-200 ease-in-out overflow-hidden group-hover:max-w-[60px] group-hover:opacity-100 group-hover:ml-1">
+                {nodeData.variableName ? `@${nodeData.variableName}` : "Variable"}
+              </span>
+            </button>
+          </div>
+        }
       >
         {/* Text input handle - for receiving text from LLM nodes */}
         <Handle
@@ -125,31 +145,15 @@ export function PromptNode({ id, data, selected }: NodeProps<PromptNodeType>) {
         />
 
         <div className="relative flex-1 flex flex-col">
-          {/* Variable name button - positioned at top-right of textarea area */}
-          <div className="flex items-start gap-2">
-            <textarea
-              value={localPrompt}
-              onChange={handleChange}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              placeholder={hasIncomingTextConnection ? "Receiving text from connected node..." : "Describe what to generate..."}
-              className="nodrag nopan nowheel w-full flex-1 min-h-[70px] p-2 text-xs leading-relaxed text-neutral-100 border border-neutral-700 rounded bg-neutral-900/50 resize-none focus:outline-none focus:ring-1 focus:ring-neutral-600 focus:border-neutral-600 placeholder:text-neutral-500"
-              readOnly={hasIncomingTextConnection}
-            />
-            <button
-              onClick={() => setShowVarDialog(true)}
-              className={`nodrag nopan mt-1 p-1.5 rounded transition-colors ${
-                nodeData.variableName
-                  ? "text-blue-400 hover:text-blue-300 hover:bg-blue-900/30"
-                  : "text-neutral-500 hover:text-neutral-400 hover:bg-neutral-700/50"
-              }`}
-              title={nodeData.variableName ? `Variable: @${nodeData.variableName}` : "Set variable name"}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16 12h4m0 0l-4-4m4 4l-4 4m-8-4H4m0 0l4 4m-4-4l4-4" />
-              </svg>
-            </button>
-          </div>
+          <textarea
+            value={localPrompt}
+            onChange={handleChange}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            placeholder={hasIncomingTextConnection ? "Receiving text from connected node..." : "Describe what to generate..."}
+            className="nodrag nopan nowheel w-full flex-1 min-h-[70px] p-2 text-xs leading-relaxed text-neutral-100 border border-neutral-700 rounded bg-neutral-900/50 resize-none focus:outline-none focus:ring-1 focus:ring-neutral-600 focus:border-neutral-600 placeholder:text-neutral-500"
+            readOnly={hasIncomingTextConnection}
+          />
           {nodeData.variableName && (
             <div className="mt-1 text-[10px] text-blue-400 px-2">
               @{nodeData.variableName}

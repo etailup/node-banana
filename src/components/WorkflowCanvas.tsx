@@ -42,6 +42,7 @@ import { NodeType, NanoBananaNodeData } from "@/types";
 import { detectAndSplitGrid } from "@/utils/gridSplitter";
 import { logger } from "@/utils/logger";
 import { WelcomeModal } from "./quickstart";
+import { ProjectSetupModal } from "./ProjectSetupModal";
 import { ChatPanel } from "./ChatPanel";
 import { EditOperation } from "@/lib/chat/editOperations";
 import { stripBinaryData } from "@/lib/chat/contextBuilder";
@@ -193,7 +194,7 @@ const findScrollableAncestor = (target: HTMLElement, deltaX: number, deltaY: num
 };
 
 export function WorkflowCanvas() {
-  const { nodes, edges, groups, onNodesChange, onEdgesChange, onConnect, addNode, updateNodeData, loadWorkflow, getNodeById, addToGlobalHistory, setNodeGroupId, executeWorkflow, isModalOpen, showQuickstart, setShowQuickstart, navigationTarget, setNavigationTarget, captureSnapshot, applyEditOperations } =
+  const { nodes, edges, groups, onNodesChange, onEdgesChange, onConnect, addNode, updateNodeData, loadWorkflow, getNodeById, addToGlobalHistory, setNodeGroupId, executeWorkflow, isModalOpen, showQuickstart, setShowQuickstart, navigationTarget, setNavigationTarget, captureSnapshot, applyEditOperations, setWorkflowMetadata } =
     useWorkflowStore();
   const { screenToFlowPosition, getViewport, zoomIn, zoomOut, setViewport, setCenter } = useReactFlow();
   const { show: showToast } = useToast();
@@ -203,6 +204,7 @@ export function WorkflowCanvas() {
   const [isSplitting, setIsSplitting] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isBuildingWorkflow, setIsBuildingWorkflow] = useState(false);
+  const [showNewProjectSetup, setShowNewProjectSetup] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
   // Detect if canvas is empty for showing quickstart
@@ -1326,6 +1328,26 @@ export function WorkflowCanvas() {
             setShowQuickstart(false);
           }}
           onClose={() => setShowQuickstart(false)}
+          onNewProject={() => {
+            setShowQuickstart(false);
+            setShowNewProjectSetup(true);
+          }}
+        />
+      )}
+
+      {/* New Project Setup Modal */}
+      {showNewProjectSetup && (
+        <ProjectSetupModal
+          isOpen={showNewProjectSetup}
+          mode="new"
+          onSave={(id, name, directoryPath) => {
+            setWorkflowMetadata(id, name, directoryPath);
+            setShowNewProjectSetup(false);
+          }}
+          onClose={() => {
+            setShowNewProjectSetup(false);
+            setShowQuickstart(true);
+          }}
         />
       )}
 
