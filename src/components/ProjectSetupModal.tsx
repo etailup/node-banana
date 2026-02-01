@@ -607,6 +607,54 @@ export function ProjectSetupModal({
               </div>
             </div>
 
+            {/* WaveSpeed Provider */}
+            <div className="p-3 bg-neutral-900 rounded-lg border border-neutral-700">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-neutral-100">WaveSpeed</span>
+                {envStatus?.wavespeed && !overrideActive.wavespeed ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-green-400">Configured via .env</span>
+                    <button
+                      type="button"
+                      onClick={() => setOverrideActive((prev) => ({ ...prev, wavespeed: true }))}
+                      className="px-2 py-1 text-xs text-neutral-400 hover:text-neutral-200 transition-colors"
+                    >
+                      Override
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type={showApiKey.wavespeed ? "text" : "password"}
+                      value={localProviders.providers.wavespeed?.apiKey || ""}
+                      onChange={(e) => updateLocalProvider("wavespeed", { apiKey: e.target.value || null })}
+                      placeholder="..."
+                      className="w-48 px-2 py-1 bg-neutral-800 border border-neutral-600 rounded text-neutral-100 text-xs focus:outline-none focus:border-neutral-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey((prev) => ({ ...prev, wavespeed: !prev.wavespeed }))}
+                      className="text-xs text-neutral-400 hover:text-neutral-200"
+                    >
+                      {showApiKey.wavespeed ? "Hide" : "Show"}
+                    </button>
+                    {envStatus?.wavespeed && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOverrideActive((prev) => ({ ...prev, wavespeed: false }));
+                          updateLocalProvider("wavespeed", { apiKey: null });
+                        }}
+                        className="text-xs text-neutral-500 hover:text-neutral-300"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
             <p className="text-xs text-neutral-500 mt-2">
               Add API keys via <code className="px-1 py-0.5 bg-neutral-800 rounded">.env.local</code> for better security. Keys added here override .env and are stored in your browser.
             </p>

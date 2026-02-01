@@ -40,6 +40,7 @@ const IMAGE_INPUT_PATTERNS = [
   "image_url",
   "image_urls",
   "image",
+  "images",
   "image_input",
   "input_image",
   "first_frame",
