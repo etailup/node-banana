@@ -14,7 +14,7 @@ None
 - ✅ **v1.1 Improvements** - Phases 7-14 (shipped 2026-01-12)
 - ✅ **v1.2 Improvements** - Phases 15-24 (shipped 2026-01-17)
 - ✅ **v1.3 Improvements** - Phases 25-30 (shipped 2026-01-24)
-- 🚧 **v1.4 Features** - Phases 31-35, 40 (in progress)
+- ✅ **v1.4 Features** - Phases 31-35, 40 (shipped 2026-02-01)
 - 📋 **v1.5 Store Refactoring** - Phases 36-39 (planned)
 
 ## Phases
@@ -441,7 +441,7 @@ Plans:
 
 </details>
 
-### 🚧 v1.4 Features (In Progress)
+### ✅ v1.4 Features (Shipped 2026-02-01)
 
 **Milestone Goal:** Transform the Prompt-to-Workflow feature into a full agentic workflow builder with proposal dialogs, chat-based editing, and safe file handling for large workflows
 
@@ -532,10 +532,10 @@ Plans:
 4. Connection numbering — "Image N" labels on image edges when selected
 
 Plans:
-- [ ] 40-01-PLAN.md — OutputGallery node (thumbnail grid + lightbox)
-- [ ] 40-02-PLAN.md — Connection numbering (image edge sequence labels)
-- [ ] 40-03-PLAN.md — ImageCompare node (react-compare-slider)
-- [ ] 40-04-PLAN.md — PromptConstructor node (variable system + template interpolation)
+- [x] 40-01-PLAN.md — OutputGallery node (thumbnail grid + lightbox)
+- [x] 40-02-PLAN.md — Connection numbering (image edge sequence labels)
+- [x] 40-03-PLAN.md — ImageCompare node (react-compare-slider)
+- [x] 40-04-PLAN.md — PromptConstructor node (variable system + template interpolation)
 
 ### 📋 v1.5 Store Refactoring (Planned)
 
@@ -690,7 +690,7 @@ Phases execute in numeric order: 1 → 2 → ... → 35 → 40 → 36 → 37 →
 | 33. Workflow Edit Safety | v1.4 | 2/2 | Complete | 2026-01-30 |
 | 34. Context-Aware Agentic Editing | v1.4 | 3/3 | Complete | 2026-01-31 |
 | 35. Large Workflow Handling | v1.4 | 3/3 | Complete | 2026-01-31 |
-| 40. Node Enhancements | v1.4 | 0/? | Not started | - |
+| 40. Node Enhancements | v1.4 | 4/4 | Complete | 2026-02-01 |
 | 36. Execution Engine Extraction | v1.5 | 0/3 | Not started | - |
 | 37. Pure Helpers Extraction | v1.5 | 0/2 | Not started | - |
 | 38. Zustand Slice Pattern | v1.5 | 0/3 | Not started | - |

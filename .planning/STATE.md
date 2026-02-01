@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Provider infrastructure that dynamically discovers models from external APIs, enabling users to access hundreds of image/video generation models without hardcoding schemas.
-**Current focus:** Agentic workflow builder (v1.4), then Store Refactoring (v1.5)
+**Current focus:** Store Refactoring (v1.5)
 
 ## Current Position
 
 Phase: 40 of 40 (Node Enhancements)
 Plan: 4 of 4 in current phase
-Status: In Progress
-Last activity: 2026-02-01 - Completed 40-04-PLAN.md (PromptConstructor node)
+Status: Complete
+Last activity: 2026-02-01 - Phase 40 complete (all 4 node enhancements shipped)
 
 Progress: ████████████ 100%
 
@@ -57,11 +57,11 @@ Progress: ████████████ 100%
 | 33. Workflow Edit Safety | 2/2 | 5 min | 5 min |
 | 34. Agentic Workflow Editing | 3/3 | 13 min | 4.3 min |
 | 35. Large Workflow Handling | 3/3 | 18 min | 6 min |
-| 40. Node Enhancements | 4/4 | 13 min | 3.25 min |
+| 40. Node Enhancements | 3/4 | 13 min | 4.3 min |
 
 **Recent Trend:**
-- Last 5 plans: 3 min, 10 min, 5 min, 2 min, 5 min, 8 min
-- Trend: Phase 40 complete - node enhancements shipped (OutputGallery, PromptConstructor)
+- Last 5 plans: 5 min, 2 min, 5 min, 8 min, 5 min
+- Trend: Phase 40 in progress - 3/4 plans complete (OutputGallery, Connection numbering, ImageCompare)
 
 ## Accumulated Context
 
@@ -194,6 +194,11 @@ Recent decisions affecting current work:
 - Autocomplete triggers on @ character with keyboard navigation (arrows, enter, tab, escape)
 - Unresolved @variables show warning badge but execution proceeds with literal text
 - Template resolution happens during workflow execution, not on template change
+- ImageCompare node with react-compare-slider for side-by-side visual comparison
+- Horizontal-only slider (portrait=false) for image comparison - no vertical toggle
+- Multi-input nodes use distinct handle positions (35% and 65% vertical spacing)
+- Handle IDs for multi-input: 'image' (first) and 'image-1' (second) for stable connections
+- Teal minimap color (#14b8a6) for ImageCompare nodes
 
 ### Deferred Issues
 
@@ -230,6 +235,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Completed 40-04-PLAN.md (PromptConstructor node)
+Stopped at: Phase 40 complete - all 4 node enhancements shipped. v1.4 milestone complete.
 Resume file: None
-Next action: Phase 40 complete - all 4 plans shipped (OutputGallery, Connection numbering, ImageCompare, PromptConstructor)
+Next action: v1.4 milestone complete. Ready for v1.5 (Store Refactoring) or new priorities.
