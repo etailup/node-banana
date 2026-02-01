@@ -34,6 +34,7 @@ const DEFAULT_DIMENSIONS: Record<NodeType, { width: number; height: number }> = 
   llmGenerate: { width: 320, height: 360 },
   splitGrid: { width: 300, height: 320 },
   output: { width: 320, height: 320 },
+  outputGallery: { width: 320, height: 360 },
 };
 
 /**
@@ -263,6 +264,10 @@ function createDefaultNodeData(type: NodeType): WorkflowNodeData {
     case "output":
       return {
         image: null,
+      };
+    case "outputGallery":
+      return {
+        images: [],
       };
   }
 }
