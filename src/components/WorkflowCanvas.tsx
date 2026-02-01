@@ -310,6 +310,20 @@ export function WorkflowCanvas() {
     (connection: Connection) => {
       if (!isValidConnection(connection)) return;
 
+      // For imageCompare nodes, redirect to the second handle if the first is occupied
+      const resolveImageCompareHandle = (conn: Connection, batchUsed?: Set<string>): Connection => {
+        const targetNode = nodes.find((n) => n.id === conn.target);
+        if (targetNode?.type === "imageCompare" && conn.targetHandle === "image") {
+          const imageOccupied = edges.some(
+            (e) => e.target === conn.target && e.targetHandle === "image"
+          ) || batchUsed?.has("image");
+          if (imageOccupied) {
+            return { ...conn, targetHandle: "image-1" };
+          }
+        }
+        return conn;
+      };
+
       // Get all selected nodes
       const selectedNodes = nodes.filter((node) => node.selected);
       const sourceNode = nodes.find((node) => node.id === connection.source);
@@ -317,10 +331,14 @@ export function WorkflowCanvas() {
       // If the source node is selected and there are multiple selected nodes,
       // connect all selected nodes that have the same source handle type
       if (sourceNode?.selected && selectedNodes.length > 1 && connection.sourceHandle) {
+        const batchUsed = new Set<string>();
+
         selectedNodes.forEach((node) => {
           // Skip if this is already the connection source
           if (node.id === connection.source) {
-            onConnect(connection);
+            const resolved = resolveImageCompareHandle(connection, batchUsed);
+            if (resolved.targetHandle) batchUsed.add(resolved.targetHandle);
+            onConnect(resolved);
             return;
           }
 
@@ -339,16 +357,18 @@ export function WorkflowCanvas() {
             targetHandle: connection.targetHandle,
           };
 
-          if (isValidConnection(multiConnection)) {
-            onConnect(multiConnection);
+          const resolved = resolveImageCompareHandle(multiConnection, batchUsed);
+          if (resolved.targetHandle) batchUsed.add(resolved.targetHandle);
+          if (isValidConnection(resolved)) {
+            onConnect(resolved);
           }
         });
       } else {
         // Single connection
-        onConnect(connection);
+        onConnect(resolveImageCompareHandle(connection));
       }
     },
-    [onConnect, nodes]
+    [onConnect, nodes, edges]
   );
 
   // Handle connection dropped on empty space or on a node
@@ -683,7 +703,7 @@ export function WorkflowCanvas() {
       // Map handle type to the correct handle ID based on node type
       // Note: New nodes start with default handles (image, text) before a model is selected
       if (handleType === "image") {
-        if (nodeType === "annotation" || nodeType === "output" || nodeType === "splitGrid") {
+        if (nodeType === "annotation" || nodeType === "output" || nodeType === "splitGrid" || nodeType === "outputGallery" || nodeType === "imageCompare") {
           targetHandleId = "image";
           // annotation also has an image output
           if (nodeType === "annotation") {
@@ -701,8 +721,8 @@ export function WorkflowCanvas() {
           if (nodeType === "llmGenerate") {
             sourceHandleIdForNewNode = "text";
           }
-        } else if (nodeType === "prompt") {
-          // prompt can receive and output text
+        } else if (nodeType === "prompt" || nodeType === "promptConstructor") {
+          // prompt and promptConstructor can receive and output text
           targetHandleId = "text";
           sourceHandleIdForNewNode = "text";
         }
@@ -715,14 +735,23 @@ export function WorkflowCanvas() {
       // If the source node is selected and there are multiple selected nodes,
       // connect all selected nodes to the new node
       if (sourceNode?.selected && selectedNodes.length > 1 && sourceHandleId) {
+        const batchUsed = new Set<string>();
+
         selectedNodes.forEach((node) => {
           if (connectionType === "source" && targetHandleId) {
+            // For imageCompare, alternate between image and image-1
+            let resolvedTargetHandle = targetHandleId;
+            if (nodeType === "imageCompare" && targetHandleId === "image" && batchUsed.has("image")) {
+              resolvedTargetHandle = "image-1";
+            }
+            batchUsed.add(resolvedTargetHandle);
+
             // Dragging from source (output), connect selected nodes to new node's input
             const connection: Connection = {
               source: node.id,
               sourceHandle: sourceHandleId,
               target: newNodeId,
-              targetHandle: targetHandleId,
+              targetHandle: resolvedTargetHandle,
             };
             if (isValidConnection(connection)) {
               onConnect(connection);

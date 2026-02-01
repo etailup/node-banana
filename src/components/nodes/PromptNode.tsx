@@ -195,6 +195,11 @@ export function PromptNode({ id, data, selected }: NodeProps<PromptNodeType>) {
                 type="text"
                 value={varNameInput}
                 onChange={handleVariableNameChange}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && varNameInput) {
+                    handleSaveVariableName();
+                  }
+                }}
                 placeholder="e.g. color, style, subject"
                 className="w-full px-3 py-2 text-sm text-neutral-100 bg-neutral-900 border border-neutral-700 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                 autoFocus
