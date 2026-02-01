@@ -36,6 +36,7 @@ const DEFAULT_DIMENSIONS: Record<NodeType, { width: number; height: number }> = 
   splitGrid: { width: 300, height: 320 },
   output: { width: 320, height: 320 },
   outputGallery: { width: 320, height: 360 },
+  imageCompare: { width: 400, height: 360 },
 };
 
 /**
@@ -275,6 +276,11 @@ function createDefaultNodeData(type: NodeType): WorkflowNodeData {
     case "outputGallery":
       return {
         images: [],
+      };
+    case "imageCompare":
+      return {
+        imageA: null,
+        imageB: null,
       };
   }
 }

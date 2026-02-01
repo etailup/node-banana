@@ -32,7 +32,8 @@ export type NodeType =
   | "llmGenerate"
   | "splitGrid"
   | "output"
-  | "outputGallery";
+  | "outputGallery"
+  | "imageCompare";
 
 /**
  * Node execution status
@@ -185,6 +186,14 @@ export interface OutputGalleryNodeData extends BaseNodeData {
 }
 
 /**
+ * Image Compare node - side-by-side image comparison with draggable slider
+ */
+export interface ImageCompareNodeData extends BaseNodeData {
+  imageA: string | null;
+  imageB: string | null;
+}
+
+/**
  * Split Grid node - splits image into grid cells for parallel processing
  */
 export interface SplitGridNodeData extends BaseNodeData {
@@ -223,7 +232,8 @@ export type WorkflowNodeData =
   | LLMGenerateNodeData
   | SplitGridNodeData
   | OutputNodeData
-  | OutputGalleryNodeData;
+  | OutputGalleryNodeData
+  | ImageCompareNodeData;
 
 /**
  * Workflow node with typed data (extended with optional groupId)

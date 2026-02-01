@@ -1832,6 +1832,15 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             updateNodeData(node.id, { images });
             break;
           }
+
+          case "imageCompare": {
+            const { images } = getConnectedInputs(node.id);
+            updateNodeData(node.id, {
+              imageA: images[0] || null,
+              imageB: images[1] || null,
+            });
+            break;
+          }
         }
       }
 

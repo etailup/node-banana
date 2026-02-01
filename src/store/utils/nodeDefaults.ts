@@ -10,6 +10,7 @@ import {
   SplitGridNodeData,
   OutputNodeData,
   OutputGalleryNodeData,
+  ImageCompareNodeData,
   WorkflowNodeData,
   GroupColor,
   SelectedModel,
@@ -31,6 +32,7 @@ export const defaultNodeDimensions: Record<NodeType, { width: number; height: nu
   splitGrid: { width: 300, height: 320 },
   output: { width: 320, height: 320 },
   outputGallery: { width: 320, height: 360 },
+  imageCompare: { width: 400, height: 360 },
 };
 
 /**
@@ -171,5 +173,10 @@ export const createDefaultNodeData = (type: NodeType): WorkflowNodeData => {
       return {
         images: [],
       } as OutputGalleryNodeData;
+    case "imageCompare":
+      return {
+        imageA: null,
+        imageB: null,
+      } as ImageCompareNodeData;
   }
 };

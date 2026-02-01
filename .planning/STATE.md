@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 ## Current Position
 
 Phase: 40 of 40 (Node Enhancements)
-Plan: 1 of 4 in current phase
+Plan: 4 of 4 in current phase
 Status: In Progress
-Last activity: 2026-02-01 - Completed 40-01-PLAN.md (OutputGallery node)
+Last activity: 2026-02-01 - Completed 40-04-PLAN.md (PromptConstructor node)
 
-Progress: ███████████░ 95%
+Progress: ████████████ 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 39
+- Total plans completed: 40
 - Average duration: 6.6 min
-- Total execution time: 4.37 hours
+- Total execution time: 4.50 hours
 
 **By Phase:**
 
@@ -57,11 +57,11 @@ Progress: ███████████░ 95%
 | 33. Workflow Edit Safety | 2/2 | 5 min | 5 min |
 | 34. Agentic Workflow Editing | 3/3 | 13 min | 4.3 min |
 | 35. Large Workflow Handling | 3/3 | 18 min | 6 min |
-| 40. Node Enhancements | 1/4 | 5 min | 5 min |
+| 40. Node Enhancements | 4/4 | 13 min | 3.25 min |
 
 **Recent Trend:**
-- Last 5 plans: 10 min, 3 min, 10 min, 5 min, 2 min, 5 min
-- Trend: Phase 40 in progress - node enhancements (OutputGallery complete)
+- Last 5 plans: 3 min, 10 min, 5 min, 2 min, 5 min, 8 min
+- Trend: Phase 40 complete - node enhancements shipped (OutputGallery, PromptConstructor)
 
 ## Accumulated Context
 
@@ -188,6 +188,12 @@ Recent decisions affecting current work:
 - Real-time image collection pattern: useMemo watching edges/nodes for live updates
 - nowheel class for scroll isolation inside React Flow nodes
 - Pink minimap color (#ec4899) for OutputGallery nodes
+- PromptNode variable naming with optional variableName field (backward compatible)
+- @ icon in PromptNode header indicates variable status (blue when set, dimmed when not)
+- PromptConstructor template resolution uses @variable syntax with alphanumeric + underscore
+- Autocomplete triggers on @ character with keyboard navigation (arrows, enter, tab, escape)
+- Unresolved @variables show warning badge but execution proceeds with literal text
+- Template resolution happens during workflow execution, not on template change
 
 ### Deferred Issues
 
@@ -224,6 +230,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Completed 40-01-PLAN.md (OutputGallery node)
+Stopped at: Completed 40-04-PLAN.md (PromptConstructor node)
 Resume file: None
-Next action: Continue Phase 40 - 3 more plans remaining (Connection numbering, ImageCompare, PromptConstructor)
+Next action: Phase 40 complete - all 4 plans shipped (OutputGallery, Connection numbering, ImageCompare, PromptConstructor)

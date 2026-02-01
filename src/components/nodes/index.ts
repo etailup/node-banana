@@ -8,4 +8,5 @@ export { LLMGenerateNode } from "./LLMGenerateNode";
 export { SplitGridNode } from "./SplitGridNode";
 export { OutputNode } from "./OutputNode";
 export { OutputGalleryNode } from "./OutputGalleryNode";
+export { ImageCompareNode } from "./ImageCompareNode";
 export { GroupNode } from "./GroupNode";
