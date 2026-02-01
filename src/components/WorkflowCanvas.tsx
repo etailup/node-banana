@@ -28,6 +28,7 @@ import {
   LLMGenerateNode,
   SplitGridNode,
   OutputNode,
+  OutputGalleryNode,
 } from "./nodes";
 import { EditableEdge, ReferenceEdge } from "./edges";
 import { ConnectionDropMenu, MenuAction } from "./ConnectionDropMenu";
@@ -52,6 +53,7 @@ const nodeTypes: NodeTypes = {
   llmGenerate: LLMGenerateNode,
   splitGrid: SplitGridNode,
   output: OutputNode,
+  outputGallery: OutputGalleryNode,
 };
 
 const edgeTypes: EdgeTypes = {
@@ -95,6 +97,8 @@ const getNodeHandles = (nodeType: string): { inputs: string[]; outputs: string[]
     case "splitGrid":
       return { inputs: ["image"], outputs: ["reference"] };
     case "output":
+      return { inputs: ["image"], outputs: [] };
+    case "outputGallery":
       return { inputs: ["image"], outputs: [] };
     default:
       return { inputs: [], outputs: [] };
@@ -887,6 +891,7 @@ export function WorkflowCanvas() {
             llmGenerate: { width: 320, height: 360 },
             splitGrid: { width: 300, height: 320 },
             output: { width: 320, height: 320 },
+            outputGallery: { width: 320, height: 360 },
           };
           const dims = defaultDimensions[nodeType];
           addNode(nodeType, { x: centerX - dims.width / 2, y: centerY - dims.height / 2 });
@@ -1374,6 +1379,8 @@ export function WorkflowCanvas() {
                 return "#f59e0b";
               case "output":
                 return "#ef4444";
+              case "outputGallery":
+                return "#ec4899";
               default:
                 return "#94a3b8";
             }

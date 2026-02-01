@@ -1774,6 +1774,12 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             }
             break;
           }
+
+          case "outputGallery": {
+            const { images } = getConnectedInputs(node.id);
+            updateNodeData(node.id, { images });
+            break;
+          }
         }
       }
 

@@ -30,7 +30,8 @@ export type NodeType =
   | "generateVideo"
   | "llmGenerate"
   | "splitGrid"
-  | "output";
+  | "output"
+  | "outputGallery";
 
 /**
  * Node execution status
@@ -166,6 +167,13 @@ export interface OutputNodeData extends BaseNodeData {
 }
 
 /**
+ * Output Gallery node - displays scrollable thumbnail grid of images with lightbox
+ */
+export interface OutputGalleryNodeData extends BaseNodeData {
+  images: string[]; // Array of base64 data URLs from connected nodes
+}
+
+/**
  * Split Grid node - splits image into grid cells for parallel processing
  */
 export interface SplitGridNodeData extends BaseNodeData {
@@ -202,7 +210,8 @@ export type WorkflowNodeData =
   | GenerateVideoNodeData
   | LLMGenerateNodeData
   | SplitGridNodeData
-  | OutputNodeData;
+  | OutputNodeData
+  | OutputGalleryNodeData;
 
 /**
  * Workflow node with typed data (extended with optional groupId)

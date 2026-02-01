@@ -8,6 +8,7 @@ import {
   LLMGenerateNodeData,
   SplitGridNodeData,
   OutputNodeData,
+  OutputGalleryNodeData,
   WorkflowNodeData,
   GroupColor,
   SelectedModel,
@@ -27,6 +28,7 @@ export const defaultNodeDimensions: Record<NodeType, { width: number; height: nu
   llmGenerate: { width: 320, height: 360 },
   splitGrid: { width: 300, height: 320 },
   output: { width: 320, height: 320 },
+  outputGallery: { width: 320, height: 360 },
 };
 
 /**
@@ -157,5 +159,9 @@ export const createDefaultNodeData = (type: NodeType): WorkflowNodeData => {
         image: null,
         outputFilename: "",
       } as OutputNodeData;
+    case "outputGallery":
+      return {
+        images: [],
+      } as OutputGalleryNodeData;
   }
 };

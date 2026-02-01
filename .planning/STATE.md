@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 
 ## Current Position
 
-Phase: 35 of 35 (Large Workflow Handling)
-Plan: 3 of 3 in current phase
-Status: Complete
-Last activity: 2026-01-31 - Completed plan 03 (Client-side wiring and selection chip)
+Phase: 40 of 40 (Node Enhancements)
+Plan: 2 of 4 in current phase
+Status: In Progress
+Last activity: 2026-02-01 - Completed 40-02-PLAN.md (Connection numbering)
 
-Progress: ██████████ 100%
+Progress: ███████████░ 94%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 37
-- Average duration: 6.9 min
-- Total execution time: 4.25 hours
+- Total plans completed: 38
+- Average duration: 6.7 min
+- Total execution time: 4.28 hours
 
 **By Phase:**
 
@@ -57,10 +57,11 @@ Progress: ██████████ 100%
 | 33. Workflow Edit Safety | 2/2 | 5 min | 5 min |
 | 34. Agentic Workflow Editing | 3/3 | 13 min | 4.3 min |
 | 35. Large Workflow Handling | 3/3 | 18 min | 6 min |
+| 40. Node Enhancements | 2/4 | 2 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 8 min, <1 min, 10 min, 3 min, 10 min, 5 min
-- Trend: Phase 35 complete - large workflow handling with selection-aware chat context (TDD + execution)
+- Last 5 plans: <1 min, 10 min, 3 min, 10 min, 5 min, 2 min
+- Trend: Phase 40 in progress - node enhancements (connection numbering complete)
 
 ## Accumulated Context
 
@@ -180,6 +181,9 @@ Recent decisions affecting current work:
 - Ref fields (imageRef, outputImageRef, etc.) completely removed from LLM context
 - All node parameters, positions, and model settings preserved in stripped context
 - Enhanced WorkflowContext includes full StrippedNode[] with all non-binary data
+- createdAt timestamp on edge data for stable connection ordering
+- Image edge sequence numbers shown only when 2+ connections to same target
+- EdgeToolbar displays "Image N" labels for multi-image connections
 
 ### Deferred Issues
 
@@ -215,7 +219,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-01-31
-Stopped at: Completed Phase 35 Plan 03 (Client-side wiring and selection chip) - Phase 35 COMPLETE
+Last session: 2026-02-01
+Stopped at: Completed 40-02-PLAN.md (Connection numbering)
 Resume file: None
-Next action: Phase 35 completes Milestone v1.4 (Agentic Workflow Builder). Ready for Milestone v1.5 (Store Refactoring) or new priorities.
+Next action: Continue Phase 40 - 2 more plans remaining (OutputGallery, ImageCompare, PromptConstructor)
