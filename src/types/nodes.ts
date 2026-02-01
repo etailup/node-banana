@@ -26,6 +26,7 @@ export type NodeType =
   | "imageInput"
   | "annotation"
   | "prompt"
+  | "promptConstructor"
   | "nanoBanana"
   | "generateVideo"
   | "llmGenerate"
@@ -53,6 +54,16 @@ export interface ImageInputNodeData extends BaseNodeData {
  */
 export interface PromptNodeData extends BaseNodeData {
   prompt: string;
+  variableName?: string; // Optional variable name for use in PromptConstructor templates
+}
+
+/**
+ * Prompt Constructor node - template-based prompt builder with @variable interpolation
+ */
+export interface PromptConstructorNodeData extends BaseNodeData {
+  template: string;
+  outputText: string | null;
+  unresolvedVars: string[];
 }
 
 /**
@@ -206,6 +217,7 @@ export type WorkflowNodeData =
   | ImageInputNodeData
   | AnnotationNodeData
   | PromptNodeData
+  | PromptConstructorNodeData
   | NanoBananaNodeData
   | GenerateVideoNodeData
   | LLMGenerateNodeData

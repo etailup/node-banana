@@ -3,6 +3,7 @@ import {
   ImageInputNodeData,
   AnnotationNodeData,
   PromptNodeData,
+  PromptConstructorNodeData,
   NanoBananaNodeData,
   GenerateVideoNodeData,
   LLMGenerateNodeData,
@@ -23,6 +24,7 @@ export const defaultNodeDimensions: Record<NodeType, { width: number; height: nu
   imageInput: { width: 300, height: 280 },
   annotation: { width: 300, height: 280 },
   prompt: { width: 320, height: 220 },
+  promptConstructor: { width: 340, height: 280 },
   nanoBanana: { width: 300, height: 300 },
   generateVideo: { width: 300, height: 300 },
   llmGenerate: { width: 320, height: 360 },
@@ -71,6 +73,12 @@ export const createDefaultNodeData = (type: NodeType): WorkflowNodeData => {
       return {
         prompt: "",
       } as PromptNodeData;
+    case "promptConstructor":
+      return {
+        template: "",
+        outputText: null,
+        unresolvedVars: [],
+      } as PromptConstructorNodeData;
     case "nanoBanana": {
       const nodeDefaults = loadNodeDefaults();
       const legacyDefaults = loadGenerateImageDefaults();

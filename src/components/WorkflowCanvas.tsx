@@ -23,6 +23,7 @@ import {
   ImageInputNode,
   AnnotationNode,
   PromptNode,
+  PromptConstructorNode,
   GenerateImageNode,
   GenerateVideoNode,
   LLMGenerateNode,
@@ -48,6 +49,7 @@ const nodeTypes: NodeTypes = {
   imageInput: ImageInputNode,
   annotation: AnnotationNode,
   prompt: PromptNode,
+  promptConstructor: PromptConstructorNode,
   nanoBanana: GenerateImageNode,
   generateVideo: GenerateVideoNode,
   llmGenerate: LLMGenerateNode,
@@ -87,6 +89,8 @@ const getNodeHandles = (nodeType: string): { inputs: string[]; outputs: string[]
     case "annotation":
       return { inputs: ["image"], outputs: ["image"] };
     case "prompt":
+      return { inputs: ["text"], outputs: ["text"] };
+    case "promptConstructor":
       return { inputs: ["text"], outputs: ["text"] };
     case "nanoBanana":
       return { inputs: ["image", "text"], outputs: ["image"] };
@@ -886,6 +890,7 @@ export function WorkflowCanvas() {
             imageInput: { width: 300, height: 280 },
             annotation: { width: 300, height: 280 },
             prompt: { width: 320, height: 220 },
+            promptConstructor: { width: 340, height: 280 },
             nanoBanana: { width: 300, height: 300 },
             generateVideo: { width: 300, height: 300 },
             llmGenerate: { width: 320, height: 360 },
@@ -1369,6 +1374,8 @@ export function WorkflowCanvas() {
                 return "#8b5cf6";
               case "prompt":
                 return "#f97316";
+              case "promptConstructor":
+                return "#f472b6";
               case "nanoBanana":
                 return "#22c55e";
               case "generateVideo":

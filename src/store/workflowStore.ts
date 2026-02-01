@@ -15,6 +15,7 @@ import {
   ImageInputNodeData,
   AnnotationNodeData,
   PromptNodeData,
+  PromptConstructorNodeData,
   NanoBananaNodeData,
   GenerateVideoNodeData,
   LLMGenerateNodeData,
@@ -809,6 +810,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         return { type: "video", value: (sourceNode.data as GenerateVideoNodeData).outputVideo };
       } else if (sourceNode.type === "prompt") {
         return { type: "text", value: (sourceNode.data as PromptNodeData).prompt };
+      } else if (sourceNode.type === "promptConstructor") {
+        return { type: "text", value: (sourceNode.data as PromptConstructorNodeData).outputText };
       } else if (sourceNode.type === "llmGenerate") {
         return { type: "text", value: (sourceNode.data as LLMGenerateNodeData).outputText };
       }
@@ -1056,6 +1059,55 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             if (connectedText !== null) {
               updateNodeData(node.id, { prompt: connectedText });
             }
+            break;
+          }
+
+          case "promptConstructor": {
+            // Get fresh node data from store
+            const freshNode = get().nodes.find((n) => n.id === node.id);
+            const nodeData = (freshNode?.data || node.data) as PromptConstructorNodeData;
+            const template = nodeData.template;
+
+            // Find connected prompt nodes via text edges
+            const connectedPromptNodes = edges
+              .filter((e) => e.target === node.id && e.targetHandle === "text")
+              .map((e) => nodes.find((n) => n.id === e.source))
+              .filter((n): n is WorkflowNode => n !== undefined && n.type === "prompt");
+
+            // Build variable map from connected prompt nodes
+            const variableMap: Record<string, string> = {};
+            connectedPromptNodes.forEach((promptNode) => {
+              const promptData = promptNode.data as PromptNodeData;
+              if (promptData.variableName) {
+                variableMap[promptData.variableName] = promptData.prompt;
+              }
+            });
+
+            // Find all @variable patterns in template
+            const varPattern = /@(\w+)/g;
+            const unresolvedVars: string[] = [];
+            let resolvedText = template;
+
+            // Replace @variables with values or track unresolved
+            const matches = template.matchAll(varPattern);
+            for (const match of matches) {
+              const varName = match[1];
+              if (variableMap[varName] !== undefined) {
+                // Replace with actual value
+                resolvedText = resolvedText.replace(new RegExp(`@${varName}`, 'g'), variableMap[varName]);
+              } else {
+                // Track unresolved variable
+                if (!unresolvedVars.includes(varName)) {
+                  unresolvedVars.push(varName);
+                }
+              }
+            }
+
+            // Update node with resolved text and unresolved vars list
+            updateNodeData(node.id, {
+              outputText: resolvedText,
+              unresolvedVars,
+            });
             break;
           }
 

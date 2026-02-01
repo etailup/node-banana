@@ -25,6 +25,10 @@ export function PromptNode({ id, data, selected }: NodeProps<PromptNodeType>) {
   const [localPrompt, setLocalPrompt] = useState(nodeData.prompt);
   const [isEditing, setIsEditing] = useState(false);
 
+  // Variable naming dialog state
+  const [showVarDialog, setShowVarDialog] = useState(false);
+  const [varNameInput, setVarNameInput] = useState(nodeData.variableName || "");
+
   // Check if this node has any incoming text connections
   const hasIncomingTextConnection = useMemo(() => {
     return edges.some((edge) => edge.target === id && edge.targetHandle === "text");
@@ -82,6 +86,23 @@ export function PromptNode({ id, data, selected }: NodeProps<PromptNodeType>) {
     [id, updateNodeData]
   );
 
+  const handleSaveVariableName = useCallback(() => {
+    updateNodeData(id, { variableName: varNameInput || undefined });
+    setShowVarDialog(false);
+  }, [id, varNameInput, updateNodeData]);
+
+  const handleClearVariableName = useCallback(() => {
+    setVarNameInput("");
+    updateNodeData(id, { variableName: undefined });
+    setShowVarDialog(false);
+  }, [id, updateNodeData]);
+
+  const handleVariableNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    // Allow only alphanumeric and underscore, max 30 chars
+    const sanitized = e.target.value.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 30);
+    setVarNameInput(sanitized);
+  }, []);
+
   return (
     <>
       <BaseNode
@@ -103,15 +124,38 @@ export function PromptNode({ id, data, selected }: NodeProps<PromptNodeType>) {
           data-handletype="text"
         />
 
-        <textarea
-          value={localPrompt}
-          onChange={handleChange}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          placeholder={hasIncomingTextConnection ? "Receiving text from connected node..." : "Describe what to generate..."}
-          className="nodrag nopan nowheel w-full flex-1 min-h-[70px] p-2 text-xs leading-relaxed text-neutral-100 border border-neutral-700 rounded bg-neutral-900/50 resize-none focus:outline-none focus:ring-1 focus:ring-neutral-600 focus:border-neutral-600 placeholder:text-neutral-500"
-          readOnly={hasIncomingTextConnection}
-        />
+        <div className="relative flex-1 flex flex-col">
+          {/* Variable name button - positioned at top-right of textarea area */}
+          <div className="flex items-start gap-2">
+            <textarea
+              value={localPrompt}
+              onChange={handleChange}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
+              placeholder={hasIncomingTextConnection ? "Receiving text from connected node..." : "Describe what to generate..."}
+              className="nodrag nopan nowheel w-full flex-1 min-h-[70px] p-2 text-xs leading-relaxed text-neutral-100 border border-neutral-700 rounded bg-neutral-900/50 resize-none focus:outline-none focus:ring-1 focus:ring-neutral-600 focus:border-neutral-600 placeholder:text-neutral-500"
+              readOnly={hasIncomingTextConnection}
+            />
+            <button
+              onClick={() => setShowVarDialog(true)}
+              className={`nodrag nopan mt-1 p-1.5 rounded transition-colors ${
+                nodeData.variableName
+                  ? "text-blue-400 hover:text-blue-300 hover:bg-blue-900/30"
+                  : "text-neutral-500 hover:text-neutral-400 hover:bg-neutral-700/50"
+              }`}
+              title={nodeData.variableName ? `Variable: @${nodeData.variableName}` : "Set variable name"}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 12h4m0 0l-4-4m4 4l-4 4m-8-4H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+            </button>
+          </div>
+          {nodeData.variableName && (
+            <div className="mt-1 text-[10px] text-blue-400 px-2">
+              @{nodeData.variableName}
+            </div>
+          )}
+        </div>
 
         {/* Text output handle */}
         <Handle
@@ -122,7 +166,7 @@ export function PromptNode({ id, data, selected }: NodeProps<PromptNodeType>) {
         />
       </BaseNode>
 
-      {/* Modal - rendered via portal to escape React Flow stacking context */}
+      {/* Prompt Editor Modal - rendered via portal to escape React Flow stacking context */}
       {isModalOpenLocal && createPortal(
         <PromptEditorModal
           isOpen={isModalOpenLocal}
@@ -130,6 +174,58 @@ export function PromptNode({ id, data, selected }: NodeProps<PromptNodeType>) {
           onSubmit={handleSubmitModal}
           onClose={handleCloseModal}
         />,
+        document.body
+      )}
+
+      {/* Variable Naming Dialog - rendered via portal */}
+      {showVarDialog && createPortal(
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999]">
+          <div className="bg-neutral-800 border border-neutral-600 rounded-lg shadow-xl p-4 w-96">
+            <h3 className="text-sm font-semibold text-neutral-100 mb-3">Set Variable Name</h3>
+            <p className="text-xs text-neutral-400 mb-3">
+              Use this prompt as a variable in PromptConstructor nodes
+            </p>
+            <div className="mb-4">
+              <label className="block text-xs text-neutral-300 mb-1">Variable name</label>
+              <input
+                type="text"
+                value={varNameInput}
+                onChange={handleVariableNameChange}
+                placeholder="e.g. color, style, subject"
+                className="w-full px-3 py-2 text-sm text-neutral-100 bg-neutral-900 border border-neutral-700 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                autoFocus
+              />
+              {varNameInput && (
+                <div className="mt-2 text-xs text-blue-400">
+                  Preview: <span className="font-mono">@{varNameInput}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2 justify-end">
+              {nodeData.variableName && (
+                <button
+                  onClick={handleClearVariableName}
+                  className="px-3 py-1.5 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-900/30 rounded transition-colors"
+                >
+                  Clear
+                </button>
+              )}
+              <button
+                onClick={() => setShowVarDialog(false)}
+                className="px-3 py-1.5 text-xs font-medium text-neutral-400 hover:text-neutral-300 hover:bg-neutral-700 rounded transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveVariableName}
+                disabled={!varNameInput}
+                className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>,
         document.body
       )}
     </>

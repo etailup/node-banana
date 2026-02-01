@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-09)
 ## Current Position
 
 Phase: 40 of 40 (Node Enhancements)
-Plan: 2 of 4 in current phase
+Plan: 1 of 4 in current phase
 Status: In Progress
-Last activity: 2026-02-01 - Completed 40-02-PLAN.md (Connection numbering)
+Last activity: 2026-02-01 - Completed 40-01-PLAN.md (OutputGallery node)
 
-Progress: ███████████░ 94%
+Progress: ███████████░ 95%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 38
-- Average duration: 6.7 min
-- Total execution time: 4.28 hours
+- Total plans completed: 39
+- Average duration: 6.6 min
+- Total execution time: 4.37 hours
 
 **By Phase:**
 
@@ -57,11 +57,11 @@ Progress: ███████████░ 94%
 | 33. Workflow Edit Safety | 2/2 | 5 min | 5 min |
 | 34. Agentic Workflow Editing | 3/3 | 13 min | 4.3 min |
 | 35. Large Workflow Handling | 3/3 | 18 min | 6 min |
-| 40. Node Enhancements | 2/4 | 2 min | 2 min |
+| 40. Node Enhancements | 1/4 | 5 min | 5 min |
 
 **Recent Trend:**
-- Last 5 plans: <1 min, 10 min, 3 min, 10 min, 5 min, 2 min
-- Trend: Phase 40 in progress - node enhancements (connection numbering complete)
+- Last 5 plans: 10 min, 3 min, 10 min, 5 min, 2 min, 5 min
+- Trend: Phase 40 in progress - node enhancements (OutputGallery complete)
 
 ## Accumulated Context
 
@@ -184,6 +184,10 @@ Recent decisions affecting current work:
 - createdAt timestamp on edge data for stable connection ordering
 - Image edge sequence numbers shown only when 2+ connections to same target
 - EdgeToolbar displays "Image N" labels for multi-image connections
+- OutputGallery node uses createPortal for full-screen lightbox (avoids z-index conflicts)
+- Real-time image collection pattern: useMemo watching edges/nodes for live updates
+- nowheel class for scroll isolation inside React Flow nodes
+- Pink minimap color (#ec4899) for OutputGallery nodes
 
 ### Deferred Issues
 
@@ -220,6 +224,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Completed 40-02-PLAN.md (Connection numbering)
+Stopped at: Completed 40-01-PLAN.md (OutputGallery node)
 Resume file: None
-Next action: Continue Phase 40 - 2 more plans remaining (OutputGallery, ImageCompare, PromptConstructor)
+Next action: Continue Phase 40 - 3 more plans remaining (Connection numbering, ImageCompare, PromptConstructor)
