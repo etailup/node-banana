@@ -477,6 +477,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         {
           ...connection,
           id: `edge-${connection.source}-${connection.target}-${connection.sourceHandle || "default"}-${connection.targetHandle || "default"}`,
+          data: { createdAt: Date.now() },
         },
         state.edges
       ),
@@ -492,6 +493,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           ...connection,
           id: `edge-${connection.source}-${connection.target}-${connection.sourceHandle || "default"}-${connection.targetHandle || "default"}`,
           type: edgeType,
+          data: { createdAt: Date.now() },
         },
         state.edges
       ),

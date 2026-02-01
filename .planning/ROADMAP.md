@@ -14,7 +14,7 @@ None
 - ✅ **v1.1 Improvements** - Phases 7-14 (shipped 2026-01-12)
 - ✅ **v1.2 Improvements** - Phases 15-24 (shipped 2026-01-17)
 - ✅ **v1.3 Improvements** - Phases 25-30 (shipped 2026-01-24)
-- 🚧 **v1.4 Features** - Phases 31-35 (in progress)
+- 🚧 **v1.4 Features** - Phases 31-35, 40 (in progress)
 - 📋 **v1.5 Store Refactoring** - Phases 36-39 (planned)
 
 ## Phases
@@ -517,6 +517,26 @@ Plans:
 - [ ] 35-02-PLAN.md — Selection-aware subgraph extraction (TDD)
 - [ ] 35-03-PLAN.md — Client-side wiring, ChatPanel selection chip, API subgraph integration
 
+#### Phase 40: Node Enhancements
+
+**Goal**: Add new node types and UI improvements — output gallery, image compare node, prompt constructor node, and image numbering on connections
+**Depends on**: Phase 35
+**Research**: Likely (gallery UI patterns, image comparison approaches)
+**Research topics**: Gallery/carousel component patterns, image diff/compare slider UX, prompt builder UX patterns, edge label rendering in React Flow
+**Plans**: 4 plans
+
+**Features:**
+1. Output gallery node — scrollable thumbnail grid with full-screen lightbox
+2. Image compare node — slider overlay comparison of two images
+3. Prompt constructor node — template-based prompts with @variable interpolation
+4. Connection numbering — "Image N" labels on image edges when selected
+
+Plans:
+- [ ] 40-01-PLAN.md — OutputGallery node (thumbnail grid + lightbox)
+- [ ] 40-02-PLAN.md — Connection numbering (image edge sequence labels)
+- [ ] 40-03-PLAN.md — ImageCompare node (react-compare-slider)
+- [ ] 40-04-PLAN.md — PromptConstructor node (variable system + template interpolation)
+
 ### 📋 v1.5 Store Refactoring (Planned)
 
 **Milestone Goal:** Major refactoring of workflowStore.ts (2,900+ lines) into modular, testable components. Extract execution engine, create Zustand slices, and improve code maintainability while maintaining full backward compatibility.
@@ -631,7 +651,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → ... → 35 → 36 → 37 → 38 → 39
+Phases execute in numeric order: 1 → 2 → ... → 35 → 40 → 36 → 37 → 38 → 39
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -668,8 +688,9 @@ Phases execute in numeric order: 1 → 2 → ... → 35 → 36 → 37 → 38 →
 | 31. Workflow Proposal System | v1.4 | 2/2 | Complete | 2026-01-26 |
 | 32. Chat UI Foundation | v1.4 | 2/2 | Complete | 2026-01-27 |
 | 33. Workflow Edit Safety | v1.4 | 2/2 | Complete | 2026-01-30 |
-| 34. Context-Aware Agentic Editing | v1.4 | 1/3 | In progress | - |
-| 35. Large Workflow Handling | v1.4 | 0/? | Not started | - |
+| 34. Context-Aware Agentic Editing | v1.4 | 3/3 | Complete | 2026-01-31 |
+| 35. Large Workflow Handling | v1.4 | 3/3 | Complete | 2026-01-31 |
+| 40. Node Enhancements | v1.4 | 0/? | Not started | - |
 | 36. Execution Engine Extraction | v1.5 | 0/3 | Not started | - |
 | 37. Pure Helpers Extraction | v1.5 | 0/2 | Not started | - |
 | 38. Zustand Slice Pattern | v1.5 | 0/3 | Not started | - |

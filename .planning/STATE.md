@@ -211,6 +211,7 @@ Recent decisions affecting current work:
 - Phase 30 added: Small fixes
 - Milestone v1.4 Features created: 5 phases (Phase 31-35), agentic workflow builder with proposal dialogs and chat-based editing
 - Milestone v1.5 Store Refactoring created: 4 phases (Phase 36-39), major refactor of workflowStore.ts into modular execution engine and Zustand slices
+- Phase 40 added to v1.4: Node enhancements — output gallery, image compare node, prompt constructor node, image numbering on connections
 
 ## Session Continuity
 
