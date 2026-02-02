@@ -135,7 +135,7 @@ async function externalizeNodeImages(
 
       // Handle input images array (these come from connected nodes, save to inputs if present)
       // Skip if corresponding inputImageRef already exists
-      for (let i = 0; i < d.inputImages.length; i++) {
+      for (let i = 0; i < (d.inputImages?.length || 0); i++) {
         const img = d.inputImages[i];
         const existingRef = d.inputImageRefs?.[i];
         if (existingRef && isBase64DataUrl(img)) {
@@ -166,7 +166,7 @@ async function externalizeNodeImages(
 
       // Handle input images array (save to inputs)
       // Skip if corresponding inputImageRef already exists
-      for (let i = 0; i < d.inputImages.length; i++) {
+      for (let i = 0; i < (d.inputImages?.length || 0); i++) {
         const img = d.inputImages[i];
         const existingRef = d.inputImageRefs?.[i];
         if (existingRef && isBase64DataUrl(img)) {
@@ -195,7 +195,7 @@ async function externalizeNodeImages(
 
       // Handle input images array (save to inputs)
       // Skip if corresponding inputImageRef already exists
-      for (let i = 0; i < d.inputImages.length; i++) {
+      for (let i = 0; i < (d.inputImages?.length || 0); i++) {
         const img = d.inputImages[i];
         const existingRef = d.inputImageRefs?.[i];
         if (existingRef && isBase64DataUrl(img)) {
@@ -368,7 +368,7 @@ async function hydrateNodeImages(
     case "nanoBanana": {
       const d = data as import("@/types").NanoBananaNodeData;
       let outputImage = d.outputImage;
-      const inputImages = [...d.inputImages];
+      const inputImages = [...(d.inputImages || [])];
 
       if (d.outputImageRef && !d.outputImage) {
         outputImage = await loadImageById(d.outputImageRef, workflowPath, loadedImages, "generations");
@@ -394,7 +394,7 @@ async function hydrateNodeImages(
 
     case "llmGenerate": {
       const d = data as import("@/types").LLMGenerateNodeData;
-      const inputImages = [...d.inputImages];
+      const inputImages = [...(d.inputImages || [])];
 
       // Hydrate input images from refs
       if (d.inputImageRefs && d.inputImageRefs.length > 0) {
@@ -415,7 +415,7 @@ async function hydrateNodeImages(
 
     case "generateVideo": {
       const d = data as import("@/types").GenerateVideoNodeData;
-      const inputImages = [...d.inputImages];
+      const inputImages = [...(d.inputImages || [])];
 
       // Hydrate input images from refs
       if (d.inputImageRefs && d.inputImageRefs.length > 0) {
