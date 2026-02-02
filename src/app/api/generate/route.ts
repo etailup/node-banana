@@ -1358,9 +1358,31 @@ function isKieVeoModel(modelId: string): boolean {
 }
 
 /**
+ * Detect actual image type from binary data (magic bytes)
+ */
+function detectImageType(buffer: Buffer): { mimeType: string; ext: string } {
+  // Check magic bytes
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
+    return { mimeType: "image/png", ext: "png" };
+  }
+  if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
+    return { mimeType: "image/jpeg", ext: "jpg" };
+  }
+  if (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+      buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50) {
+    return { mimeType: "image/webp", ext: "webp" };
+  }
+  if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) {
+    return { mimeType: "image/gif", ext: "gif" };
+  }
+  // Default to PNG
+  return { mimeType: "image/png", ext: "png" };
+}
+
+/**
  * Upload a base64 image to Kie.ai and get a URL
  * Required for image-to-image models since Kie doesn't accept base64 directly
- * Uses multipart/form-data with 'file' and 'uploadPath' fields
+ * Uses base64 upload endpoint (same as official Kie client)
  */
 async function uploadImageToKie(
   requestId: string,
@@ -1368,58 +1390,44 @@ async function uploadImageToKie(
   base64Image: string
 ): Promise<string> {
   // Extract mime type and data from data URL
-  let mimeType = "image/png";
+  let declaredMimeType = "image/png";
   let imageData = base64Image;
 
   if (base64Image.startsWith("data:")) {
     const matches = base64Image.match(/^data:([^;]+);base64,(.+)$/);
     if (matches) {
-      mimeType = matches[1];
+      declaredMimeType = matches[1];
       imageData = matches[2];
     }
   }
 
-  // Convert base64 to binary
+  // Convert base64 to binary to detect actual type
   const binaryData = Buffer.from(imageData, "base64");
 
-  // Determine file extension
-  const ext = mimeType.includes("png") ? "png" : mimeType.includes("webp") ? "webp" : "jpg";
+  // Detect actual image type from magic bytes (don't trust the declared MIME type)
+  const detected = detectImageType(binaryData);
+  const mimeType = detected.mimeType;
+  const ext = detected.ext;
+
   const filename = `upload_${Date.now()}.${ext}`;
 
-  console.log(`[API:${requestId}] Uploading image to Kie.ai: ${filename} (${(binaryData.length / 1024).toFixed(1)}KB)`);
+  console.log(`[API:${requestId}] Uploading image to Kie.ai: ${filename} (${(binaryData.length / 1024).toFixed(1)}KB) [declared: ${declaredMimeType}, actual: ${mimeType}]`);
 
-  // Build multipart form data manually
-  const boundary = `----WebKitFormBoundary${Date.now().toString(16)}`;
-  const parts: Buffer[] = [];
+  // Use base64 upload endpoint (same as official Kie client)
+  // Format: data:{mime_type};base64,{data}
+  const dataUrl = `data:${mimeType};base64,${imageData}`;
 
-  // Add file field
-  parts.push(Buffer.from(
-    `--${boundary}\r\n` +
-    `Content-Disposition: form-data; name="file"; filename="${filename}"\r\n` +
-    `Content-Type: ${mimeType}\r\n\r\n`
-  ));
-  parts.push(binaryData);
-  parts.push(Buffer.from('\r\n'));
-
-  // Add uploadPath field
-  parts.push(Buffer.from(
-    `--${boundary}\r\n` +
-    `Content-Disposition: form-data; name="uploadPath"\r\n\r\n` +
-    `images\r\n`
-  ));
-
-  // End boundary
-  parts.push(Buffer.from(`--${boundary}--\r\n`));
-
-  const body = Buffer.concat(parts);
-
-  const response = await fetch("https://kieai.redpandaai.co/api/file-stream-upload", {
+  const response = await fetch("https://kieai.redpandaai.co/api/file-base64-upload", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": `multipart/form-data; boundary=${boundary}`,
+      "Content-Type": "application/json",
     },
-    body: body,
+    body: JSON.stringify({
+      base64Data: dataUrl,
+      uploadPath: "images",
+      fileName: filename,
+    }),
   });
 
   if (!response.ok) {
@@ -1429,6 +1437,11 @@ async function uploadImageToKie(
 
   const result = await response.json();
   console.log(`[API:${requestId}] Kie upload response:`, JSON.stringify(result).substring(0, 300));
+
+  // Check for error in response
+  if (result.code && result.code !== 200 && !result.success) {
+    throw new Error(`Upload failed: ${result.msg || 'Unknown error'}`);
+  }
 
   // Response format: { success: true, code: 200, data: { downloadUrl: "...", fileName: "...", fileSize: 123 } }
   const downloadUrl = result.data?.downloadUrl || result.downloadUrl || result.url;
@@ -1479,23 +1492,24 @@ async function pollKieTaskCompletion(
     }
 
     const result = await response.json();
-    const status = result.status || result.data?.status;
+    // Kie API returns "state" in result.data.state (not "status")
+    const state = (result.data?.state || result.state || result.status || "").toUpperCase();
 
-    if (status !== lastStatus) {
-      console.log(`[API:${requestId}] Kie task status: ${status}`);
-      lastStatus = status;
+    if (state !== lastStatus) {
+      console.log(`[API:${requestId}] Kie task state: ${state}`);
+      lastStatus = state;
     }
 
-    if (status === "success" || status === "completed") {
+    if (state === "SUCCESS" || state === "COMPLETED") {
       return { success: true, data: result.data || result };
     }
 
-    if (status === "fail" || status === "failed" || status === "error") {
-      const errorMessage = result.error || result.message || "Generation failed";
+    if (state === "FAIL" || state === "FAILED" || state === "ERROR") {
+      const errorMessage = result.data?.failMsg || result.data?.errorMessage || result.error || result.message || "Generation failed";
       return { success: false, error: errorMessage };
     }
 
-    // Continue polling for: waiting, queuing, generating, processing, etc.
+    // Continue polling for: WAITING, QUEUING, GENERATING, PROCESSING, etc.
   }
 }
 
@@ -1553,9 +1567,25 @@ async function generateWithKie(
       if (value !== null && value !== undefined && value !== '') {
         // Check if this is an image input that needs uploading
         if (typeof value === 'string' && value.startsWith('data:image')) {
+          // Single data URL - upload it
           const url = await uploadImageToKie(requestId, apiKey, value);
-          // Image params should be arrays
           inputParams[key] = [url];
+        } else if (Array.isArray(value)) {
+          // Array of values - check if they're data URLs that need uploading
+          const processedArray: string[] = [];
+          for (const item of value) {
+            if (typeof item === 'string' && item.startsWith('data:image')) {
+              const url = await uploadImageToKie(requestId, apiKey, item);
+              processedArray.push(url);
+            } else if (typeof item === 'string' && item.startsWith('http')) {
+              processedArray.push(item);
+            } else if (typeof item === 'string') {
+              processedArray.push(item);
+            }
+          }
+          if (processedArray.length > 0) {
+            inputParams[key] = processedArray;
+          }
         } else {
           inputParams[key] = value;
         }
@@ -1596,7 +1626,16 @@ async function generateWithKie(
     : "https://api.kie.ai/api/v1/jobs/createTask";
 
   console.log(`[API:${requestId}] Calling Kie.ai API: ${createUrl}`);
-  console.log(`[API:${requestId}] Request body:`, JSON.stringify(requestBody).substring(0, 500));
+  // Log full request body for debugging (truncate very long prompts)
+  const bodyForLogging = { ...requestBody };
+  if (bodyForLogging.input && typeof bodyForLogging.input === 'object') {
+    const inputForLogging = { ...(bodyForLogging.input as Record<string, unknown>) };
+    if (typeof inputForLogging.prompt === 'string' && (inputForLogging.prompt as string).length > 200) {
+      inputForLogging.prompt = (inputForLogging.prompt as string).substring(0, 200) + '...[truncated]';
+    }
+    bodyForLogging.input = inputForLogging;
+  }
+  console.log(`[API:${requestId}] Request body:`, JSON.stringify(bodyForLogging, null, 2));
 
   // Create task
   const createResponse = await fetch(createUrl, {
@@ -1674,9 +1713,21 @@ async function generateWithKie(
   console.log(`[API:${requestId}] Kie poll result data:`, JSON.stringify(data).substring(0, 500));
 
   // Try various response formats - Kie uses resultJson.resultUrls
+  // Note: resultJson is often a JSON string that needs parsing
   if (data) {
-    const resultJson = data.resultJson as Record<string, unknown> | undefined;
-    const resultUrls = (resultJson?.resultUrls || data.resultUrls) as string[] | undefined;
+    let resultJson = data.resultJson as Record<string, unknown> | string | undefined;
+
+    // Parse resultJson if it's a string (Kie API returns it as escaped JSON string)
+    if (typeof resultJson === 'string') {
+      try {
+        resultJson = JSON.parse(resultJson) as Record<string, unknown>;
+      } catch {
+        // Not valid JSON, keep as-is
+        resultJson = undefined;
+      }
+    }
+
+    const resultUrls = ((resultJson as Record<string, unknown> | undefined)?.resultUrls || data.resultUrls) as string[] | undefined;
 
     if (resultUrls && resultUrls.length > 0) {
       mediaUrl = resultUrls[0];

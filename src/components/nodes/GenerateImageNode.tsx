@@ -483,194 +483,46 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
       titlePrefix={titlePrefix}
       commentNavigation={commentNavigation ?? undefined}
     >
-      {/* Dynamic input handles based on model schema (external providers only) */}
-      {!isGeminiProvider && nodeData.inputSchema && nodeData.inputSchema.length > 0 ? (
-        // Render handles from schema, sorted by type (images first, text second)
-        // IMPORTANT: Always render "image" and "text" handles to maintain connection
-        // compatibility. Schema may only have text inputs (text-to-image models) but
-        // we still need the image handle to preserve connections made before model selection.
-        (() => {
-          const imageInputs = nodeData.inputSchema!.filter(i => i.type === "image");
-          const textInputs = nodeData.inputSchema!.filter(i => i.type === "text");
-
-          // Always include at least one image and one text handle for connection stability
-          const hasImageInput = imageInputs.length > 0;
-          const hasTextInput = textInputs.length > 0;
-
-          // Build the handles array: schema inputs + fallback defaults if missing
-          const handles: Array<{
-            id: string;
-            type: "image" | "text";
-            label: string;
-            schemaName: string | null;
-            description: string | null;
-            isPlaceholder: boolean;
-          }> = [];
-
-          // Add image handles from schema, or a placeholder if none exist
-          if (hasImageInput) {
-            imageInputs.forEach((input, index) => {
-              handles.push({
-                // Always use indexed IDs for schema inputs for consistency
-                id: `image-${index}`,
-                type: "image",
-                label: input.label,
-                schemaName: input.name,
-                description: input.description || null,
-                isPlaceholder: false,
-              });
-            });
-          } else {
-            // No image inputs in schema - add placeholder to preserve connections
-            handles.push({
-              id: "image",
-              type: "image",
-              label: "Image",
-              schemaName: null,
-              description: "Not used by this model",
-              isPlaceholder: true,
-            });
-          }
-
-          // Add text handles from schema, or a placeholder if none exist
-          if (hasTextInput) {
-            textInputs.forEach((input, index) => {
-              handles.push({
-                // Always use indexed IDs for schema inputs for consistency
-                id: `text-${index}`,
-                type: "text",
-                label: input.label,
-                schemaName: input.name,
-                description: input.description || null,
-                isPlaceholder: false,
-              });
-            });
-          } else {
-            // No text inputs in schema - add placeholder to preserve connections
-            handles.push({
-              id: "text",
-              type: "text",
-              label: "Prompt",
-              schemaName: null,
-              description: "Not used by this model",
-              isPlaceholder: true,
-            });
-          }
-
-          // Calculate positions
-          const imageHandles = handles.filter(h => h.type === "image");
-          const textHandles = handles.filter(h => h.type === "text");
-          const totalSlots = imageHandles.length + textHandles.length + 1; // +1 for gap
-
-          const renderedHandles = handles.map((handle, index) => {
-            // Position: images first, then gap, then text
-            const isImage = handle.type === "image";
-            const typeIndex = isImage
-              ? imageHandles.findIndex(h => h.id === handle.id)
-              : textHandles.findIndex(h => h.id === handle.id);
-            const adjustedIndex = isImage ? typeIndex : imageHandles.length + 1 + typeIndex;
-            const topPercent = ((adjustedIndex + 1) / (totalSlots + 1)) * 100;
-
-            return (
-              <React.Fragment key={handle.id}>
-                <Handle
-                  type="target"
-                  position={Position.Left}
-                  id={handle.id}
-                  style={{
-                    top: `${topPercent}%`,
-                    opacity: handle.isPlaceholder ? 0.3 : 1,
-                  }}
-                  data-handletype={handle.type}
-                  data-schema-name={handle.schemaName || undefined}
-                  isConnectable={true}
-                  title={handle.description || handle.label}
-                />
-                {/* Handle label - positioned outside node, above the connector */}
-                <div
-                  className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none text-right"
-                  style={{
-                    right: `calc(100% + 8px)`,
-                    top: `calc(${topPercent}% - 18px)`,
-                    color: isImage ? "var(--handle-color-image)" : "var(--handle-color-text)",
-                    opacity: handle.isPlaceholder ? 0.3 : 1,
-                  }}
-                >
-                  {handle.label}
-                </div>
-              </React.Fragment>
-            );
-          });
-
-          // Add hidden backward-compatibility handles for edges using non-indexed IDs
-          // This ensures edges created with "image"/"text" still work when schema uses "image-0"/"text-0"
-          // Note: No data-handletype to avoid being counted in tests - these are purely for edge routing
-          return (
-            <>
-              {renderedHandles}
-              {hasImageInput && (
-                <Handle
-                  type="target"
-                  position={Position.Left}
-                  id="image"
-                  style={{ top: "35%", opacity: 0, pointerEvents: "none" }}
-                  isConnectable={false}
-                />
-              )}
-              {hasTextInput && (
-                <Handle
-                  type="target"
-                  position={Position.Left}
-                  id="text"
-                  style={{ top: "65%", opacity: 0, pointerEvents: "none" }}
-                  isConnectable={false}
-                />
-              )}
-            </>
-          );
-        })()
-      ) : (
-        // Default handles for Gemini or when no schema
-        <>
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="image"
-            style={{ top: "35%" }}
-            data-handletype="image"
-            isConnectable={true}
-          />
-          {/* Default image label */}
-          <div
-            className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none text-right"
-            style={{
-              right: `calc(100% + 8px)`,
-              top: "calc(35% - 18px)",
-              color: "var(--handle-color-image)",
-            }}
-          >
-            Image
-          </div>
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="text"
-            style={{ top: "65%" }}
-            data-handletype="text"
-          />
-          {/* Default text label */}
-          <div
-            className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none text-right"
-            style={{
-              right: `calc(100% + 8px)`,
-              top: "calc(65% - 18px)",
-              color: "var(--handle-color-text)",
-            }}
-          >
-            Prompt
-          </div>
-        </>
-      )}
+      {/* Input handles - ALWAYS use same IDs and positions for connection stability */}
+      {/* Image input at 35%, Text input at 65% - never changes regardless of model */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="image"
+        style={{ top: "35%" }}
+        data-handletype="image"
+        isConnectable={true}
+      />
+      {/* Image label */}
+      <div
+        className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none text-right"
+        style={{
+          right: `calc(100% + 8px)`,
+          top: "calc(35% - 18px)",
+          color: "var(--handle-color-image)",
+        }}
+      >
+        Image
+      </div>
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="text"
+        style={{ top: "65%" }}
+        data-handletype="text"
+        isConnectable={true}
+      />
+      {/* Prompt label */}
+      <div
+        className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none text-right"
+        style={{
+          right: `calc(100% + 8px)`,
+          top: "calc(65% - 18px)",
+          color: "var(--handle-color-text)",
+        }}
+      >
+        Prompt
+      </div>
       {/* Image output */}
       <Handle
         type="source"

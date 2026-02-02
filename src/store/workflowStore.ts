@@ -1572,7 +1572,11 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           }
 
           case "llmGenerate": {
-            const { images, text } = getConnectedInputs(node.id);
+            const inputs = getConnectedInputs(node.id);
+            const images = inputs.images;
+            const llmData = node.data as LLMGenerateNodeData;
+            // Fall back to node's internal inputPrompt if no text connection
+            const text = inputs.text ?? llmData.inputPrompt;
 
             if (!text) {
               logger.error('node.error', 'llmGenerate node missing text input', {
@@ -1580,7 +1584,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
               });
               updateNodeData(node.id, {
                 status: "error",
-                error: "Missing text input",
+                error: "Missing text input - connect a prompt node or set internal prompt",
               });
               set({ isRunning: false, currentNodeId: null });
               await logger.endSession();
