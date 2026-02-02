@@ -1542,6 +1542,12 @@ async function generateWithKie(
     Object.assign(inputParams, input.parameters);
   }
 
+  // GPT Image 1.5 does NOT support 'size' parameter - only 'aspect_ratio'
+  // Remove any stale 'size' values from old workflow data
+  if (modelId.startsWith("gpt-image/1.5")) {
+    delete inputParams.size;
+  }
+
   // Handle image inputs
   if (input.images && input.images.length > 0) {
     // Upload images to get URLs (Kie requires URLs, not base64)
