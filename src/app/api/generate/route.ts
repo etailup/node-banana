@@ -1259,10 +1259,11 @@ async function generateWithFalQueue(
 function getKieModelDefaults(modelId: string): Record<string, unknown> {
   switch (modelId) {
     // GPT Image models require aspect_ratio and quality
+    // Only supports: 1:1, 2:3, 3:2 (default 3:2 = landscape)
     case "gpt-image/1.5-text-to-image":
     case "gpt-image/1.5-image-to-image":
       return {
-        aspect_ratio: "1:1",
+        aspect_ratio: "3:2",
         quality: "medium",
       };
 

@@ -527,17 +527,15 @@ function getKieSchema(modelId: string): ExtractedSchema {
     },
     "gpt-image/1.5-text-to-image": {
       parameters: [
-        { name: "size", type: "string", description: "Output size", enum: ["1024x1024", "1536x1024", "1024x1536", "auto"], default: "1024x1024" },
-        { name: "quality", type: "string", description: "Output quality", enum: ["low", "medium", "high"], default: "medium" },
-        { name: "seed", type: "integer", description: "Random seed for reproducibility", minimum: 0 },
+        { name: "aspect_ratio", type: "string", description: "Output aspect ratio", enum: ["1:1", "2:3", "3:2"], default: "3:2" },
+        { name: "quality", type: "string", description: "Output quality", enum: ["medium", "high"], default: "medium" },
       ],
       inputs: [{ name: "prompt", type: "text", required: true, label: "Prompt" }],
     },
     "gpt-image/1.5-image-to-image": {
       parameters: [
-        { name: "size", type: "string", description: "Output size", enum: ["1024x1024", "1536x1024", "1024x1536", "auto"], default: "auto" },
-        { name: "quality", type: "string", description: "Output quality", enum: ["low", "medium", "high"], default: "medium" },
-        { name: "seed", type: "integer", description: "Random seed for reproducibility", minimum: 0 },
+        { name: "aspect_ratio", type: "string", description: "Output aspect ratio", enum: ["1:1", "2:3", "3:2"], default: "3:2" },
+        { name: "quality", type: "string", description: "Output quality", enum: ["medium", "high"], default: "medium" },
       ],
       inputs: [
         { name: "prompt", type: "text", required: true, label: "Prompt" },
