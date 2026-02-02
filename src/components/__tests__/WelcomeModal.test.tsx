@@ -33,6 +33,7 @@ vi.mock("@/lib/quickstart/templates", () => {
 describe("WelcomeModal", () => {
   const mockOnWorkflowGenerated = vi.fn();
   const mockOnClose = vi.fn();
+  const mockOnNewProject = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -61,11 +62,12 @@ describe("WelcomeModal", () => {
         <WelcomeModal
           onWorkflowGenerated={mockOnWorkflowGenerated}
           onClose={mockOnClose}
+          onNewProject={mockOnNewProject}
         />
       );
 
       expect(screen.getByText("Node Banana")).toBeInTheDocument();
-      expect(screen.getByText("Blank canvas")).toBeInTheDocument();
+      expect(screen.getByText("New project")).toBeInTheDocument();
       expect(screen.getByText("Templates")).toBeInTheDocument();
       expect(screen.getByText("Prompt a workflow")).toBeInTheDocument();
     });
@@ -75,6 +77,7 @@ describe("WelcomeModal", () => {
         <WelcomeModal
           onWorkflowGenerated={mockOnWorkflowGenerated}
           onClose={mockOnClose}
+          onNewProject={mockOnNewProject}
         />
       );
 
@@ -84,17 +87,18 @@ describe("WelcomeModal", () => {
   });
 
   describe("Initial View Navigation", () => {
-    it("should call onClose when 'Blank canvas' is clicked", () => {
+    it("should call onNewProject when 'New project' is clicked", () => {
       render(
         <WelcomeModal
           onWorkflowGenerated={mockOnWorkflowGenerated}
           onClose={mockOnClose}
+          onNewProject={mockOnNewProject}
         />
       );
 
-      fireEvent.click(screen.getByText("Blank canvas"));
+      fireEvent.click(screen.getByText("New project"));
 
-      expect(mockOnClose).toHaveBeenCalled();
+      expect(mockOnNewProject).toHaveBeenCalled();
     });
 
     it("should navigate to templates view when 'Templates' is clicked", async () => {
@@ -102,6 +106,7 @@ describe("WelcomeModal", () => {
         <WelcomeModal
           onWorkflowGenerated={mockOnWorkflowGenerated}
           onClose={mockOnClose}
+          onNewProject={mockOnNewProject}
         />
       );
 
@@ -120,6 +125,7 @@ describe("WelcomeModal", () => {
         <WelcomeModal
           onWorkflowGenerated={mockOnWorkflowGenerated}
           onClose={mockOnClose}
+          onNewProject={mockOnNewProject}
         />
       );
 
@@ -136,6 +142,7 @@ describe("WelcomeModal", () => {
         <WelcomeModal
           onWorkflowGenerated={mockOnWorkflowGenerated}
           onClose={mockOnClose}
+          onNewProject={mockOnNewProject}
         />
       );
 
@@ -154,7 +161,7 @@ describe("WelcomeModal", () => {
       });
 
       expect(screen.getByText("Node Banana")).toBeInTheDocument();
-      expect(screen.getByText("Blank canvas")).toBeInTheDocument();
+      expect(screen.getByText("New project")).toBeInTheDocument();
     });
 
     it("should navigate back to initial view from prompt view", () => {
@@ -162,6 +169,7 @@ describe("WelcomeModal", () => {
         <WelcomeModal
           onWorkflowGenerated={mockOnWorkflowGenerated}
           onClose={mockOnClose}
+          onNewProject={mockOnNewProject}
         />
       );
 
@@ -182,6 +190,7 @@ describe("WelcomeModal", () => {
         <WelcomeModal
           onWorkflowGenerated={mockOnWorkflowGenerated}
           onClose={mockOnClose}
+          onNewProject={mockOnNewProject}
         />
       );
 
@@ -196,6 +205,7 @@ describe("WelcomeModal", () => {
         <WelcomeModal
           onWorkflowGenerated={mockOnWorkflowGenerated}
           onClose={mockOnClose}
+          onNewProject={mockOnNewProject}
         />
       );
 
@@ -239,6 +249,7 @@ describe("WelcomeModal", () => {
         <WelcomeModal
           onWorkflowGenerated={mockOnWorkflowGenerated}
           onClose={mockOnClose}
+          onNewProject={mockOnNewProject}
         />
       );
 
@@ -285,6 +296,7 @@ describe("WelcomeModal", () => {
         <WelcomeModal
           onWorkflowGenerated={mockOnWorkflowGenerated}
           onClose={mockOnClose}
+          onNewProject={mockOnNewProject}
         />
       );
 
@@ -330,6 +342,7 @@ describe("WelcomeModal", () => {
         <WelcomeModal
           onWorkflowGenerated={mockOnWorkflowGenerated}
           onClose={mockOnClose}
+          onNewProject={mockOnNewProject}
         />
       );
 
@@ -355,6 +368,7 @@ describe("WelcomeModal", () => {
         <WelcomeModal
           onWorkflowGenerated={mockOnWorkflowGenerated}
           onClose={mockOnClose}
+          onNewProject={mockOnNewProject}
         />
       );
 
@@ -372,6 +386,7 @@ describe("WelcomeModal", () => {
         <WelcomeModal
           onWorkflowGenerated={mockOnWorkflowGenerated}
           onClose={mockOnClose}
+          onNewProject={mockOnNewProject}
         />
       );
 
@@ -393,6 +408,7 @@ describe("WelcomeModal", () => {
         <WelcomeModal
           onWorkflowGenerated={mockOnWorkflowGenerated}
           onClose={mockOnClose}
+          onNewProject={mockOnNewProject}
         />
       );
 

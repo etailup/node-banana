@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { QuickstartInitialView } from "@/components/quickstart/QuickstartInitialView";
 
 describe("QuickstartInitialView", () => {
-  const mockOnSelectBlankCanvas = vi.fn();
+  const mockOnNewProject = vi.fn();
   const mockOnSelectTemplates = vi.fn();
   const mockOnSelectVibe = vi.fn();
   const mockOnSelectLoad = vi.fn();
@@ -20,7 +20,7 @@ describe("QuickstartInitialView", () => {
     it("should render the Node Banana title and logo", () => {
       render(
         <QuickstartInitialView
-          onSelectBlankCanvas={mockOnSelectBlankCanvas}
+          onNewProject={mockOnNewProject}
           onSelectTemplates={mockOnSelectTemplates}
           onSelectVibe={mockOnSelectVibe}
           onSelectLoad={mockOnSelectLoad}
@@ -34,7 +34,7 @@ describe("QuickstartInitialView", () => {
     it("should render the description text", () => {
       render(
         <QuickstartInitialView
-          onSelectBlankCanvas={mockOnSelectBlankCanvas}
+          onNewProject={mockOnNewProject}
           onSelectTemplates={mockOnSelectTemplates}
           onSelectVibe={mockOnSelectVibe}
           onSelectLoad={mockOnSelectLoad}
@@ -49,14 +49,14 @@ describe("QuickstartInitialView", () => {
     it("should render all four option buttons", () => {
       render(
         <QuickstartInitialView
-          onSelectBlankCanvas={mockOnSelectBlankCanvas}
+          onNewProject={mockOnNewProject}
           onSelectTemplates={mockOnSelectTemplates}
           onSelectVibe={mockOnSelectVibe}
           onSelectLoad={mockOnSelectLoad}
         />
       );
 
-      expect(screen.getByText("Blank canvas")).toBeInTheDocument();
+      expect(screen.getByText("New project")).toBeInTheDocument();
       expect(screen.getByText("Load workflow")).toBeInTheDocument();
       expect(screen.getByText("Templates")).toBeInTheDocument();
       expect(screen.getByText("Prompt a workflow")).toBeInTheDocument();
@@ -65,47 +65,47 @@ describe("QuickstartInitialView", () => {
     it("should render option descriptions", () => {
       render(
         <QuickstartInitialView
-          onSelectBlankCanvas={mockOnSelectBlankCanvas}
+          onNewProject={mockOnNewProject}
           onSelectTemplates={mockOnSelectTemplates}
           onSelectVibe={mockOnSelectVibe}
           onSelectLoad={mockOnSelectLoad}
         />
       );
 
-      expect(screen.getByText("Start from scratch")).toBeInTheDocument();
+      expect(screen.getByText("Start a new workflow")).toBeInTheDocument();
       expect(screen.getByText("Open existing file")).toBeInTheDocument();
       expect(screen.getByText("Pre-built workflows")).toBeInTheDocument();
       expect(screen.getByText("Prompt a workflow")).toBeInTheDocument();
     });
   });
 
-  describe("Blank Canvas Option", () => {
-    it("should call onSelectBlankCanvas when clicked", () => {
+  describe("New Project Option", () => {
+    it("should call onNewProject when clicked", () => {
       render(
         <QuickstartInitialView
-          onSelectBlankCanvas={mockOnSelectBlankCanvas}
+          onNewProject={mockOnNewProject}
           onSelectTemplates={mockOnSelectTemplates}
           onSelectVibe={mockOnSelectVibe}
           onSelectLoad={mockOnSelectLoad}
         />
       );
 
-      fireEvent.click(screen.getByText("Blank canvas"));
+      fireEvent.click(screen.getByText("New project"));
 
-      expect(mockOnSelectBlankCanvas).toHaveBeenCalledTimes(1);
+      expect(mockOnNewProject).toHaveBeenCalledTimes(1);
     });
 
-    it("should display correct description for blank canvas", () => {
+    it("should display correct description for new project", () => {
       render(
         <QuickstartInitialView
-          onSelectBlankCanvas={mockOnSelectBlankCanvas}
+          onNewProject={mockOnNewProject}
           onSelectTemplates={mockOnSelectTemplates}
           onSelectVibe={mockOnSelectVibe}
           onSelectLoad={mockOnSelectLoad}
         />
       );
 
-      expect(screen.getByText("Start from scratch")).toBeInTheDocument();
+      expect(screen.getByText("Start a new workflow")).toBeInTheDocument();
     });
   });
 
@@ -113,7 +113,7 @@ describe("QuickstartInitialView", () => {
     it("should call onSelectLoad when clicked", () => {
       render(
         <QuickstartInitialView
-          onSelectBlankCanvas={mockOnSelectBlankCanvas}
+          onNewProject={mockOnNewProject}
           onSelectTemplates={mockOnSelectTemplates}
           onSelectVibe={mockOnSelectVibe}
           onSelectLoad={mockOnSelectLoad}
@@ -130,7 +130,7 @@ describe("QuickstartInitialView", () => {
     it("should call onSelectTemplates when clicked", () => {
       render(
         <QuickstartInitialView
-          onSelectBlankCanvas={mockOnSelectBlankCanvas}
+          onNewProject={mockOnNewProject}
           onSelectTemplates={mockOnSelectTemplates}
           onSelectVibe={mockOnSelectVibe}
           onSelectLoad={mockOnSelectLoad}
@@ -147,7 +147,7 @@ describe("QuickstartInitialView", () => {
     it("should call onSelectVibe when clicked", () => {
       render(
         <QuickstartInitialView
-          onSelectBlankCanvas={mockOnSelectBlankCanvas}
+          onNewProject={mockOnNewProject}
           onSelectTemplates={mockOnSelectTemplates}
           onSelectVibe={mockOnSelectVibe}
           onSelectLoad={mockOnSelectLoad}
@@ -162,7 +162,7 @@ describe("QuickstartInitialView", () => {
     it("should display Beta badge on prompt option", () => {
       render(
         <QuickstartInitialView
-          onSelectBlankCanvas={mockOnSelectBlankCanvas}
+          onNewProject={mockOnNewProject}
           onSelectTemplates={mockOnSelectTemplates}
           onSelectVibe={mockOnSelectVibe}
           onSelectLoad={mockOnSelectLoad}
@@ -177,7 +177,7 @@ describe("QuickstartInitialView", () => {
     it("should render Discord link with correct URL", () => {
       render(
         <QuickstartInitialView
-          onSelectBlankCanvas={mockOnSelectBlankCanvas}
+          onNewProject={mockOnNewProject}
           onSelectTemplates={mockOnSelectTemplates}
           onSelectVibe={mockOnSelectVibe}
           onSelectLoad={mockOnSelectLoad}
@@ -196,7 +196,7 @@ describe("QuickstartInitialView", () => {
     it("should render Twitter/X link with correct URL", () => {
       render(
         <QuickstartInitialView
-          onSelectBlankCanvas={mockOnSelectBlankCanvas}
+          onNewProject={mockOnNewProject}
           onSelectTemplates={mockOnSelectTemplates}
           onSelectVibe={mockOnSelectVibe}
           onSelectLoad={mockOnSelectLoad}
@@ -212,7 +212,7 @@ describe("QuickstartInitialView", () => {
     it("should render docs link", () => {
       render(
         <QuickstartInitialView
-          onSelectBlankCanvas={mockOnSelectBlankCanvas}
+          onNewProject={mockOnNewProject}
           onSelectTemplates={mockOnSelectTemplates}
           onSelectVibe={mockOnSelectVibe}
           onSelectLoad={mockOnSelectLoad}
@@ -230,7 +230,7 @@ describe("QuickstartInitialView", () => {
     it("should have all buttons as interactive button elements", () => {
       render(
         <QuickstartInitialView
-          onSelectBlankCanvas={mockOnSelectBlankCanvas}
+          onNewProject={mockOnNewProject}
           onSelectTemplates={mockOnSelectTemplates}
           onSelectVibe={mockOnSelectVibe}
           onSelectLoad={mockOnSelectLoad}

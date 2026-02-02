@@ -29,6 +29,7 @@ interface BaseNodeProps {
   minWidth?: number;
   minHeight?: number;
   headerAction?: ReactNode;
+  headerButtons?: ReactNode;
   titlePrefix?: ReactNode;
   commentNavigation?: CommentNavigationProps;
 }
@@ -50,6 +51,7 @@ export function BaseNode({
   minWidth = 180,
   minHeight = 100,
   headerAction,
+  headerButtons,
   titlePrefix,
   commentNavigation,
 }: BaseNodeProps) {
@@ -291,6 +293,9 @@ export function BaseNode({
               </svg>
             </div>
           )}
+
+          {/* Custom Header Buttons */}
+          {headerButtons}
 
           {/* Comment Icon */}
           <div className="relative ml-2 shrink-0 flex items-center gap-1" ref={commentPopoverRef}>
