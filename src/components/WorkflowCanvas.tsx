@@ -18,15 +18,19 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { useWorkflowStore, WorkflowFile } from "@/store/workflowStore";
+import { useToast } from "@/components/Toast";
 import {
   ImageInputNode,
   AnnotationNode,
   PromptNode,
+  PromptConstructorNode,
   GenerateImageNode,
   GenerateVideoNode,
   LLMGenerateNode,
   SplitGridNode,
   OutputNode,
+  OutputGalleryNode,
+  ImageCompareNode,
 } from "./nodes";
 import { EditableEdge, ReferenceEdge } from "./edges";
 import { ConnectionDropMenu, MenuAction } from "./ConnectionDropMenu";
@@ -38,16 +42,23 @@ import { NodeType, NanoBananaNodeData } from "@/types";
 import { detectAndSplitGrid } from "@/utils/gridSplitter";
 import { logger } from "@/utils/logger";
 import { WelcomeModal } from "./quickstart";
+import { ProjectSetupModal } from "./ProjectSetupModal";
+import { ChatPanel } from "./ChatPanel";
+import { EditOperation } from "@/lib/chat/editOperations";
+import { stripBinaryData } from "@/lib/chat/contextBuilder";
 
 const nodeTypes: NodeTypes = {
   imageInput: ImageInputNode,
   annotation: AnnotationNode,
   prompt: PromptNode,
+  promptConstructor: PromptConstructorNode,
   nanoBanana: GenerateImageNode,
   generateVideo: GenerateVideoNode,
   llmGenerate: LLMGenerateNode,
   splitGrid: SplitGridNode,
   output: OutputNode,
+  outputGallery: OutputGalleryNode,
+  imageCompare: ImageCompareNode,
 };
 
 const edgeTypes: EdgeTypes = {
@@ -82,6 +93,8 @@ const getNodeHandles = (nodeType: string): { inputs: string[]; outputs: string[]
       return { inputs: ["image"], outputs: ["image"] };
     case "prompt":
       return { inputs: ["text"], outputs: ["text"] };
+    case "promptConstructor":
+      return { inputs: ["text"], outputs: ["text"] };
     case "nanoBanana":
       return { inputs: ["image", "text"], outputs: ["image"] };
     case "generateVideo":
@@ -91,6 +104,10 @@ const getNodeHandles = (nodeType: string): { inputs: string[]; outputs: string[]
     case "splitGrid":
       return { inputs: ["image"], outputs: ["reference"] };
     case "output":
+      return { inputs: ["image"], outputs: [] };
+    case "outputGallery":
+      return { inputs: ["image"], outputs: [] };
+    case "imageCompare":
       return { inputs: ["image"], outputs: [] };
     default:
       return { inputs: [], outputs: [] };
@@ -177,13 +194,17 @@ const findScrollableAncestor = (target: HTMLElement, deltaX: number, deltaY: num
 };
 
 export function WorkflowCanvas() {
-  const { nodes, edges, groups, onNodesChange, onEdgesChange, onConnect, addNode, updateNodeData, loadWorkflow, getNodeById, addToGlobalHistory, setNodeGroupId, executeWorkflow, isModalOpen, showQuickstart, setShowQuickstart, navigationTarget, setNavigationTarget } =
+  const { nodes, edges, groups, onNodesChange, onEdgesChange, onConnect, addNode, updateNodeData, loadWorkflow, getNodeById, addToGlobalHistory, setNodeGroupId, executeWorkflow, isModalOpen, showQuickstart, setShowQuickstart, navigationTarget, setNavigationTarget, captureSnapshot, applyEditOperations, setWorkflowMetadata } =
     useWorkflowStore();
   const { screenToFlowPosition, getViewport, zoomIn, zoomOut, setViewport, setCenter } = useReactFlow();
+  const { show: showToast } = useToast();
   const [isDragOver, setIsDragOver] = useState(false);
   const [dropType, setDropType] = useState<"image" | "workflow" | "node" | null>(null);
   const [connectionDrop, setConnectionDrop] = useState<ConnectionDropState | null>(null);
   const [isSplitting, setIsSplitting] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isBuildingWorkflow, setIsBuildingWorkflow] = useState(false);
+  const [showNewProjectSetup, setShowNewProjectSetup] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
   // Detect if canvas is empty for showing quickstart
@@ -289,6 +310,20 @@ export function WorkflowCanvas() {
     (connection: Connection) => {
       if (!isValidConnection(connection)) return;
 
+      // For imageCompare nodes, redirect to the second handle if the first is occupied
+      const resolveImageCompareHandle = (conn: Connection, batchUsed?: Set<string>): Connection => {
+        const targetNode = nodes.find((n) => n.id === conn.target);
+        if (targetNode?.type === "imageCompare" && conn.targetHandle === "image") {
+          const imageOccupied = edges.some(
+            (e) => e.target === conn.target && e.targetHandle === "image"
+          ) || batchUsed?.has("image");
+          if (imageOccupied) {
+            return { ...conn, targetHandle: "image-1" };
+          }
+        }
+        return conn;
+      };
+
       // Get all selected nodes
       const selectedNodes = nodes.filter((node) => node.selected);
       const sourceNode = nodes.find((node) => node.id === connection.source);
@@ -296,10 +331,14 @@ export function WorkflowCanvas() {
       // If the source node is selected and there are multiple selected nodes,
       // connect all selected nodes that have the same source handle type
       if (sourceNode?.selected && selectedNodes.length > 1 && connection.sourceHandle) {
+        const batchUsed = new Set<string>();
+
         selectedNodes.forEach((node) => {
           // Skip if this is already the connection source
           if (node.id === connection.source) {
-            onConnect(connection);
+            const resolved = resolveImageCompareHandle(connection, batchUsed);
+            if (resolved.targetHandle) batchUsed.add(resolved.targetHandle);
+            onConnect(resolved);
             return;
           }
 
@@ -318,16 +357,18 @@ export function WorkflowCanvas() {
             targetHandle: connection.targetHandle,
           };
 
-          if (isValidConnection(multiConnection)) {
-            onConnect(multiConnection);
+          const resolved = resolveImageCompareHandle(multiConnection, batchUsed);
+          if (resolved.targetHandle) batchUsed.add(resolved.targetHandle);
+          if (isValidConnection(resolved)) {
+            onConnect(resolved);
           }
         });
       } else {
         // Single connection
-        onConnect(connection);
+        onConnect(resolveImageCompareHandle(connection));
       }
     },
-    [onConnect, nodes]
+    [onConnect, nodes, edges]
   );
 
   // Handle connection dropped on empty space or on a node
@@ -558,6 +599,73 @@ export function WorkflowCanvas() {
     }
   }, [getNodeById]);
 
+  // Handle workflow generation from chat conversation
+  const handleBuildWorkflow = useCallback(async (description: string) => {
+    setIsBuildingWorkflow(true);
+    try {
+      const response = await fetch("/api/quickstart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description,
+          contentLevel: "full",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.workflow) {
+        captureSnapshot(); // Capture BEFORE loading new workflow
+        await loadWorkflow(data.workflow, undefined, { preserveSnapshot: true });
+        setIsChatOpen(false);
+        showToast("Workflow generated successfully", "success");
+      } else {
+        showToast(data.error || "Failed to generate workflow", "error");
+      }
+    } catch (error) {
+      console.error("Error generating workflow:", error);
+      showToast("Failed to generate workflow. Please try again.", "error");
+    } finally {
+      setIsBuildingWorkflow(false);
+    }
+  }, [loadWorkflow, showToast, captureSnapshot]);
+
+  // Create lightweight workflow state for chat (strip base64 images)
+  const chatWorkflowState = useMemo(() => {
+    const strippedNodes = stripBinaryData(nodes);
+    return {
+      nodes: strippedNodes.map(n => ({
+        id: n.id,
+        type: n.type,
+        position: n.position,
+        data: n.data,
+      })),
+      edges: edges.map(e => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        sourceHandle: e.sourceHandle || undefined,
+        targetHandle: e.targetHandle || undefined,
+      })),
+    };
+  }, [nodes, edges]);
+
+  // Compute selected node IDs for chat context scoping
+  const selectedNodeIds = useMemo(() => nodes.filter(n => n.selected).map(n => n.id), [nodes]);
+
+  // Handle applying edit operations from chat
+  const handleApplyEdits = useCallback((operations: EditOperation[]) => {
+    captureSnapshot(); // Snapshot before AI edits
+    const result = applyEditOperations(operations);
+    if (result.applied > 0) {
+      showToast(`Applied ${result.applied} edit(s)`, "success");
+    }
+    if (result.skipped.length > 0) {
+      console.warn('Skipped operations:', result.skipped);
+    }
+    return result;
+  }, [captureSnapshot, applyEditOperations, showToast]);
+
   // Handle node selection from drop menu
   const handleMenuSelect = useCallback(
     (selection: { type: NodeType | MenuAction; isAction: boolean }) => {
@@ -595,7 +703,7 @@ export function WorkflowCanvas() {
       // Map handle type to the correct handle ID based on node type
       // Note: New nodes start with default handles (image, text) before a model is selected
       if (handleType === "image") {
-        if (nodeType === "annotation" || nodeType === "output" || nodeType === "splitGrid") {
+        if (nodeType === "annotation" || nodeType === "output" || nodeType === "splitGrid" || nodeType === "outputGallery" || nodeType === "imageCompare") {
           targetHandleId = "image";
           // annotation also has an image output
           if (nodeType === "annotation") {
@@ -613,8 +721,8 @@ export function WorkflowCanvas() {
           if (nodeType === "llmGenerate") {
             sourceHandleIdForNewNode = "text";
           }
-        } else if (nodeType === "prompt") {
-          // prompt can receive and output text
+        } else if (nodeType === "prompt" || nodeType === "promptConstructor") {
+          // prompt and promptConstructor can receive and output text
           targetHandleId = "text";
           sourceHandleIdForNewNode = "text";
         }
@@ -627,14 +735,23 @@ export function WorkflowCanvas() {
       // If the source node is selected and there are multiple selected nodes,
       // connect all selected nodes to the new node
       if (sourceNode?.selected && selectedNodes.length > 1 && sourceHandleId) {
+        const batchUsed = new Set<string>();
+
         selectedNodes.forEach((node) => {
           if (connectionType === "source" && targetHandleId) {
+            // For imageCompare, alternate between image and image-1
+            let resolvedTargetHandle = targetHandleId;
+            if (nodeType === "imageCompare" && targetHandleId === "image" && batchUsed.has("image")) {
+              resolvedTargetHandle = "image-1";
+            }
+            batchUsed.add(resolvedTargetHandle);
+
             // Dragging from source (output), connect selected nodes to new node's input
             const connection: Connection = {
               source: node.id,
               sourceHandle: sourceHandleId,
               target: newNodeId,
-              targetHandle: targetHandleId,
+              targetHandle: resolvedTargetHandle,
             };
             if (isValidConnection(connection)) {
               onConnect(connection);
@@ -808,11 +925,14 @@ export function WorkflowCanvas() {
             imageInput: { width: 300, height: 280 },
             annotation: { width: 300, height: 280 },
             prompt: { width: 320, height: 220 },
+            promptConstructor: { width: 340, height: 280 },
             nanoBanana: { width: 300, height: 300 },
             generateVideo: { width: 300, height: 300 },
             llmGenerate: { width: 320, height: 360 },
             splitGrid: { width: 300, height: 320 },
             output: { width: 320, height: 320 },
+            outputGallery: { width: 320, height: 360 },
+            imageCompare: { width: 400, height: 360 },
           };
           const dims = defaultDimensions[nodeType];
           addNode(nodeType, { x: centerX - dims.width / 2, y: centerY - dims.height / 2 });
@@ -1237,6 +1357,26 @@ export function WorkflowCanvas() {
             setShowQuickstart(false);
           }}
           onClose={() => setShowQuickstart(false)}
+          onNewProject={() => {
+            setShowQuickstart(false);
+            setShowNewProjectSetup(true);
+          }}
+        />
+      )}
+
+      {/* New Project Setup Modal */}
+      {showNewProjectSetup && (
+        <ProjectSetupModal
+          isOpen={showNewProjectSetup}
+          mode="new"
+          onSave={(id, name, directoryPath) => {
+            setWorkflowMetadata(id, name, directoryPath);
+            setShowNewProjectSetup(false);
+          }}
+          onClose={() => {
+            setShowNewProjectSetup(false);
+            setShowQuickstart(true);
+          }}
         />
       )}
 
@@ -1290,6 +1430,8 @@ export function WorkflowCanvas() {
                 return "#8b5cf6";
               case "prompt":
                 return "#f97316";
+              case "promptConstructor":
+                return "#f472b6";
               case "nanoBanana":
                 return "#22c55e";
               case "generateVideo":
@@ -1300,6 +1442,10 @@ export function WorkflowCanvas() {
                 return "#f59e0b";
               case "output":
                 return "#ef4444";
+              case "outputGallery":
+                return "#ec4899";
+              case "imageCompare":
+                return "#14b8a6";
               default:
                 return "#94a3b8";
             }
@@ -1326,6 +1472,19 @@ export function WorkflowCanvas() {
 
       {/* Global image history */}
       <GlobalImageHistory />
+
+      {/* Chat toggle button - hidden for now */}
+
+      {/* Chat panel */}
+      <ChatPanel
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        onBuildWorkflow={handleBuildWorkflow}
+        isBuildingWorkflow={isBuildingWorkflow}
+        onApplyEdits={handleApplyEdits}
+        workflowState={chatWorkflowState}
+        selectedNodeIds={selectedNodeIds}
+      />
     </div>
   );
 }

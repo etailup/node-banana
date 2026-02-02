@@ -15,6 +15,7 @@ import {
   ImageInputNodeData,
   AnnotationNodeData,
   PromptNodeData,
+  PromptConstructorNodeData,
   NanoBananaNodeData,
   GenerateVideoNodeData,
   LLMGenerateNodeData,
@@ -27,11 +28,13 @@ import {
   ProviderType,
   ProviderSettings,
   RecentModel,
+  OutputGalleryNodeData,
 } from "@/types";
 import { useToast } from "@/components/Toast";
 import { calculateGenerationCost } from "@/utils/costCalculator";
 import { logger } from "@/utils/logger";
 import { externalizeWorkflowImages, hydrateWorkflowImages } from "@/utils/imageStorage";
+import { EditOperation, applyEditOperations as executeEditOps } from "@/lib/chat/editOperations";
 import {
   loadSaveConfigs,
   saveSaveConfig,
@@ -127,7 +130,7 @@ interface WorkflowStore {
 
   // Save/Load
   saveWorkflow: (name?: string) => void;
-  loadWorkflow: (workflow: WorkflowFile, workflowPath?: string) => Promise<void>;
+  loadWorkflow: (workflow: WorkflowFile, workflowPath?: string, options?: { preserveSnapshot?: boolean }) => Promise<void>;
   clearWorkflow: () => void;
 
   // Helpers
@@ -205,6 +208,22 @@ interface WorkflowStore {
   setNavigationTarget: (nodeId: string | null) => void;
   setFocusedCommentNodeId: (nodeId: string | null) => void;
   resetViewedComments: () => void;
+
+  // AI change snapshot state
+  previousWorkflowSnapshot: {
+    nodes: WorkflowNode[];
+    edges: WorkflowEdge[];
+    groups: Record<string, NodeGroup>;
+    edgeStyle: EdgeStyle;
+  } | null;
+  manualChangeCount: number;
+
+  // AI change snapshot actions
+  captureSnapshot: () => void;
+  revertToSnapshot: () => void;
+  clearSnapshot: () => void;
+  incrementManualChangeCount: () => void;
+  applyEditOperations: (operations: EditOperation[]) => { applied: number; skipped: string[] };
 }
 
 let nodeIdCounter = 0;
@@ -343,6 +362,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   navigationTarget: null,
   focusedCommentNodeId: null,
 
+  // AI change snapshot initial state
+  previousWorkflowSnapshot: null,
+  manualChangeCount: 0,
+
   setEdgeStyle: (style: EdgeStyle) => {
     set({ edgeStyle: style });
   },
@@ -389,6 +412,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       hasUnsavedChanges: true,
     }));
 
+    get().incrementManualChangeCount();
+
     return id;
   },
 
@@ -411,6 +436,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       ),
       hasUnsavedChanges: true,
     }));
+    get().incrementManualChangeCount();
   },
 
   onNodesChange: (changes: NodeChange<WorkflowNode>[]) => {
@@ -418,19 +444,33 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     const hasMeaningfulChange = changes.some(
       (c) => c.type !== "select" && c.type !== "dimensions"
     );
+    // Track manual changes only for remove operations (not position/selection/dimensions)
+    const hasRemoveChange = changes.some((c) => c.type === "remove");
+
     set((state) => ({
       nodes: applyNodeChanges(changes, state.nodes),
       ...(hasMeaningfulChange ? { hasUnsavedChanges: true } : {}),
     }));
+
+    if (hasRemoveChange) {
+      get().incrementManualChangeCount();
+    }
   },
 
   onEdgesChange: (changes: EdgeChange<WorkflowEdge>[]) => {
     // Only mark as unsaved for meaningful changes (not selection changes)
     const hasMeaningfulChange = changes.some((c) => c.type !== "select");
+    // Track manual changes only for remove operations (not selection)
+    const hasRemoveChange = changes.some((c) => c.type === "remove");
+
     set((state) => ({
       edges: applyEdgeChanges(changes, state.edges),
       ...(hasMeaningfulChange ? { hasUnsavedChanges: true } : {}),
     }));
+
+    if (hasRemoveChange) {
+      get().incrementManualChangeCount();
+    }
   },
 
   onConnect: (connection: Connection) => {
@@ -439,11 +479,13 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         {
           ...connection,
           id: `edge-${connection.source}-${connection.target}-${connection.sourceHandle || "default"}-${connection.targetHandle || "default"}`,
+          data: { createdAt: Date.now() },
         },
         state.edges
       ),
       hasUnsavedChanges: true,
     }));
+    get().incrementManualChangeCount();
   },
 
   addEdgeWithType: (connection: Connection, edgeType: string) => {
@@ -453,6 +495,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           ...connection,
           id: `edge-${connection.source}-${connection.target}-${connection.sourceHandle || "default"}-${connection.targetHandle || "default"}`,
           type: edgeType,
+          data: { createdAt: Date.now() },
         },
         state.edges
       ),
@@ -465,6 +508,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       edges: state.edges.filter((edge) => edge.id !== edgeId),
       hasUnsavedChanges: true,
     }));
+    get().incrementManualChangeCount();
   },
 
   toggleEdgePause: (edgeId: string) => {
@@ -767,6 +811,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         return { type: "video", value: (sourceNode.data as GenerateVideoNodeData).outputVideo };
       } else if (sourceNode.type === "prompt") {
         return { type: "text", value: (sourceNode.data as PromptNodeData).prompt };
+      } else if (sourceNode.type === "promptConstructor") {
+        const pcData = sourceNode.data as PromptConstructorNodeData;
+        return { type: "text", value: pcData.outputText || pcData.template || null };
       } else if (sourceNode.type === "llmGenerate") {
         return { type: "text", value: (sourceNode.data as LLMGenerateNodeData).outputText };
       }
@@ -1017,6 +1064,55 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             break;
           }
 
+          case "promptConstructor": {
+            // Get fresh node data from store
+            const freshNode = get().nodes.find((n) => n.id === node.id);
+            const nodeData = (freshNode?.data || node.data) as PromptConstructorNodeData;
+            const template = nodeData.template;
+
+            // Find connected prompt nodes via text edges
+            const connectedPromptNodes = edges
+              .filter((e) => e.target === node.id && e.targetHandle === "text")
+              .map((e) => nodes.find((n) => n.id === e.source))
+              .filter((n): n is WorkflowNode => n !== undefined && n.type === "prompt");
+
+            // Build variable map from connected prompt nodes
+            const variableMap: Record<string, string> = {};
+            connectedPromptNodes.forEach((promptNode) => {
+              const promptData = promptNode.data as PromptNodeData;
+              if (promptData.variableName) {
+                variableMap[promptData.variableName] = promptData.prompt;
+              }
+            });
+
+            // Find all @variable patterns in template
+            const varPattern = /@(\w+)/g;
+            const unresolvedVars: string[] = [];
+            let resolvedText = template;
+
+            // Replace @variables with values or track unresolved
+            const matches = template.matchAll(varPattern);
+            for (const match of matches) {
+              const varName = match[1];
+              if (variableMap[varName] !== undefined) {
+                // Replace with actual value
+                resolvedText = resolvedText.replace(new RegExp(`@${varName}`, 'g'), variableMap[varName]);
+              } else {
+                // Track unresolved variable
+                if (!unresolvedVars.includes(varName)) {
+                  unresolvedVars.push(varName);
+                }
+              }
+            }
+
+            // Update node with resolved text and unresolved vars list
+            updateNodeData(node.id, {
+              outputText: resolvedText,
+              unresolvedVars,
+            });
+            break;
+          }
+
           case "nanoBanana": {
             const { images, text, dynamicInputs } = getConnectedInputs(node.id);
 
@@ -1165,6 +1261,19 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   imageHistory: updatedHistory,
                   selectedHistoryIndex: 0,
                 });
+
+                // Push new image to connected downstream outputGallery nodes
+                get().edges
+                  .filter(e => e.source === node.id)
+                  .forEach(e => {
+                    const target = get().nodes.find(n => n.id === e.target);
+                    if (target?.type === "outputGallery") {
+                      const gData = target.data as OutputGalleryNodeData;
+                      updateNodeData(target.id, {
+                        images: [result.image, ...(gData.images || [])],
+                      });
+                    }
+                  });
 
                 // Track cost
                 // Cost tracking: Gemini (hardcoded), fal.ai (from API). Replicate excluded (no pricing API).
@@ -1742,6 +1851,28 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             }
             break;
           }
+
+          case "outputGallery": {
+            const { images } = getConnectedInputs(node.id);
+            const galleryData = node.data as OutputGalleryNodeData;
+            const existing = new Set(galleryData.images || []);
+            const newImages = images.filter(img => !existing.has(img));
+            if (newImages.length > 0) {
+              updateNodeData(node.id, {
+                images: [...newImages, ...(galleryData.images || [])],
+              });
+            }
+            break;
+          }
+
+          case "imageCompare": {
+            const { images } = getConnectedInputs(node.id);
+            updateNodeData(node.id, {
+              imageA: images[0] || null,
+              imageB: images[1] || null,
+            });
+            break;
+          }
         }
       }
 
@@ -1945,6 +2076,19 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             imageHistory: updatedHistory,
             selectedHistoryIndex: 0,
           });
+
+          // Push new image to connected downstream outputGallery nodes
+          get().edges
+            .filter(e => e.source === nodeId)
+            .forEach(e => {
+              const target = get().nodes.find(n => n.id === e.target);
+              if (target?.type === "outputGallery") {
+                const gData = target.data as OutputGalleryNodeData;
+                updateNodeData(target.id, {
+                  images: [result.image, ...(gData.images || [])],
+                });
+              }
+            });
 
           // Track cost
           // Cost tracking: Gemini (hardcoded), fal.ai (from API). Replicate excluded (no pricing API).
@@ -2408,7 +2552,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       nodes: nodes.map(({ selected, ...rest }) => rest),
       edges,
       edgeStyle,
-      groups: Object.keys(groups).length > 0 ? groups : undefined,
+      groups: groups && Object.keys(groups).length > 0 ? groups : undefined,
     };
 
     const json = JSON.stringify(workflow, null, 2);
@@ -2424,7 +2568,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     URL.revokeObjectURL(url);
   },
 
-  loadWorkflow: async (workflow: WorkflowFile, workflowPath?: string) => {
+  loadWorkflow: async (workflow: WorkflowFile, workflowPath?: string, options?: { preserveSnapshot?: boolean }) => {
     // Update nodeIdCounter to avoid ID collisions
     const maxNodeId = workflow.nodes.reduce((max, node) => {
       const match = node.id.match(/-(\d+)$/);
@@ -2520,6 +2664,11 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       // Reset viewed comments when loading new workflow
       viewedCommentNodeIds: new Set<string>(),
     });
+
+    // Clear snapshot unless explicitly preserving (e.g., AI workflow generation)
+    if (!options?.preserveSnapshot) {
+      get().clearSnapshot();
+    }
   },
 
   clearWorkflow: () => {
@@ -2543,6 +2692,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       // Reset viewed comments when clearing workflow
       viewedCommentNodeIds: new Set<string>(),
     });
+    get().clearSnapshot();
   },
 
   addToGlobalHistory: (item: Omit<ImageHistoryItem, "id">) => {
@@ -2664,7 +2814,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         nodes: currentNodes,
         edges,
         edgeStyle,
-        groups: Object.keys(groups).length > 0 ? groups : undefined,
+        groups: groups && Object.keys(groups).length > 0 ? groups : undefined,
       };
 
       // If external image storage is enabled, externalize images before saving
@@ -2934,5 +3084,74 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
   resetViewedComments: () => {
     set({ viewedCommentNodeIds: new Set<string>() });
+  },
+
+  // AI change snapshot actions
+  captureSnapshot: () => {
+    const state = get();
+    // Deep copy the current workflow state to avoid reference sharing
+    const snapshot = {
+      nodes: JSON.parse(JSON.stringify(state.nodes)),
+      edges: JSON.parse(JSON.stringify(state.edges)),
+      groups: JSON.parse(JSON.stringify(state.groups)),
+      edgeStyle: state.edgeStyle,
+    };
+    set({
+      previousWorkflowSnapshot: snapshot,
+      manualChangeCount: 0,
+    });
+  },
+
+  revertToSnapshot: () => {
+    const state = get();
+    if (state.previousWorkflowSnapshot) {
+      set({
+        nodes: state.previousWorkflowSnapshot.nodes,
+        edges: state.previousWorkflowSnapshot.edges,
+        groups: state.previousWorkflowSnapshot.groups,
+        edgeStyle: state.previousWorkflowSnapshot.edgeStyle,
+        previousWorkflowSnapshot: null,
+        manualChangeCount: 0,
+        hasUnsavedChanges: true,
+      });
+    }
+  },
+
+  clearSnapshot: () => {
+    set({
+      previousWorkflowSnapshot: null,
+      manualChangeCount: 0,
+    });
+  },
+
+  incrementManualChangeCount: () => {
+    const state = get();
+    const newCount = state.manualChangeCount + 1;
+
+    // Automatically clear snapshot after 3 manual changes
+    if (newCount >= 3) {
+      set({
+        previousWorkflowSnapshot: null,
+        manualChangeCount: 0,
+      });
+    } else {
+      set({ manualChangeCount: newCount });
+    }
+  },
+
+  applyEditOperations: (operations) => {
+    const state = get();
+    const result = executeEditOps(operations, {
+      nodes: state.nodes,
+      edges: state.edges,
+    });
+
+    set({
+      nodes: result.nodes,
+      edges: result.edges,
+      hasUnsavedChanges: true,
+    });
+
+    return { applied: result.applied, skipped: result.skipped };
   },
 }));

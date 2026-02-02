@@ -29,11 +29,14 @@ const DEFAULT_DIMENSIONS: Record<NodeType, { width: number; height: number }> = 
   imageInput: { width: 300, height: 280 },
   annotation: { width: 300, height: 280 },
   prompt: { width: 320, height: 220 },
+  promptConstructor: { width: 340, height: 280 },
   nanoBanana: { width: 300, height: 300 },
   generateVideo: { width: 300, height: 300 },
   llmGenerate: { width: 320, height: 360 },
   splitGrid: { width: 300, height: 320 },
   output: { width: 320, height: 320 },
+  outputGallery: { width: 320, height: 360 },
+  imageCompare: { width: 400, height: 360 },
 };
 
 /**
@@ -205,6 +208,12 @@ function createDefaultNodeData(type: NodeType): WorkflowNodeData {
       return {
         prompt: "",
       };
+    case "promptConstructor":
+      return {
+        template: "",
+        outputText: null,
+        unresolvedVars: [],
+      };
     case "nanoBanana":
       return {
         inputImages: [],
@@ -263,6 +272,15 @@ function createDefaultNodeData(type: NodeType): WorkflowNodeData {
     case "output":
       return {
         image: null,
+      };
+    case "outputGallery":
+      return {
+        images: [],
+      };
+    case "imageCompare":
+      return {
+        imageA: null,
+        imageB: null,
       };
   }
 }

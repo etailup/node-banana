@@ -26,11 +26,14 @@ export type NodeType =
   | "imageInput"
   | "annotation"
   | "prompt"
+  | "promptConstructor"
   | "nanoBanana"
   | "generateVideo"
   | "llmGenerate"
   | "splitGrid"
-  | "output";
+  | "output"
+  | "outputGallery"
+  | "imageCompare";
 
 /**
  * Node execution status
@@ -52,6 +55,25 @@ export interface ImageInputNodeData extends BaseNodeData {
  */
 export interface PromptNodeData extends BaseNodeData {
   prompt: string;
+  variableName?: string; // Optional variable name for use in PromptConstructor templates
+}
+
+/**
+ * Prompt Constructor node - template-based prompt builder with @variable interpolation
+ */
+export interface PromptConstructorNodeData extends BaseNodeData {
+  template: string;
+  outputText: string | null;
+  unresolvedVars: string[];
+}
+
+/**
+ * Available variable from connected Prompt nodes (for PromptConstructor autocomplete)
+ */
+export interface AvailableVariable {
+  name: string;
+  value: string;
+  nodeId: string;
 }
 
 /**
@@ -166,6 +188,21 @@ export interface OutputNodeData extends BaseNodeData {
 }
 
 /**
+ * Output Gallery node - displays scrollable thumbnail grid of images with lightbox
+ */
+export interface OutputGalleryNodeData extends BaseNodeData {
+  images: string[]; // Array of base64 data URLs from connected nodes
+}
+
+/**
+ * Image Compare node - side-by-side image comparison with draggable slider
+ */
+export interface ImageCompareNodeData extends BaseNodeData {
+  imageA: string | null;
+  imageB: string | null;
+}
+
+/**
  * Split Grid node - splits image into grid cells for parallel processing
  */
 export interface SplitGridNodeData extends BaseNodeData {
@@ -198,11 +235,14 @@ export type WorkflowNodeData =
   | ImageInputNodeData
   | AnnotationNodeData
   | PromptNodeData
+  | PromptConstructorNodeData
   | NanoBananaNodeData
   | GenerateVideoNodeData
   | LLMGenerateNodeData
   | SplitGridNodeData
-  | OutputNodeData;
+  | OutputNodeData
+  | OutputGalleryNodeData
+  | ImageCompareNodeData;
 
 /**
  * Workflow node with typed data (extended with optional groupId)

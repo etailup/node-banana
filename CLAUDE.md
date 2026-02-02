@@ -167,6 +167,10 @@ All routes in `src/app/api/`:
 - `node-banana-workflow-costs` - Cost tracking per workflow
 - `node-banana-nanoBanana-defaults` - Sticky generation settings
 
+## Commits
+
+- The .planning directory is untracked, do not attempt to commit any changes to the files in this directory.
+
 ## Deployment & Git Workflow
 
 ### Vercel Deployment

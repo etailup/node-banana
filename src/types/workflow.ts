@@ -10,6 +10,7 @@ import { Edge } from "@xyflow/react";
 // Workflow Edge Data
 export interface WorkflowEdgeData extends Record<string, unknown> {
   hasPause?: boolean;
+  createdAt?: number;
 }
 
 // Workflow Edge

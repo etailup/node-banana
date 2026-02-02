@@ -3,11 +3,14 @@ import {
   ImageInputNodeData,
   AnnotationNodeData,
   PromptNodeData,
+  PromptConstructorNodeData,
   NanoBananaNodeData,
   GenerateVideoNodeData,
   LLMGenerateNodeData,
   SplitGridNodeData,
   OutputNodeData,
+  OutputGalleryNodeData,
+  ImageCompareNodeData,
   WorkflowNodeData,
   GroupColor,
   SelectedModel,
@@ -22,11 +25,14 @@ export const defaultNodeDimensions: Record<NodeType, { width: number; height: nu
   imageInput: { width: 300, height: 280 },
   annotation: { width: 300, height: 280 },
   prompt: { width: 320, height: 220 },
+  promptConstructor: { width: 340, height: 280 },
   nanoBanana: { width: 300, height: 300 },
   generateVideo: { width: 300, height: 300 },
   llmGenerate: { width: 320, height: 360 },
   splitGrid: { width: 300, height: 320 },
   output: { width: 320, height: 320 },
+  outputGallery: { width: 320, height: 360 },
+  imageCompare: { width: 400, height: 360 },
 };
 
 /**
@@ -69,6 +75,12 @@ export const createDefaultNodeData = (type: NodeType): WorkflowNodeData => {
       return {
         prompt: "",
       } as PromptNodeData;
+    case "promptConstructor":
+      return {
+        template: "",
+        outputText: null,
+        unresolvedVars: [],
+      } as PromptConstructorNodeData;
     case "nanoBanana": {
       const nodeDefaults = loadNodeDefaults();
       const legacyDefaults = loadGenerateImageDefaults();
@@ -157,5 +169,14 @@ export const createDefaultNodeData = (type: NodeType): WorkflowNodeData => {
         image: null,
         outputFilename: "",
       } as OutputNodeData;
+    case "outputGallery":
+      return {
+        images: [],
+      } as OutputGalleryNodeData;
+    case "imageCompare":
+      return {
+        imageA: null,
+        imageB: null,
+      } as ImageCompareNodeData;
   }
 };
