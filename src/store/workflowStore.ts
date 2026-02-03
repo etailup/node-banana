@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useShallow } from "zustand/shallow";
 import {
   Connection,
   EdgeChange,
@@ -3325,3 +3326,27 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     return { applied: result.applied, skipped: result.skipped };
   },
 }));
+
+/**
+ * Stable hook for provider API keys.
+ *
+ * Returns individual primitive values for each provider's API key.
+ * Uses shallow equality comparison to prevent re-renders when the
+ * providerSettings object reference changes but the actual key values
+ * don't change.
+ *
+ * This prevents unnecessary re-fetches of /api/models when multiple
+ * node instances subscribe to provider settings.
+ */
+export function useProviderApiKeys() {
+  return useWorkflowStore(
+    useShallow((state) => ({
+      replicateApiKey: state.providerSettings.providers.replicate?.apiKey ?? null,
+      falApiKey: state.providerSettings.providers.fal?.apiKey ?? null,
+      kieApiKey: state.providerSettings.providers.kie?.apiKey ?? null,
+      // Provider enabled states (for conditional UI)
+      replicateEnabled: state.providerSettings.providers.replicate?.enabled ?? false,
+      kieEnabled: state.providerSettings.providers.kie?.enabled ?? false,
+    }))
+  );
+}

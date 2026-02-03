@@ -5,7 +5,8 @@ import { Handle, Position, NodeProps, Node, useReactFlow } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
 import { useCommentNavigation } from "@/hooks/useCommentNavigation";
 import { ModelParameters } from "./ModelParameters";
-import { useWorkflowStore, saveNanoBananaDefaults } from "@/store/workflowStore";
+import { useWorkflowStore, saveNanoBananaDefaults, useProviderApiKeys } from "@/store/workflowStore";
+import { deduplicatedFetch } from "@/utils/deduplicatedFetch";
 import { NanoBananaNodeData, AspectRatio, Resolution, ModelType, ProviderType, SelectedModel, ModelInputDef } from "@/types";
 import { ProviderModel, ModelCapability } from "@/lib/providers/types";
 import { ModelSearchDialog } from "@/components/modals/ModelSearchDialog";
@@ -63,7 +64,8 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
   const commentNavigation = useCommentNavigation(id);
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const generationsPath = useWorkflowStore((state) => state.generationsPath);
-  const providerSettings = useWorkflowStore((state) => state.providerSettings);
+  // Use stable selector for API keys to prevent unnecessary re-fetches
+  const { replicateApiKey, falApiKey, kieApiKey, replicateEnabled, kieEnabled } = useProviderApiKeys();
   const [isLoadingCarouselImage, setIsLoadingCarouselImage] = useState(false);
   const [externalModels, setExternalModels] = useState<ProviderModel[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
@@ -81,24 +83,23 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
     // fal.ai is always available (works without key but rate limited)
     providers.push({ id: "fal", name: "fal.ai" });
     // Add Replicate if configured
-    if (providerSettings.providers.replicate?.enabled && providerSettings.providers.replicate?.apiKey) {
+    if (replicateEnabled && replicateApiKey) {
       providers.push({ id: "replicate", name: "Replicate" });
     }
     // Add Kie.ai if configured
-    if (providerSettings.providers.kie?.enabled && providerSettings.providers.kie?.apiKey) {
+    if (kieEnabled && kieApiKey) {
       providers.push({ id: "kie", name: "Kie.ai" });
     }
     return providers;
-  }, [providerSettings]);
+  }, [replicateEnabled, replicateApiKey, kieEnabled, kieApiKey]);
 
   // Check if external providers (Replicate/Fal) are enabled
   // fal.ai is always available (works without key but rate limited)
   const hasExternalProviders = useMemo(() => {
-    const hasReplicate = providerSettings.providers.replicate?.enabled &&
-                         providerSettings.providers.replicate?.apiKey;
+    const hasReplicate = replicateEnabled && replicateApiKey;
     // fal.ai is always available
     return !!(hasReplicate || true);
-  }, [providerSettings]);
+  }, [replicateEnabled, replicateApiKey]);
 
   const isGeminiOnly = !hasExternalProviders;
 
@@ -128,16 +129,16 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
     try {
       const capabilities = IMAGE_CAPABILITIES.join(",");
       const headers: HeadersInit = {};
-      if (providerSettings.providers.replicate?.apiKey) {
-        headers["X-Replicate-Key"] = providerSettings.providers.replicate.apiKey;
+      if (replicateApiKey) {
+        headers["X-Replicate-Key"] = replicateApiKey;
       }
-      if (providerSettings.providers.fal?.apiKey) {
-        headers["X-Fal-Key"] = providerSettings.providers.fal.apiKey;
+      if (falApiKey) {
+        headers["X-Fal-Key"] = falApiKey;
       }
-      if (providerSettings.providers.kie?.apiKey) {
-        headers["X-Kie-Key"] = providerSettings.providers.kie.apiKey;
+      if (kieApiKey) {
+        headers["X-Kie-Key"] = kieApiKey;
       }
-      const response = await fetch(`/api/models?provider=${currentProvider}&capabilities=${capabilities}`, { headers });
+      const response = await deduplicatedFetch(`/api/models?provider=${currentProvider}&capabilities=${capabilities}`, { headers });
       if (response.ok) {
         const data = await response.json();
         setExternalModels(data.models || []);
@@ -159,7 +160,7 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
     } finally {
       setIsLoadingModels(false);
     }
-  }, [currentProvider, providerSettings]);
+  }, [currentProvider, replicateApiKey, falApiKey, kieApiKey]);
 
   useEffect(() => {
     fetchModels();

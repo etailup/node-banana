@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { useWorkflowStore } from "@/store/workflowStore";
+import { useWorkflowStore, useProviderApiKeys } from "@/store/workflowStore";
+import { deduplicatedFetch } from "@/utils/deduplicatedFetch";
 import { useReactFlow } from "@xyflow/react";
 import { ProviderType, RecentModel } from "@/types";
 import { ProviderModel, ModelCapability } from "@/lib/providers/types";
@@ -69,13 +70,14 @@ export function ModelSearchDialog({
   initialCapabilityFilter,
 }: ModelSearchDialogProps) {
   const {
-    providerSettings,
     addNode,
     incrementModalCount,
     decrementModalCount,
     recentModels,
     trackModelUsage,
   } = useWorkflowStore();
+  // Use stable selector for API keys to prevent unnecessary re-fetches
+  const { replicateApiKey, falApiKey } = useProviderApiKeys();
   const { screenToFlowPosition } = useReactFlow();
 
   // State
@@ -92,7 +94,8 @@ export function ModelSearchDialog({
 
   // Refs
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  // Track request version to ignore stale responses
+  const requestVersionRef = useRef(0);
 
   // Register modal with store
   useEffect(() => {
@@ -119,11 +122,8 @@ export function ModelSearchDialog({
 
   // Fetch models
   const fetchModels = useCallback(async () => {
-    // Cancel previous request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
+    // Increment version to track this request
+    const thisVersion = ++requestVersionRef.current;
 
     setIsLoading(true);
     setError(null);
@@ -147,20 +147,21 @@ export function ModelSearchDialog({
 
       // Build headers with API keys
       const headers: Record<string, string> = {};
-      const replicateKey = providerSettings.providers.replicate?.apiKey;
-      const falKey = providerSettings.providers.fal?.apiKey;
-
-      if (replicateKey) {
-        headers["X-Replicate-Key"] = replicateKey;
+      if (replicateApiKey) {
+        headers["X-Replicate-Key"] = replicateApiKey;
       }
-      if (falKey) {
-        headers["X-Fal-Key"] = falKey;
+      if (falApiKey) {
+        headers["X-Fal-Key"] = falApiKey;
       }
 
-      const response = await fetch(`/api/models?${params.toString()}`, {
+      const response = await deduplicatedFetch(`/api/models?${params.toString()}`, {
         headers,
-        signal: abortControllerRef.current.signal,
       });
+
+      // Check if this request is still current
+      if (thisVersion !== requestVersionRef.current) {
+        return; // Ignore stale response
+      }
 
       const data: ModelsResponse = await response.json();
 
@@ -171,15 +172,19 @@ export function ModelSearchDialog({
         setModels([]);
       }
     } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
-        return; // Ignore aborted requests
+      // Check if this request is still current
+      if (thisVersion !== requestVersionRef.current) {
+        return; // Ignore stale error
       }
       setError(err instanceof Error ? err.message : "Failed to fetch models");
       setModels([]);
     } finally {
-      setIsLoading(false);
+      // Only update loading state if this is still the current request
+      if (thisVersion === requestVersionRef.current) {
+        setIsLoading(false);
+      }
     }
-  }, [debouncedSearch, providerFilter, capabilityFilter, providerSettings]);
+  }, [debouncedSearch, providerFilter, capabilityFilter, replicateApiKey, falApiKey]);
 
   // Fetch models when filters change
   useEffect(() => {
