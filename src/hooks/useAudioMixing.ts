@@ -117,7 +117,14 @@ export async function prepareAudioAsync(
 
     const sampleRate = decodedBuffers[0].sampleRate;
     const channels = decodedBuffers[0].numberOfChannels;
-    const targetDuration = Math.max(MINIMUM_AUDIO_DURATION, videoDuration);
+
+    // Compute the total decoded audio duration from buffers
+    const decodedDuration = decodedBuffers.reduce((sum, buf) => sum + buf.length, 0) / sampleRate;
+
+    // If videoDuration is 0 (unknown), use the full audio duration
+    const targetDuration = videoDuration > 0
+      ? Math.max(MINIMUM_AUDIO_DURATION, videoDuration)
+      : Math.max(MINIMUM_AUDIO_DURATION, decodedDuration);
     const totalSamples = Math.max(1, Math.floor(targetDuration * sampleRate));
 
     onProgress?.({ message: 'Processing audio...', progress: 60 });
