@@ -30,6 +30,7 @@ import {
   ProviderSettings,
   RecentModel,
   OutputGalleryNodeData,
+  VideoStitchNodeData,
 } from "@/types";
 import { useToast } from "@/components/Toast";
 import { calculateGenerationCost } from "@/utils/costCalculator";
@@ -813,6 +814,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       } else if (sourceNode.type === "generateVideo") {
         // Return video type - generateVideo and output nodes handle this appropriately
         return { type: "video", value: (sourceNode.data as GenerateVideoNodeData).outputVideo };
+      } else if (sourceNode.type === "videoStitch") {
+        return { type: "video", value: (sourceNode.data as VideoStitchNodeData).outputVideo };
       } else if (sourceNode.type === "prompt") {
         return { type: "text", value: (sourceNode.data as PromptNodeData).prompt };
       } else if (sourceNode.type === "promptConstructor") {
@@ -1871,6 +1874,89 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
               imageA: images[0] || null,
               imageB: images[1] || null,
             });
+            break;
+          }
+
+          case "videoStitch": {
+            const nodeData = node.data as VideoStitchNodeData;
+
+            // Check encoder support
+            if (nodeData.encoderSupported === false) {
+              updateNodeData(node.id, {
+                status: "error",
+                error: "Browser does not support video encoding",
+                progress: 0,
+              });
+              break;
+            }
+
+            updateNodeData(node.id, { status: "loading", progress: 0, error: null });
+
+            try {
+              const inputs = getConnectedInputs(node.id);
+
+              if (inputs.videos.length < 2) {
+                updateNodeData(node.id, {
+                  status: "error",
+                  error: "Need at least 2 video clips to stitch",
+                  progress: 0,
+                });
+                break;
+              }
+
+              // Convert video data/blob URLs to Blobs
+              const videoBlobs = await Promise.all(
+                inputs.videos.map((v) => fetch(v).then((r) => r.blob()))
+              );
+
+              // Prepare audio if connected
+              let audioData = null;
+              if (inputs.audio.length > 0 && inputs.audio[0]) {
+                const { prepareAudioAsync } = await import('@/hooks/useAudioMixing');
+                const audioBlob = await fetch(inputs.audio[0]).then((r) => r.blob());
+                // Calculate total video duration from blobs (we'll use MediaBunny for this during stitch)
+                // For now, pass 0 and let stitch handle duration
+                audioData = await prepareAudioAsync(audioBlob, 0);
+              }
+
+              // Stitch videos
+              const { stitchVideosAsync } = await import('@/hooks/useStitchVideos');
+              const outputBlob = await stitchVideosAsync(
+                videoBlobs,
+                audioData,
+                (progress) => {
+                  updateNodeData(node.id, { progress: progress.progress });
+                }
+              );
+
+              // Store output - blob URL for large files, data URL for small
+              let outputVideo: string;
+              if (outputBlob.size > 20 * 1024 * 1024) {
+                // Large file: use blob URL
+                outputVideo = URL.createObjectURL(outputBlob);
+              } else {
+                // Small file: convert to data URL for workflow saving
+                const reader = new FileReader();
+                outputVideo = await new Promise<string>((resolve) => {
+                  reader.onload = () => resolve(reader.result as string);
+                  reader.readAsDataURL(outputBlob);
+                });
+              }
+
+              updateNodeData(node.id, {
+                outputVideo,
+                status: "complete",
+                progress: 100,
+                error: null,
+              });
+            } catch (err) {
+              const errorMessage = err instanceof Error ? err.message : "Stitch failed";
+              updateNodeData(node.id, {
+                status: "error",
+                error: errorMessage,
+                progress: 0,
+              });
+            }
             break;
           }
         }

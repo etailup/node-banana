@@ -32,6 +32,7 @@ import {
   OutputNode,
   OutputGalleryNode,
   ImageCompareNode,
+  VideoStitchNode,
 } from "./nodes";
 import { EditableEdge, ReferenceEdge } from "./edges";
 import { ConnectionDropMenu, MenuAction } from "./ConnectionDropMenu";
@@ -61,6 +62,7 @@ const nodeTypes: NodeTypes = {
   output: OutputNode,
   outputGallery: OutputGalleryNode,
   imageCompare: ImageCompareNode,
+  videoStitch: VideoStitchNode,
 };
 
 const edgeTypes: EdgeTypes = {
@@ -114,6 +116,8 @@ const getNodeHandles = (nodeType: string): { inputs: string[]; outputs: string[]
       return { inputs: ["image"], outputs: [] };
     case "imageCompare":
       return { inputs: ["image"], outputs: [] };
+    case "videoStitch":
+      return { inputs: ["video", "audio"], outputs: ["video"] };
     default:
       return { inputs: [], outputs: [] };
   }
@@ -290,12 +294,13 @@ export function WorkflowCanvas() {
       if (sourceType === "video") {
         // Video source can ONLY connect to:
         // 1. generateVideo nodes (for video-to-video)
-        // 2. output nodes (for display)
+        // 2. videoStitch nodes (for concatenation)
+        // 3. output nodes (for display)
         const targetNode = nodes.find((n) => n.id === connection.target);
         if (!targetNode) return false;
 
         const targetNodeType = targetNode.type;
-        if (targetNodeType === "generateVideo" || targetNodeType === "output") {
+        if (targetNodeType === "generateVideo" || targetNodeType === "videoStitch" || targetNodeType === "output") {
           // For output node, we allow video even though its handle is typed as "image"
           // because output node can display both images and videos
           return true;
@@ -1460,6 +1465,8 @@ export function WorkflowCanvas() {
                 return "#ec4899";
               case "imageCompare":
                 return "#14b8a6";
+              case "videoStitch":
+                return "#f97316";
               default:
                 return "#94a3b8";
             }

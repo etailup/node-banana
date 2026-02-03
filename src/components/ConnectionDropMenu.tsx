@@ -199,8 +199,17 @@ const TEXT_SOURCE_OPTIONS: MenuOption[] = [
   },
 ];
 
-// Video can only connect to generateVideo (video-to-video) or output nodes
+// Video can only connect to videoStitch, generateVideo (video-to-video), or output nodes
 const VIDEO_TARGET_OPTIONS: MenuOption[] = [
+  {
+    type: "videoStitch",
+    label: "Video Stitch",
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
+      </svg>
+    ),
+  },
   {
     type: "generateVideo",
     label: "Generate Video",
@@ -221,7 +230,7 @@ const VIDEO_TARGET_OPTIONS: MenuOption[] = [
   },
 ];
 
-// Only generateVideo nodes produce video output
+// GenerateVideo and VideoStitch nodes produce video output
 const VIDEO_SOURCE_OPTIONS: MenuOption[] = [
   {
     type: "generateVideo",
@@ -232,11 +241,28 @@ const VIDEO_SOURCE_OPTIONS: MenuOption[] = [
       </svg>
     ),
   },
+  {
+    type: "videoStitch",
+    label: "Video Stitch",
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
+      </svg>
+    ),
+  },
 ];
 
 // Audio target options (nodes that accept audio input)
 const AUDIO_TARGET_OPTIONS: MenuOption[] = [
-  // VideoStitch will be added in Plan 03
+  {
+    type: "videoStitch",
+    label: "Video Stitch",
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
+      </svg>
+    ),
+  },
 ];
 
 // Audio source options (nodes that produce audio output)
