@@ -1,12 +1,6 @@
 'use client';
 
 import { useCallback } from 'react';
-import {
-  Input,
-  AudioBufferSink,
-  BlobSource,
-  ALL_FORMATS,
-} from 'mediabunny';
 
 const MINIMUM_AUDIO_DURATION = 0.1;
 
@@ -36,7 +30,8 @@ interface UseAudioMixingReturn {
 }
 
 /**
- * Standalone async function to prepare audio for mixing with video
+ * Standalone async function to prepare audio for mixing with video.
+ * Uses Web Audio API to decode standalone audio files (MP3, WAV, OGG, etc.).
  */
 export async function prepareAudioAsync(
   audioBlob: Blob,
@@ -46,35 +41,23 @@ export async function prepareAudioAsync(
 ): Promise<AudioData | null> {
   try {
     onProgress?.({ message: 'Loading audio file...', progress: 10 });
-    const blobSource = new BlobSource(audioBlob);
-    const input = new Input({ source: blobSource, formats: ALL_FORMATS });
-
-    onProgress?.({ message: 'Reading audio tracks...', progress: 20 });
-    const audioTracks = await input.getAudioTracks();
-    if (audioTracks.length === 0) {
-      throw new Error('No audio tracks found in file');
-    }
-
-    const audioTrack = audioTracks[0];
-    const sink = new AudioBufferSink(audioTrack);
-    const audioDuration = await input.computeDuration();
+    const arrayBuffer = await audioBlob.arrayBuffer();
 
     onProgress?.({ message: 'Decoding audio...', progress: 30 });
-    const decodedBuffers: AudioBuffer[] = [];
-    for await (const wrappedBuffer of sink.buffers(0, Math.max(videoDuration, audioDuration))) {
-      if (wrappedBuffer?.buffer) {
-        decodedBuffers.push(wrappedBuffer.buffer);
-      }
+    const audioContext = new AudioContext();
+    let decoded: AudioBuffer;
+    try {
+      decoded = await audioContext.decodeAudioData(arrayBuffer);
+    } finally {
+      await audioContext.close();
     }
 
-    if (decodedBuffers.length === 0) {
-      throw new Error('Failed to decode audio');
-    }
-
-    const sampleRate = decodedBuffers[0].sampleRate;
-    const channels = decodedBuffers[0].numberOfChannels;
+    const sampleRate = decoded.sampleRate;
+    const channels = decoded.numberOfChannels;
     const targetDuration = Math.max(MINIMUM_AUDIO_DURATION, videoDuration);
     const totalSamples = Math.max(1, Math.floor(targetDuration * sampleRate));
+
+    onProgress?.({ message: 'Processing audio...', progress: 60 });
 
     const mergedBuffer = new AudioBuffer({
       length: totalSamples,
@@ -86,62 +69,33 @@ export async function prepareAudioAsync(
     const offsetSamples = Math.floor(offsetSeconds * sampleRate);
 
     let writeOffset = 0;
-    let sourceSkipSamples = 0;
+    let sourceOffset = 0;
 
     if (offsetSamples > 0) {
       writeOffset = Math.min(offsetSamples, totalSamples);
     } else if (offsetSamples < 0) {
-      sourceSkipSamples = Math.abs(offsetSamples);
+      sourceOffset = Math.abs(offsetSamples);
     }
 
-    let samplesToSkip = sourceSkipSamples;
-    let bufferIndex = 0;
-    let bufferOffset = 0;
-
-    while (samplesToSkip > 0 && bufferIndex < decodedBuffers.length) {
-      const buffer = decodedBuffers[bufferIndex];
-      const availableInBuffer = buffer.length - bufferOffset;
-      if (samplesToSkip >= availableInBuffer) {
-        samplesToSkip -= availableInBuffer;
-        bufferIndex++;
-        bufferOffset = 0;
-      } else {
-        bufferOffset = samplesToSkip;
-        samplesToSkip = 0;
-      }
-    }
-
-    while (writeOffset < totalSamples && bufferIndex < decodedBuffers.length) {
-      const buffer = decodedBuffers[bufferIndex];
-      const remainingSamples = totalSamples - writeOffset;
-      const availableInBuffer = buffer.length - bufferOffset;
-      const writeLength = Math.min(availableInBuffer, remainingSamples);
-
+    // Copy decoded audio into the target buffer
+    const copyLength = Math.min(decoded.length - sourceOffset, totalSamples - writeOffset);
+    if (copyLength > 0) {
       for (let channel = 0; channel < channels; channel++) {
-        const channelData = buffer.getChannelData(channel).subarray(bufferOffset, bufferOffset + writeLength);
-        mergedBuffer.getChannelData(channel).set(channelData, writeOffset);
+        const sourceData = decoded.getChannelData(channel).subarray(sourceOffset, sourceOffset + copyLength);
+        mergedBuffer.getChannelData(channel).set(sourceData, writeOffset);
       }
-
-      writeOffset += writeLength;
-      bufferOffset += writeLength;
-
-      if (bufferOffset >= buffer.length) {
-        bufferIndex++;
-        bufferOffset = 0;
-      }
+      writeOffset += copyLength;
     }
 
-    while (writeOffset < totalSamples && decodedBuffers.length > 0) {
-      for (const buffer of decodedBuffers) {
-        const remainingSamples = totalSamples - writeOffset;
-        if (remainingSamples <= 0) break;
-        const writeLength = Math.min(buffer.length, remainingSamples);
-        for (let channel = 0; channel < channels; channel++) {
-          const channelData = buffer.getChannelData(channel).subarray(0, writeLength);
-          mergedBuffer.getChannelData(channel).set(channelData, writeOffset);
-        }
-        writeOffset += writeLength;
+    // Loop audio to fill remaining duration if needed
+    while (writeOffset < totalSamples) {
+      const remaining = totalSamples - writeOffset;
+      const loopLength = Math.min(decoded.length, remaining);
+      for (let channel = 0; channel < channels; channel++) {
+        const sourceData = decoded.getChannelData(channel).subarray(0, loopLength);
+        mergedBuffer.getChannelData(channel).set(sourceData, writeOffset);
       }
+      writeOffset += loopLength;
     }
 
     applyFades(mergedBuffer, options);
