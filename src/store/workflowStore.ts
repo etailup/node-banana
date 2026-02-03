@@ -296,10 +296,21 @@ function trackSaveGeneration(
   pendingImageSyncs.set(tempId, syncPromise);
 }
 
-// Wait for all pending image syncs to complete
-async function waitForPendingImageSyncs(): Promise<void> {
+// Wait for all pending image syncs to complete (with timeout to prevent infinite hangs)
+async function waitForPendingImageSyncs(timeout: number = 60000): Promise<void> {
   if (pendingImageSyncs.size === 0) return;
-  await Promise.all(pendingImageSyncs.values());
+
+  const timeoutPromise = new Promise<void>((resolve) => {
+    setTimeout(() => {
+      console.warn(`Pending image syncs timed out after ${timeout}ms, continuing with save`);
+      resolve();
+    }, timeout);
+  });
+
+  await Promise.race([
+    Promise.all(pendingImageSyncs.values()),
+    timeoutPromise,
+  ]);
 }
 
 // Concurrency settings
@@ -3034,7 +3045,6 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             nodes: nodesWithRefs,
             lastSavedAt: timestamp,
             hasUnsavedChanges: false,
-            isSaving: false,
             // Update imageRefBasePath to reflect new save location
             imageRefBasePath: saveDirectoryPath,
           });
@@ -3042,7 +3052,6 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           set({
             lastSavedAt: timestamp,
             hasUnsavedChanges: false,
-            isSaving: false,
             // Update imageRefBasePath to reflect save location
             imageRefBasePath: useExternalImageStorage ? saveDirectoryPath : null,
           });
@@ -3060,12 +3069,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
         return true;
       } else {
-        set({ isSaving: false });
         useToast.getState().show(`Auto-save failed: ${result.error}`, "error");
         return false;
       }
     } catch (error) {
-      set({ isSaving: false });
       useToast
         .getState()
         .show(
@@ -3073,6 +3080,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           "error"
         );
       return false;
+    } finally {
+      set({ isSaving: false });
     }
   },
 
