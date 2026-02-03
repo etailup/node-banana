@@ -111,7 +111,7 @@ const getNodeHandles = (nodeType: string): { inputs: string[]; outputs: string[]
     case "splitGrid":
       return { inputs: ["image"], outputs: ["reference"] };
     case "output":
-      return { inputs: ["image"], outputs: [] };
+      return { inputs: ["image", "video"], outputs: [] };
     case "outputGallery":
       return { inputs: ["image"], outputs: [] };
     case "imageCompare":
