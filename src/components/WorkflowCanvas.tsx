@@ -42,6 +42,7 @@ import { EdgeToolbar } from "./EdgeToolbar";
 import { GlobalImageHistory } from "./GlobalImageHistory";
 import { GroupBackgroundsPortal, GroupControlsOverlay } from "./GroupsOverlay";
 import { NodeType, NanoBananaNodeData } from "@/types";
+import { defaultNodeDimensions } from "@/store/utils/nodeDefaults";
 import { detectAndSplitGrid } from "@/utils/gridSplitter";
 import { logger } from "@/utils/logger";
 import { WelcomeModal } from "./quickstart";
@@ -256,8 +257,9 @@ export function WorkflowCanvas() {
       // Skip if it's a group node
       if (node.id.startsWith("group-")) return;
 
-      const nodeWidth = (node.style?.width as number) || 300;
-      const nodeHeight = (node.style?.height as number) || 280;
+      const defaults = defaultNodeDimensions[node.type as NodeType] || { width: 300, height: 280 };
+      const nodeWidth = node.measured?.width || (node.style?.width as number) || defaults.width;
+      const nodeHeight = node.measured?.height || (node.style?.height as number) || defaults.height;
       const nodeCenterX = node.position.x + nodeWidth / 2;
       const nodeCenterY = node.position.y + nodeHeight / 2;
 
