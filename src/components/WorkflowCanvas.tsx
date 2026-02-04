@@ -364,7 +364,22 @@ export function WorkflowCanvas() {
         selectedNodes.forEach((node) => {
           // Skip if this is already the connection source
           if (node.id === connection.source) {
-            const resolved = resolveImageCompareHandle(connection, batchUsed);
+            let resolved = resolveImageCompareHandle(connection, batchUsed);
+            // Resolve videoStitch handles for batch connections
+            const tgtNode = nodes.find((n) => n.id === resolved.target);
+            if (tgtNode?.type === "videoStitch" && resolved.targetHandle?.startsWith("video-")) {
+              for (let i = 0; i < 50; i++) {
+                const candidateHandle = `video-${i}`;
+                const isOccupied = edges.some(
+                  (e) => e.target === resolved.target && e.targetHandle === candidateHandle
+                ) || batchUsed.has(candidateHandle);
+                if (!isOccupied) {
+                  resolved = { ...resolved, targetHandle: candidateHandle };
+                  batchUsed.add(candidateHandle);
+                  break;
+                }
+              }
+            }
             if (resolved.targetHandle) batchUsed.add(resolved.targetHandle);
             onConnect(resolved);
             return;
@@ -378,12 +393,28 @@ export function WorkflowCanvas() {
           }
 
           // Create connection from this selected node to the same target
-          const multiConnection: Connection = {
+          let multiConnection: Connection = {
             source: node.id,
             sourceHandle: connection.sourceHandle,
             target: connection.target,
             targetHandle: connection.targetHandle,
           };
+
+          // Resolve videoStitch handle for batch connections
+          const targetNode = nodes.find((n) => n.id === multiConnection.target);
+          if (targetNode?.type === "videoStitch" && multiConnection.targetHandle?.startsWith("video-")) {
+            for (let i = 0; i < 50; i++) {
+              const candidateHandle = `video-${i}`;
+              const isOccupied = edges.some(
+                (e) => e.target === multiConnection.target && e.targetHandle === candidateHandle
+              ) || batchUsed.has(candidateHandle);
+              if (!isOccupied) {
+                multiConnection = { ...multiConnection, targetHandle: candidateHandle };
+                batchUsed.add(candidateHandle);
+                break;
+              }
+            }
+          }
 
           const resolved = resolveImageCompareHandle(multiConnection, batchUsed);
           if (resolved.targetHandle) batchUsed.add(resolved.targetHandle);
@@ -416,7 +447,8 @@ export function WorkflowCanvas() {
       const findCompatibleHandle = (
         node: Node,
         handleType: "image" | "text" | "video" | "audio" | "easeCurve",
-        needInput: boolean
+        needInput: boolean,
+        batchUsed?: Set<string>
       ): string | null => {
         // Check for dynamic inputSchema first
         const nodeData = node.data as { inputSchema?: Array<{ name: string; type: string }> };
@@ -426,12 +458,12 @@ export function WorkflowCanvas() {
             const matchingInputs = nodeData.inputSchema.filter(i => i.type === handleType);
             const numHandles = matchingInputs.length;
             if (numHandles > 0) {
-              // Find the first unoccupied indexed handle by checking existing edges
+              // Find the first unoccupied indexed handle by checking existing edges and batchUsed
               for (let i = 0; i < numHandles; i++) {
                 const candidateHandle = `${handleType}-${i}`;
                 const isOccupied = edges.some(
                   (edge) => edge.target === node.id && edge.targetHandle === candidateHandle
-                );
+                ) || batchUsed?.has(candidateHandle);
                 if (!isOccupied) {
                   return candidateHandle;
                 }
@@ -451,7 +483,7 @@ export function WorkflowCanvas() {
             const candidateHandle = `video-${i}`;
             const isOccupied = edges.some(
               (edge) => edge.target === node.id && edge.targetHandle === candidateHandle
-            );
+            ) || batchUsed?.has(candidateHandle);
             if (!isOccupied) return candidateHandle;
           }
           return null;
@@ -812,6 +844,16 @@ export function WorkflowCanvas() {
             let resolvedTargetHandle = targetHandleId;
             if (nodeType === "imageCompare" && targetHandleId === "image" && batchUsed.has("image")) {
               resolvedTargetHandle = "image-1";
+            }
+            // For videoStitch, find next available video-N handle
+            if (nodeType === "videoStitch" && targetHandleId.startsWith("video-")) {
+              for (let i = 0; i < 50; i++) {
+                const candidateHandle = `video-${i}`;
+                if (!batchUsed.has(candidateHandle)) {
+                  resolvedTargetHandle = candidateHandle;
+                  break;
+                }
+              }
             }
             batchUsed.add(resolvedTargetHandle);
 
