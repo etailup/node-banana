@@ -33,6 +33,7 @@ import {
   OutputGalleryNode,
   ImageCompareNode,
   VideoStitchNode,
+  EaseCurveNode,
 } from "./nodes";
 import { EditableEdge, ReferenceEdge } from "./edges";
 import { ConnectionDropMenu, MenuAction } from "./ConnectionDropMenu";
@@ -63,6 +64,7 @@ const nodeTypes: NodeTypes = {
   outputGallery: OutputGalleryNode,
   imageCompare: ImageCompareNode,
   videoStitch: VideoStitchNode,
+  easeCurve: EaseCurveNode,
 };
 
 const edgeTypes: EdgeTypes = {
@@ -118,6 +120,8 @@ const getNodeHandles = (nodeType: string): { inputs: string[]; outputs: string[]
       return { inputs: ["image"], outputs: [] };
     case "videoStitch":
       return { inputs: ["video", "audio"], outputs: ["video"] };
+    case "easeCurve":
+      return { inputs: ["video"], outputs: ["video"] };
     default:
       return { inputs: [], outputs: [] };
   }
@@ -300,7 +304,7 @@ export function WorkflowCanvas() {
         if (!targetNode) return false;
 
         const targetNodeType = targetNode.type;
-        if (targetNodeType === "generateVideo" || targetNodeType === "videoStitch" || targetNodeType === "output") {
+        if (targetNodeType === "generateVideo" || targetNodeType === "videoStitch" || targetNodeType === "easeCurve" || targetNodeType === "output") {
           // For output node, we allow video even though its handle is typed as "image"
           // because output node can display both images and videos
           return true;
@@ -757,6 +761,10 @@ export function WorkflowCanvas() {
         if (nodeType === "videoStitch") {
           // VideoStitch has dynamic video-N inputs and a video output
           targetHandleId = "video-0";
+          sourceHandleIdForNewNode = "video";
+        } else if (nodeType === "easeCurve") {
+          // EaseCurve accepts video input and outputs video
+          targetHandleId = "video";
           sourceHandleIdForNewNode = "video";
         } else if (nodeType === "generateVideo") {
           // GenerateVideo outputs video
@@ -1535,6 +1543,8 @@ export function WorkflowCanvas() {
                 return "#14b8a6";
               case "videoStitch":
                 return "#f97316";
+              case "easeCurve":
+                return "#f59e0b"; // amber-500
               default:
                 return "#94a3b8";
             }
