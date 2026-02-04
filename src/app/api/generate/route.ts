@@ -1258,8 +1258,7 @@ async function generateWithFalQueue(
  */
 function getKieModelDefaults(modelId: string): Record<string, unknown> {
   switch (modelId) {
-    // GPT Image models require aspect_ratio and quality
-    // Only supports: 1:1, 2:3, 3:2 (default 3:2 = landscape)
+    // GPT Image models
     case "gpt-image/1.5-text-to-image":
     case "gpt-image/1.5-image-to-image":
       return {
@@ -1278,76 +1277,7 @@ function getKieModelDefaults(modelId: string): Record<string, unknown> {
     case "seedream/4.5-edit":
       return {
         aspect_ratio: "1:1",
-      };
-
-    // Nano Banana Pro (Kie's version)
-    case "nano-banana-pro":
-      return {
-        aspect_ratio: "1:1",
-      };
-
-    // Google Nano Banana models
-    case "google/nano-banana":
-    case "google/nano-banana-edit":
-      return {
-        aspect_ratio: "1:1",
-      };
-
-    // Sora video models
-    case "sora-2-text-to-video":
-    case "sora-2-image-to-video":
-    case "sora-2-pro-text-to-video":
-    case "sora-2-pro-image-to-video":
-      return {
-        aspect_ratio: "16:9",
-        duration: "5",
-      };
-
-    // Veo video models (use camelCase)
-    case "veo3":
-    case "veo3_fast":
-      return {
-        aspectRatio: "16:9",
-      };
-
-    // Bytedance Seedance
-    case "bytedance/seedance-1.5-pro":
-      return {
-        aspect_ratio: "16:9",
-        duration: "5",
-      };
-
-    // Kling video models
-    case "kling-2.6/text-to-video":
-    case "kling-2.6/image-to-video":
-      return {
-        aspect_ratio: "16:9",
-        duration: "5",
-      };
-
-    // Wan video models
-    case "wan/2-6-text-to-video":
-    case "wan/2-6-image-to-video":
-    case "wan/2-2-a14b-text-to-video-turbo":
-    case "wan/2-2-a14b-image-to-video-turbo":
-    case "wan/2-6-video-to-video":
-      return {
-        aspect_ratio: "16:9",
-        duration: "5",
-      };
-
-    // Imagen 4 models
-    case "google/imagen4":
-    case "google/imagen4-fast":
-    case "google/imagen4-ultra":
-      return {
-        aspect_ratio: "1:1",
-      };
-
-    // Google Pro image-to-image
-    case "google/pro-image-to-image":
-      return {
-        aspect_ratio: "1:1",
+        quality: "basic",
       };
 
     // Flux-2 models
@@ -1359,82 +1289,73 @@ function getKieModelDefaults(modelId: string): Record<string, unknown> {
         aspect_ratio: "1:1",
       };
 
-    // Flux Kontext models (camelCase params, top-level)
-    case "flux-kontext-pro":
-    case "flux-kontext-max":
-      return {
-        aspectRatio: "1:1",
-        outputFormat: "png",
-      };
-
-    // Grok Imagine models
+    // Grok Imagine image models
     case "grok-imagine/text-to-image":
-    case "grok-imagine/image-to-image":
       return {
         aspect_ratio: "1:1",
       };
+
+    case "grok-imagine/image-to-image":
+      return {};
 
     // Grok Imagine video models
     case "grok-imagine/text-to-video":
+      return {
+        aspect_ratio: "2:3",
+        duration: "6",
+        mode: "normal",
+      };
+
     case "grok-imagine/image-to-video":
       return {
-        aspect_ratio: "16:9",
-        duration: "5",
+        aspect_ratio: "2:3",
+        duration: "6",
+        mode: "normal",
       };
 
-    // Ideogram models
-    case "ideogram/v3-reframe":
-    case "ideogram/character":
-    case "ideogram/character-edit":
-      return {
-        aspect_ratio: "1:1",
-      };
-
-    // Qwen models
-    case "qwen/text-to-image":
-    case "qwen/image-to-image":
-    case "qwen/image-edit":
-      return {
-        aspect_ratio: "1:1",
-      };
-
-    // Runway models (camelCase params, top-level)
-    case "runway/gen4":
-    case "runway/aleph":
-      return {
-        aspectRatio: "16:9",
-        duration: 10,
-      };
-
-    // Hailuo video models
-    case "hailuo/2-3-image-to-video-pro":
-    case "hailuo/2-3-image-to-video-standard":
-    case "hailuo/02-text-to-video-pro":
-    case "hailuo/02-image-to-video-pro":
+    // Kling 2.6 video models
+    case "kling-2.6/text-to-video":
+    case "kling-2.6/image-to-video":
       return {
         aspect_ratio: "16:9",
         duration: "5",
+        sound: true,
       };
 
-    // Bytedance Seedance variants
-    case "bytedance/v1-pro-text-to-video":
-    case "bytedance/v1-pro-image-to-video":
-    case "bytedance/v1-pro-fast-image-to-video":
-    case "bytedance/v1-lite-text-to-video":
-    case "bytedance/v1-lite-image-to-video":
+    // Kling 2.6 motion control
+    case "kling-2.6/motion-control":
       return {
-        aspect_ratio: "16:9",
-        duration: "5",
+        mode: "720p",
+        character_orientation: "video",
       };
 
-    // Kling older models
-    case "kling/v2-1-master-text-to-video":
-    case "kling/v2-1-master-image-to-video":
+    // Kling 2.5 turbo models
     case "kling/v2-5-turbo-text-to-video-pro":
     case "kling/v2-5-turbo-image-to-video-pro":
       return {
         aspect_ratio: "16:9",
         duration: "5",
+        cfg_scale: 0.5,
+      };
+
+    // Wan video models
+    case "wan/2-6-text-to-video":
+    case "wan/2-6-image-to-video":
+      return {
+        duration: "5",
+        resolution: "1080p",
+      };
+
+    case "wan/2-6-video-to-video":
+      return {
+        duration: "5",
+        resolution: "1080p",
+      };
+
+    // Topaz video upscale
+    case "topaz/video-upscale":
+      return {
+        upscale_factor: "2",
       };
 
     default:
@@ -1447,38 +1368,20 @@ function getKieModelDefaults(modelId: string): Record<string, unknown> {
  */
 function getKieImageInputKey(modelId: string): string {
   // Model-specific parameter names
-  if (modelId === "nano-banana-pro") return "image_input";
   if (modelId === "seedream/4.5-edit") return "image_urls";
   if (modelId === "gpt-image/1.5-image-to-image") return "input_urls";
-  if (modelId === "veo3" || modelId === "veo3_fast") return "imageUrls";
-  // Flux Kontext uses singular image_url
-  if (modelId.startsWith("flux-kontext-")) return "image_url";
-  // Runway uses camelCase imageUrl
-  if (modelId.startsWith("runway/")) return "imageUrl";
+  // Flux-2 I2I models use input_urls
+  if (modelId === "flux-2/pro-image-to-image" || modelId === "flux-2/flex-image-to-image") return "input_urls";
+  // Kling 2.5 turbo I2V uses singular image_url
+  if (modelId === "kling/v2-5-turbo-image-to-video-pro") return "image_url";
+  // Kling 2.6 motion control uses input_urls
+  if (modelId === "kling-2.6/motion-control") return "input_urls";
+  // Topaz video upscale uses video_url (singular)
+  if (modelId === "topaz/video-upscale") return "video_url";
   // Default for most models
   return "image_urls";
 }
 
-/**
- * Check if a model is a Veo model (uses different API endpoint)
- */
-function isKieVeoModel(modelId: string): boolean {
-  return modelId === "veo3" || modelId === "veo3_fast";
-}
-
-/**
- * Check if a model is a Flux Kontext model (uses dedicated endpoint)
- */
-function isKieFluxKontextModel(modelId: string): boolean {
-  return modelId.startsWith("flux-kontext-");
-}
-
-/**
- * Check if a model is a Runway model (uses dedicated endpoint)
- */
-function isKieRunwayModel(modelId: string): boolean {
-  return modelId.startsWith("runway/");
-}
 
 /**
  * Detect actual image type from binary data (magic bytes)
@@ -1585,17 +1488,13 @@ async function pollKieTaskCompletion(
   requestId: string,
   apiKey: string,
   taskId: string,
-  isVeo: boolean
 ): Promise<{ success: boolean; data?: Record<string, unknown>; error?: string }> {
   const maxWaitTime = 10 * 60 * 1000; // 10 minutes for video
   const pollInterval = 2000; // 2 seconds
   const startTime = Date.now();
   let lastStatus = "";
 
-  // Different endpoints for Veo vs standard models
-  const pollUrl = isVeo
-    ? `https://api.kie.ai/api/v1/veo/record-info?taskId=${taskId}`
-    : `https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`;
+  const pollUrl = `https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`;
 
   while (true) {
     if (Date.now() - startTime > maxWaitTime) {
@@ -1645,11 +1544,8 @@ async function generateWithKie(
   input: GenerationInput
 ): Promise<GenerationOutput> {
   const modelId = input.model.id;
-  const isVeo = isKieVeoModel(modelId);
-  const isFluxKontext = isKieFluxKontextModel(modelId);
-  const isRunway = isKieRunwayModel(modelId);
 
-  console.log(`[API:${requestId}] Kie.ai generation - Model: ${modelId}, Images: ${input.images?.length || 0}, Prompt: ${input.prompt.length} chars, Veo: ${isVeo}, FluxKontext: ${isFluxKontext}, Runway: ${isRunway}`);
+  console.log(`[API:${requestId}] Kie.ai generation - Model: ${modelId}, Images: ${input.images?.length || 0}, Prompt: ${input.prompt.length} chars`);
 
   // Build the input object (all parameters go inside "input" for Kie API)
   // Start with model-specific required defaults
@@ -1688,8 +1584,12 @@ async function generateWithKie(
 
     // Set the correct parameter name for this model
     const imageKey = getKieImageInputKey(modelId);
-    // All image params are arrays in Kie API
-    inputParams[imageKey] = imageUrls;
+    // Some models use singular string, others use arrays
+    if (imageKey === "image_url" || imageKey === "video_url") {
+      inputParams[imageKey] = imageUrls[0];
+    } else {
+      inputParams[imageKey] = imageUrls;
+    }
   }
 
   // Handle dynamic inputs (from schema-mapped connections)
@@ -1700,7 +1600,12 @@ async function generateWithKie(
         if (typeof value === 'string' && value.startsWith('data:image')) {
           // Single data URL - upload it
           const url = await uploadImageToKie(requestId, apiKey, value);
-          inputParams[key] = [url];
+          // Singular keys get a string, plural keys get an array
+          if (key === "image_url" || key === "video_url" || key === "tail_image_url") {
+            inputParams[key] = url;
+          } else {
+            inputParams[key] = [url];
+          }
         } else if (Array.isArray(value)) {
           // Array of values - check if they're data URLs that need uploading
           const processedArray: string[] = [];
@@ -1724,72 +1629,13 @@ async function generateWithKie(
     }
   }
 
-  // Build request body - dedicated endpoints use top-level params (no input wrapper)
-  let requestBody: Record<string, unknown>;
+  // All remaining Kie models use the standard createTask endpoint
+  const requestBody: Record<string, unknown> = {
+    model: modelId,
+    input: inputParams,
+  };
 
-  if (isVeo) {
-    // Veo format: { model, prompt, aspectRatio, imageUrls, generationType }
-    requestBody = {
-      model: modelId,
-      prompt: inputParams.prompt,
-      aspectRatio: inputParams.aspectRatio || inputParams.aspect_ratio || "16:9",
-      generationType: inputParams.imageUrls || inputParams.image_urls
-        ? "FIRST_AND_LAST_FRAMES_2_VIDEO"
-        : "TEXT_2_VIDEO",
-    };
-    // Add image URLs if present
-    if (inputParams.imageUrls) {
-      requestBody.imageUrls = inputParams.imageUrls;
-    } else if (inputParams.image_urls) {
-      requestBody.imageUrls = inputParams.image_urls;
-    }
-  } else if (isFluxKontext) {
-    // Flux Kontext format: top-level camelCase params, model name derived from ID
-    requestBody = {
-      model: modelId === "flux-kontext-max" ? "max" : "pro",
-      prompt: inputParams.prompt,
-      aspectRatio: inputParams.aspectRatio || inputParams.aspect_ratio || "1:1",
-    };
-    if (inputParams.outputFormat) requestBody.outputFormat = inputParams.outputFormat;
-    if (inputParams.safetyTolerance !== undefined) requestBody.safetyTolerance = inputParams.safetyTolerance;
-    if (inputParams.seed !== undefined) requestBody.seed = inputParams.seed;
-    // Singular image_url for Kontext
-    if (inputParams.image_url) {
-      requestBody.image_url = Array.isArray(inputParams.image_url) ? inputParams.image_url[0] : inputParams.image_url;
-    }
-  } else if (isRunway) {
-    // Runway format: top-level camelCase params
-    requestBody = {
-      model: modelId,
-      prompt: inputParams.prompt,
-      aspectRatio: inputParams.aspectRatio || inputParams.aspect_ratio || "16:9",
-    };
-    if (inputParams.duration !== undefined) requestBody.duration = inputParams.duration;
-    if (inputParams.quality) requestBody.quality = inputParams.quality;
-    if (inputParams.seed !== undefined) requestBody.seed = inputParams.seed;
-    // Singular imageUrl for Runway
-    if (inputParams.imageUrl) {
-      requestBody.imageUrl = Array.isArray(inputParams.imageUrl) ? inputParams.imageUrl[0] : inputParams.imageUrl;
-    }
-  } else {
-    // Standard format: { model, input: { ... } }
-    requestBody = {
-      model: modelId,
-      input: inputParams,
-    };
-  }
-
-  // Select endpoint based on model type
-  let createUrl: string;
-  if (isVeo) {
-    createUrl = "https://api.kie.ai/api/v1/veo/generate";
-  } else if (isFluxKontext) {
-    createUrl = "https://api.kie.ai/api/v1/flux/kontext/generate";
-  } else if (isRunway) {
-    createUrl = "https://api.kie.ai/api/v1/runway/generate";
-  } else {
-    createUrl = "https://api.kie.ai/api/v1/jobs/createTask";
-  }
+  const createUrl = "https://api.kie.ai/api/v1/jobs/createTask";
 
   console.log(`[API:${requestId}] Calling Kie.ai API: ${createUrl}`);
   // Log full request body for debugging (truncate very long prompts)
@@ -1861,7 +1707,7 @@ async function generateWithKie(
   console.log(`[API:${requestId}] Kie task created: ${taskId}`);
 
   // Poll for completion
-  const pollResult = await pollKieTaskCompletion(requestId, apiKey, taskId, isVeo);
+  const pollResult = await pollKieTaskCompletion(requestId, apiKey, taskId);
 
   if (!pollResult.success) {
     return {
