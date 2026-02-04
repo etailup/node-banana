@@ -751,12 +751,11 @@ export async function GET(
       }
     } else if (providerFilter === "replicate" && replicateKey) {
       providersToFetch.push("replicate");
-    } else if (providerFilter === "fal") {
-      // fal.ai works without key
+    } else if (providerFilter === "fal" && falKey) {
       providersToFetch.push("fal");
     }
   } else {
-    // Include all providers
+    // Include all providers that have keys configured
     includeGemini = true; // Gemini always available
     includeKie = kieKey ? true : false; // Kie only if API key is configured
     if (wavespeedKey) {
@@ -765,8 +764,9 @@ export async function GET(
     if (replicateKey) {
       providersToFetch.push("replicate");
     }
-    // fal.ai always included (works without key)
-    providersToFetch.push("fal");
+    if (falKey) {
+      providersToFetch.push("fal");
+    }
   }
 
   // Gemini and Kie are always available (with key for Kie), so we don't fail if no external providers

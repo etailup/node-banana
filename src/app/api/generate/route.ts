@@ -2326,6 +2326,16 @@ export async function POST(request: NextRequest) {
       // User-provided key takes precedence over env variable
       const falApiKey = request.headers.get("X-Fal-API-Key") || process.env.FAL_API_KEY || null;
 
+      if (!falApiKey) {
+        return NextResponse.json<GenerateResponse>(
+          {
+            success: false,
+            error: "fal.ai API key not configured. Add FAL_API_KEY to .env.local or configure in Settings.",
+          },
+          { status: 401 }
+        );
+      }
+
       // For fal.ai, keep Data URIs as-is since localhost URLs won't work
       // fal.ai accepts Data URIs directly
       const processedImages: string[] = images ? [...images] : [];
