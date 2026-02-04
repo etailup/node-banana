@@ -80,6 +80,9 @@ async function applySpeedCurveCore(
   bitrate: number
 ): Promise<Blob> {
   let input: Input | null = null;
+  let videoSource: VideoSampleSource | null = null;
+  let output: Output | null = null;
+  let outputStarted = false;
 
   try {
     // Helper to update progress
@@ -250,7 +253,7 @@ async function applySpeedCurveCore(
       22
     );
 
-    const videoSource = new VideoSampleSource(
+    videoSource = new VideoSampleSource(
       createAvcEncodingConfig(
         selectedConfig.bitrate,
         selectedConfig.width,
@@ -261,7 +264,7 @@ async function applySpeedCurveCore(
     );
 
     const bufferTarget = new BufferTarget();
-    const output = new Output({
+    output = new Output({
       format: new Mp4OutputFormat({ fastStart: 'in-memory' }),
       target: bufferTarget,
     });
@@ -271,6 +274,7 @@ async function applySpeedCurveCore(
     updateProgress('processing', 'Starting output encoding...', 25);
 
     await output.start();
+    outputStarted = true;
 
     // Step 4: OUTPUT-DRIVEN FRAME EMISSION
     const minFrameInterval = 1 / selectedConfig.framerate;
@@ -289,7 +293,7 @@ async function applySpeedCurveCore(
       const outputSample = (sourceSample as VideoSample).clone();
       outputSample.setTimestamp(timestamp);
       outputSample.setDuration(duration);
-      await videoSource.add(outputSample);
+      await videoSource!.add(outputSample);
       outputSample.close();
     };
 
@@ -359,8 +363,11 @@ async function applySpeedCurveCore(
 
     // Ensure encoder flushes SPS/PPS before finalizing
     await videoSource.close();
+    videoSource = null; // Already closed, prevent double-close in finally
     // Step 5: Finalize and get output blob
     await output.finalize();
+    outputStarted = false; // Successfully finalized, no need to cancel in finally
+    output = null;
     const buffer = bufferTarget.buffer;
 
     if (!buffer) {
@@ -377,6 +384,20 @@ async function applySpeedCurveCore(
 
     return outputBlob;
   } finally {
+    if (videoSource) {
+      try {
+        await videoSource.close();
+      } catch (e) {
+        console.warn('Failed to close videoSource:', e);
+      }
+    }
+    if (output && outputStarted) {
+      try {
+        await output.cancel();
+      } catch (e) {
+        console.warn('Failed to cancel output:', e);
+      }
+    }
     if (input) {
       try {
         input.dispose();

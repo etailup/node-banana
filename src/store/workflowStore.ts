@@ -2938,7 +2938,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             error: "Browser does not support video encoding",
             progress: 0,
           });
-          set({ isRunning: false, currentNodeId: null });
+          set({ isRunning: false, currentNodeIds: [] });
           await logger.endSession();
           return;
         }
@@ -2954,7 +2954,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
               error: "Need at least 2 video clips to stitch",
               progress: 0,
             });
-            set({ isRunning: false, currentNodeId: null });
+            set({ isRunning: false, currentNodeIds: [] });
             await logger.endSession();
             return;
           }
@@ -3018,7 +3018,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             error: "Browser does not support video encoding",
             progress: 0,
           });
-          set({ isRunning: false, currentNodeId: null });
+          set({ isRunning: false, currentNodeIds: [] });
           await logger.endSession();
           return;
         }
@@ -3051,7 +3051,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
               error: "Connect a video input to apply ease curve",
               progress: 0,
             });
-            set({ isRunning: false, currentNodeId: null });
+            set({ isRunning: false, currentNodeIds: [] });
             await logger.endSession();
             return;
           }
@@ -3127,7 +3127,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           });
         }
 
-        set({ isRunning: false, currentNodeId: null });
+        set({ isRunning: false, currentNodeIds: [] });
         await logger.endSession();
         return;
       }

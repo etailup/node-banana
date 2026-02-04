@@ -295,6 +295,9 @@ async function externalizeNodeImages(
   } as WorkflowNode;
 }
 
+// In-flight saves guard to prevent duplicate concurrent uploads of the same image
+const inFlightSaves = new Map<string, Promise<string>>();
+
 /**
  * Save an image and return its ID (with deduplication)
  * @param folder - "inputs" for user-uploaded images, "generations" for AI-generated images
@@ -317,31 +320,50 @@ async function saveImageAndGetId(
     return savedImageIds.get(hash)!;
   }
 
+  // Check if there's already an in-flight save for this hash
+  if (!existingId && inFlightSaves.has(hash)) {
+    return inFlightSaves.get(hash)!;
+  }
+
   // Use existing ID if provided (for consistency with imageHistory), otherwise generate new
   const imageId = existingId || generateImageId();
 
-  const response = await fetchWithTimeout(
-    "/api/workflow-images",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        workflowPath,
-        imageId,
-        imageData,
-        folder,
-      }),
+  const savePromise = (async () => {
+    const response = await fetchWithTimeout(
+      "/api/workflow-images",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workflowPath,
+          imageId,
+          imageData,
+          folder,
+        }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(`Failed to save image: ${result.error}`);
     }
-  );
 
-  const result = await response.json();
+    savedImageIds.set(hash, imageId);
+    return imageId;
+  })();
 
-  if (!result.success) {
-    throw new Error(`Failed to save image: ${result.error}`);
+  if (!existingId) {
+    inFlightSaves.set(hash, savePromise);
   }
 
-  savedImageIds.set(hash, imageId);
-  return imageId;
+  try {
+    return await savePromise;
+  } catch (error) {
+    throw error;
+  } finally {
+    inFlightSaves.delete(hash);
+  }
 }
 
 /**

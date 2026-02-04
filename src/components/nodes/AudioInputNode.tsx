@@ -63,7 +63,31 @@ export function AudioInputNode({ id, data, selected }: NodeProps<AudioInputNodeT
     };
   }, [nodeData.audioFile]);
 
-  // Draw waveform on canvas
+  // Helper to draw waveform bars on canvas
+  const drawWaveform = useCallback(
+    (ctx: CanvasRenderingContext2D, width: number, height: number, peaks: number[]) => {
+      ctx.clearRect(0, 0, width, height);
+
+      const barCount = Math.min(peaks.length, width);
+      const barWidth = width / barCount;
+      const barGap = 1;
+
+      ctx.fillStyle = "rgb(167, 139, 250)"; // violet-400
+
+      for (let i = 0; i < barCount; i++) {
+        const peakIndex = Math.floor((i / barCount) * peaks.length);
+        const peak = peaks[peakIndex] || 0;
+        const barHeight = peak * height;
+        const x = i * barWidth;
+        const y = (height - barHeight) / 2;
+
+        ctx.fillRect(x, y, barWidth - barGap, barHeight);
+      }
+    },
+    []
+  );
+
+  // Effect A: ResizeObserver — only recreated when waveformData changes
   useEffect(() => {
     if (!waveformData || !canvasRef.current || !waveformContainerRef.current) return;
 
@@ -72,48 +96,15 @@ export function AudioInputNode({ id, data, selected }: NodeProps<AudioInputNodeT
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Use ResizeObserver for responsive sizing
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const width = entry.contentRect.width;
         const height = entry.contentRect.height;
 
-        // Set canvas size
         canvas.width = width;
         canvas.height = height;
 
-        // Draw waveform
-        ctx.clearRect(0, 0, width, height);
-
-        const peaks = waveformData.peaks;
-        const barCount = Math.min(peaks.length, width);
-        const barWidth = width / barCount;
-        const barGap = 1;
-
-        ctx.fillStyle = "rgb(167, 139, 250)"; // violet-400
-
-        for (let i = 0; i < barCount; i++) {
-          const peakIndex = Math.floor((i / barCount) * peaks.length);
-          const peak = peaks[peakIndex] || 0;
-          const barHeight = peak * height;
-          const x = i * barWidth;
-          const y = (height - barHeight) / 2;
-
-          ctx.fillRect(x, y, barWidth - barGap, barHeight);
-        }
-
-        // Draw playback position
-        if (isPlaying && nodeData.duration) {
-          const progress = currentTime / nodeData.duration;
-          const x = progress * width;
-
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(x, 0);
-          ctx.lineTo(x, height);
-          ctx.stroke();
-        }
+        drawWaveform(ctx, width, height, waveformData.peaks);
       }
     });
 
@@ -122,7 +113,35 @@ export function AudioInputNode({ id, data, selected }: NodeProps<AudioInputNodeT
     return () => {
       resizeObserver.disconnect();
     };
-  }, [waveformData, isPlaying, currentTime, nodeData.duration]);
+  }, [waveformData, drawWaveform]);
+
+  // Effect B: Redraw waveform + playback position (lightweight, no ResizeObserver)
+  useEffect(() => {
+    if (!waveformData || !canvasRef.current) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const width = canvas.width;
+    const height = canvas.height;
+    if (width === 0 || height === 0) return;
+
+    drawWaveform(ctx, width, height, waveformData.peaks);
+
+    // Draw playback position
+    if (isPlaying && nodeData.duration) {
+      const progress = currentTime / nodeData.duration;
+      const x = progress * width;
+
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+      ctx.stroke();
+    }
+  }, [isPlaying, currentTime, nodeData.duration, waveformData, drawWaveform]);
 
   // Animation loop for smooth playback position updates
   useEffect(() => {

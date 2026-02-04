@@ -13,8 +13,8 @@
 // Map of URL -> in-flight promise
 const inFlightRequests = new Map<string, Promise<Response>>();
 
-// Map of URL -> cloned response data (since Response body can only be read once)
-const responseCache = new Map<string, { data: unknown; timestamp: number }>();
+// Map of URL -> cloned response metadata (since Response body can only be read once)
+const responseCache = new Map<string, { status: number; headers: Record<string, string>; bodyText: string; timestamp: number }>();
 
 // Cache TTL in milliseconds (5 seconds - short enough to get fresh data, long enough to dedupe)
 const CACHE_TTL = 5000;
@@ -59,10 +59,10 @@ export async function deduplicatedFetch(
   // Check if we have a recent cached response
   const cached = responseCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    // Return a synthetic response with the cached data
-    return new Response(JSON.stringify(cached.data), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
+    // Return a synthetic response with the cached metadata
+    return new Response(cached.bodyText, {
+      status: cached.status,
+      headers: cached.headers,
     });
   }
 
@@ -70,13 +70,13 @@ export async function deduplicatedFetch(
   const existingRequest = inFlightRequests.get(cacheKey);
   if (existingRequest) {
     // Wait for the existing request and clone it for this caller
-    const response = await existingRequest;
+    await existingRequest;
     // The response body may have been consumed, so we rely on the cache
     const cachedData = responseCache.get(cacheKey);
     if (cachedData) {
-      return new Response(JSON.stringify(cachedData.data), {
-        status: response.status,
-        headers: { "Content-Type": "application/json" },
+      return new Response(cachedData.bodyText, {
+        status: cachedData.status,
+        headers: cachedData.headers,
       });
     }
     // Fallback: this shouldn't happen, but return an error response
@@ -88,14 +88,17 @@ export async function deduplicatedFetch(
   // Create new request
   const requestPromise = fetch(url, options)
     .then(async (response) => {
-      // Clone and cache the response data before returning
-      if (response.ok) {
-        try {
-          const data = await response.clone().json();
-          responseCache.set(cacheKey, { data, timestamp: Date.now() });
-        } catch {
-          // Response wasn't JSON, that's fine
-        }
+      // Clone and cache the full response metadata before returning
+      try {
+        const bodyText = await response.clone().text();
+        responseCache.set(cacheKey, {
+          status: response.status,
+          headers: Object.fromEntries(response.headers.entries()),
+          bodyText,
+          timestamp: Date.now(),
+        });
+      } catch {
+        // Failed to read response body for caching
       }
       return response;
     })

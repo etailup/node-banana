@@ -91,7 +91,7 @@ export function ModelParameters({
     };
 
     fetchSchema();
-  }, [modelId, provider, replicateApiKey, falApiKey, onInputsLoaded]);
+  }, [modelId, provider, replicateApiKey, falApiKey, kieApiKey, wavespeedApiKey, onInputsLoaded]);
 
   // Notify parent to resize node when schema loads and panel is expanded
   useEffect(() => {

@@ -265,12 +265,12 @@ export async function stitchVideosAsync(
     // Create output
     updateProgress('processing', 'Creating output container...', 10);
 
-    const videoSource = new VideoSampleSource(
+    let videoSource: VideoSampleSource | null = new VideoSampleSource(
       createAvcEncodingConfig(resolvedBitrate, safeWidth, safeHeight, codecProfile)
     );
 
     const bufferTarget = new BufferTarget();
-    const output = new Output({
+    let output: Output | null = new Output({
       format: new Mp4OutputFormat({ fastStart: 'in-memory' }),
       target: bufferTarget,
     });
@@ -278,8 +278,10 @@ export async function stitchVideosAsync(
     output.addVideoTrack(videoSource, { rotation: aggregateRotation, frameRate: MAX_OUTPUT_FPS });
 
     // Add audio track if provided
-    let audioSource: AudioBufferSource | undefined;
+    let audioSource: AudioBufferSource | null = null;
     let pendingAudioBuffer: AudioBuffer | null = null;
+    let outputStarted = false;
+
     if (audioData) {
       updateProgress('processing', 'Detecting supported audio codec...', 8);
 
@@ -308,7 +310,9 @@ export async function stitchVideosAsync(
     }
 
     await output.start();
+    outputStarted = true;
 
+    try {
     // Track the highest timestamp we've written to ensure monotonicity
     // Start at -frameInterval so first frame can be at timestamp 0
     const frameInterval = 1 / MAX_OUTPUT_FPS;
@@ -370,14 +374,14 @@ export async function stitchVideosAsync(
 
           // Skip duplicate frames that land on the same timestamp slot
           // This ensures strict 60fps without exceeding the target rate
-          if (snappedTimestamp <= highestWrittenTimestamp) {
+          if (snappedTimestamp < highestWrittenTimestamp) {
             sample.close();
             continue;
           }
 
           sample.setTimestamp(snappedTimestamp);
           sample.setDuration(frameInterval);
-          await videoSource.add(sample);
+          await videoSource!.add(sample);
 
           // Update highest written timestamp
           highestWrittenTimestamp = snappedTimestamp;
@@ -418,14 +422,18 @@ export async function stitchVideosAsync(
       const trimmedBuffer = trimAudioBuffer(pendingAudioBuffer, videoDuration);
       await audioSource.add(trimmedBuffer);
       await audioSource.close();
+      audioSource = null; // Already closed
     }
 
     // Flush encoder before finalizing container
-    await videoSource.close();
+    await videoSource!.close();
+    videoSource = null; // Already closed, prevent double-close in finally
     updateProgress('processing', 'Finalizing stitched video...', 97);
 
     // Finalize output
-    await output.finalize();
+    await output!.finalize();
+    outputStarted = false; // Successfully finalized
+    output = null;
     const buffer = bufferTarget.buffer;
 
     if (!buffer) {
@@ -441,6 +449,31 @@ export async function stitchVideosAsync(
     );
 
     return outputBlob;
+    } finally {
+      // Clean up encoding resources on error
+      pendingAudioBuffer = null;
+      if (audioSource) {
+        try {
+          await audioSource.close();
+        } catch (e) {
+          console.warn('Failed to close audioSource:', e);
+        }
+      }
+      if (videoSource) {
+        try {
+          await videoSource.close();
+        } catch (e) {
+          console.warn('Failed to close videoSource:', e);
+        }
+      }
+      if (output && outputStarted) {
+        try {
+          await output.cancel();
+        } catch (e) {
+          console.warn('Failed to cancel output:', e);
+        }
+      }
+    }
   } catch (error) {
     const normalizedError =
       error instanceof Error ? error : new Error(String(error));
