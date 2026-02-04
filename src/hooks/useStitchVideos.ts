@@ -351,7 +351,7 @@ export async function stitchVideosAsync(
         const videoDuration = await input.computeDuration();
 
         // Track the base offset for this video segment
-        const segmentBaseTime = highestWrittenTimestamp;
+        const segmentBaseTime = highestWrittenTimestamp + frameInterval;
         // Track minimum timestamp in this segment to normalize
         let segmentMinTimestamp: number | null = null;
 
