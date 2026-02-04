@@ -9,10 +9,9 @@ import { EaseCurveNodeData } from "@/types";
 import { checkEncoderSupport } from "@/hooks/useStitchVideos";
 import { CubicBezierEditor } from "@/components/CubicBezierEditor";
 import {
-  PRESET_BEZIERS,
   EASING_PRESETS,
-  DEFAULT_CUSTOM_BEZIER,
   getPresetBezier,
+  getEasingBezier,
 } from "@/lib/easing-presets";
 import { getAllEasingNames, getEasingFunction } from "@/lib/easing-functions";
 
@@ -117,13 +116,9 @@ export function EaseCurveNode({ id, data, selected }: NodeProps<EaseCurveNodeTyp
 
   const handleSelectEasing = useCallback(
     (name: string) => {
-      // For presets in PRESET_BEZIERS, use those handles. For others, use DEFAULT_CUSTOM_BEZIER.
-      const handles = PRESET_NAMES.has(name as any)
-        ? getPresetBezier(name)
-        : ([...DEFAULT_CUSTOM_BEZIER] as [number, number, number, number]);
       updateNodeData(id, {
         easingPreset: name,
-        bezierHandles: handles,
+        bezierHandles: getEasingBezier(name),
       });
       setShowPresets(false);
     },
@@ -262,7 +257,7 @@ export function EaseCurveNode({ id, data, selected }: NodeProps<EaseCurveNodeTyp
           <button
             className={`px-3 py-1.5 text-xs font-medium transition-colors ${
               activeTab === "editor"
-                ? "text-amber-400 border-b-2 border-amber-400"
+                ? "text-lime-300 border-b-2 border-lime-300"
                 : "text-neutral-400 hover:text-neutral-300"
             }`}
             onClick={() => setActiveTab("editor")}
@@ -272,7 +267,7 @@ export function EaseCurveNode({ id, data, selected }: NodeProps<EaseCurveNodeTyp
           <button
             className={`px-3 py-1.5 text-xs font-medium transition-colors ${
               activeTab === "video"
-                ? "text-amber-400 border-b-2 border-amber-400"
+                ? "text-lime-300 border-b-2 border-lime-300"
                 : "text-neutral-400 hover:text-neutral-300"
             }`}
             onClick={() => setActiveTab("video")}
@@ -284,8 +279,8 @@ export function EaseCurveNode({ id, data, selected }: NodeProps<EaseCurveNodeTyp
         {/* Tab content */}
         {activeTab === "editor" && (
           <div className="flex-1 flex flex-col min-h-0 gap-2">
-            {/* Bezier curve editor */}
-            <div className="mx-auto w-full" style={{ maxWidth: 260 }}>
+            {/* Bezier curve editor - fills available width */}
+            <div className="flex-1 min-h-0 px-2">
               <CubicBezierEditor
                 value={nodeData.bezierHandles}
                 onChange={handleBezierChange}
@@ -296,8 +291,8 @@ export function EaseCurveNode({ id, data, selected }: NodeProps<EaseCurveNodeTyp
 
             {/* Preset label */}
             {nodeData.easingPreset && (
-              <div className="text-center">
-                <span className="text-[10px] text-amber-400/70 font-medium">
+              <div className="text-center -mt-1">
+                <span className="text-[10px] text-lime-300/70 font-medium">
                   {nodeData.easingPreset}
                 </span>
               </div>
@@ -347,7 +342,7 @@ export function EaseCurveNode({ id, data, selected }: NodeProps<EaseCurveNodeTyp
                               key={name}
                               className={`nodrag nopan flex flex-col items-center gap-0.5 p-1 rounded transition-colors ${
                                 isActive
-                                  ? "bg-amber-500/20 border border-amber-500/40"
+                                  ? "bg-lime-300/20 border border-lime-300/40"
                                   : "hover:bg-neutral-700 border border-transparent"
                               }`}
                               onClick={() => handleSelectPreset(name)}
@@ -360,7 +355,7 @@ export function EaseCurveNode({ id, data, selected }: NodeProps<EaseCurveNodeTyp
                                   <polyline
                                     points={thumb.polyline}
                                     fill="none"
-                                    stroke={isActive ? "#f59e0b" : "rgba(255,255,255,0.5)"}
+                                    stroke={isActive ? "#bef264" : "rgba(255,255,255,0.5)"}
                                     strokeWidth="1.5"
                                     strokeLinecap="round"
                                     strokeLinejoin="round"
@@ -389,7 +384,7 @@ export function EaseCurveNode({ id, data, selected }: NodeProps<EaseCurveNodeTyp
                               key={name}
                               className={`nodrag nopan flex flex-col items-center gap-0.5 p-1 rounded transition-colors ${
                                 isActive
-                                  ? "bg-amber-500/20 border border-amber-500/40"
+                                  ? "bg-lime-300/20 border border-lime-300/40"
                                   : "hover:bg-neutral-700 border border-transparent"
                               }`}
                               onClick={() => handleSelectEasing(name)}
@@ -401,7 +396,7 @@ export function EaseCurveNode({ id, data, selected }: NodeProps<EaseCurveNodeTyp
                                 <polyline
                                   points={polyline}
                                   fill="none"
-                                  stroke={isActive ? "#f59e0b" : "rgba(255,255,255,0.5)"}
+                                  stroke={isActive ? "#bef264" : "rgba(255,255,255,0.5)"}
                                   strokeWidth="1.5"
                                   strokeLinecap="round"
                                   strokeLinejoin="round"
@@ -418,6 +413,17 @@ export function EaseCurveNode({ id, data, selected }: NodeProps<EaseCurveNodeTyp
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Apply button */}
+            <div className="px-2 pb-1">
+              <button
+                className="nodrag nopan px-3 py-1.5 bg-lime-300/15 hover:bg-lime-300/25 border border-lime-300/30 rounded text-xs text-lime-300 font-medium transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                onClick={handleRun}
+                disabled={isRunning || nodeData.status === "loading"}
+              >
+                Apply
+              </button>
             </div>
           </div>
         )}
