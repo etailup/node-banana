@@ -66,7 +66,7 @@ export function VideoStitchNode({ id, data, selected }: NodeProps<VideoStitchNod
       let videoData: string | null = null;
       let duration: number | null = null;
 
-      if (sourceNode.type === "generateVideo") {
+      if (sourceNode.type === "generateVideo" || sourceNode.type === "easeCurve" || sourceNode.type === "videoStitch") {
         videoData = (sourceNode.data as any).outputVideo || null;
       }
 
@@ -398,7 +398,7 @@ export function VideoStitchNode({ id, data, selected }: NodeProps<VideoStitchNod
           ) : (
             <>
               {/* Filmstrip */}
-              <div className="flex-1 overflow-y-auto nowheel grid grid-cols-4 gap-2 p-2 bg-neutral-900/50 rounded">
+              <div className="flex-1 overflow-y-auto nowheel grid grid-cols-4 content-start gap-2 p-2 bg-neutral-900/50 rounded">
                 {orderedClips.map((clip) => {
                   const thumbnail = thumbnails.get(clip.edgeId);
                   return (
