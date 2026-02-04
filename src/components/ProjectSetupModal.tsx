@@ -47,6 +47,14 @@ const FalIcon = () => (
   </svg>
 );
 
+const WaveSpeedIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 512 512" fill="currentColor">
+    <path d="M308.946 153.758C314.185 153.758 318.268 158.321 317.516 163.506C306.856 237.02 270.334 302.155 217.471 349.386C211.398 354.812 203.458 357.586 195.315 357.586H127.562C117.863 357.586 110.001 349.724 110.001 340.025V333.552C110.001 326.82 113.882 320.731 119.792 317.505C176.087 286.779 217.883 232.832 232.32 168.537C234.216 160.09 241.509 153.758 250.167 153.758H308.946Z" />
+    <path d="M183.573 153.758C188.576 153.758 192.592 157.94 192.069 162.916C187.11 210.12 160.549 250.886 122.45 275.151C116.916 278.676 110 274.489 110 267.928V171.318C110 161.62 117.862 153.758 127.56 153.758H183.573Z" />
+    <path d="M414.815 153.758C425.503 153.758 433.734 163.232 431.799 173.743C420.697 234.038 398.943 290.601 368.564 341.414C362.464 351.617 351.307 357.586 339.419 357.586H274.228C266.726 357.586 262.611 348.727 267.233 342.819C306.591 292.513 334.86 233.113 348.361 168.295C350.104 159.925 357.372 153.758 365.922 153.758H414.815Z" />
+  </svg>
+);
+
 // Get provider icon component
 const getProviderIcon = (provider: ProviderType) => {
   switch (provider) {
@@ -56,6 +64,8 @@ const getProviderIcon = (provider: ProviderType) => {
       return <ReplicateIcon />;
     case "fal":
       return <FalIcon />;
+    case "wavespeed":
+      return <WaveSpeedIcon />;
     default:
       return null;
   }
@@ -105,6 +115,7 @@ export function ProjectSetupModal({
     replicate: false,
     fal: false,
     kie: false,
+    wavespeed: false,
   });
   const [overrideActive, setOverrideActive] = useState<Record<ProviderType, boolean>>({
     gemini: false,
@@ -112,6 +123,7 @@ export function ProjectSetupModal({
     replicate: false,
     fal: false,
     kie: false,
+    wavespeed: false,
   });
   const [envStatus, setEnvStatus] = useState<EnvStatusResponse | null>(null);
 
@@ -140,7 +152,7 @@ export function ProjectSetupModal({
 
       // Sync local providers state
       setLocalProviders(providerSettings);
-      setShowApiKey({ gemini: false, openai: false, replicate: false, fal: false, kie: false });
+      setShowApiKey({ gemini: false, openai: false, replicate: false, fal: false, kie: false, wavespeed: false });
       // Initialize override as active if user already has a key set
       setOverrideActive({
         gemini: !!providerSettings.providers.gemini?.apiKey,
@@ -148,6 +160,7 @@ export function ProjectSetupModal({
         replicate: !!providerSettings.providers.replicate?.apiKey,
         fal: !!providerSettings.providers.fal?.apiKey,
         kie: !!providerSettings.providers.kie?.apiKey,
+        wavespeed: !!providerSettings.providers.wavespeed?.apiKey,
       });
       setError(null);
 
@@ -247,7 +260,7 @@ export function ProjectSetupModal({
 
   const handleSaveProviders = () => {
     // Save each provider's settings
-    const providerIds: ProviderType[] = ["gemini", "openai", "replicate", "fal"];
+    const providerIds: ProviderType[] = ["gemini", "openai", "replicate", "fal", "kie", "wavespeed"];
     for (const providerId of providerIds) {
       const local = localProviders.providers[providerId];
       const current = providerSettings.providers[providerId];
@@ -625,7 +638,7 @@ export function ProjectSetupModal({
                     <input
                       type={showApiKey.kie ? "text" : "password"}
                       value={localProviders.providers.kie?.apiKey || ""}
-                      onChange={(e) => updateLocalProvider("kie", { apiKey: e.target.value || null, enabled: !!e.target.value })}
+                      onChange={(e) => updateLocalProvider("kie", { apiKey: e.target.value || null })}
                       placeholder="..."
                       className="w-48 px-2 py-1 bg-neutral-800 border border-neutral-600 rounded text-neutral-100 text-xs focus:outline-none focus:border-neutral-500"
                     />
@@ -642,6 +655,54 @@ export function ProjectSetupModal({
                         onClick={() => {
                           setOverrideActive((prev) => ({ ...prev, kie: false }));
                           updateLocalProvider("kie", { apiKey: null });
+                        }}
+                        className="text-xs text-neutral-500 hover:text-neutral-300"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* WaveSpeed Provider */}
+            <div className="p-3 bg-neutral-900 rounded-lg border border-neutral-700">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-neutral-100">WaveSpeed</span>
+                {envStatus?.wavespeed && !overrideActive.wavespeed ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-green-400">Configured via .env</span>
+                    <button
+                      type="button"
+                      onClick={() => setOverrideActive((prev) => ({ ...prev, wavespeed: true }))}
+                      className="px-2 py-1 text-xs text-neutral-400 hover:text-neutral-200 transition-colors"
+                    >
+                      Override
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type={showApiKey.wavespeed ? "text" : "password"}
+                      value={localProviders.providers.wavespeed?.apiKey || ""}
+                      onChange={(e) => updateLocalProvider("wavespeed", { apiKey: e.target.value || null })}
+                      placeholder="..."
+                      className="w-48 px-2 py-1 bg-neutral-800 border border-neutral-600 rounded text-neutral-100 text-xs focus:outline-none focus:border-neutral-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey((prev) => ({ ...prev, wavespeed: !prev.wavespeed }))}
+                      className="text-xs text-neutral-400 hover:text-neutral-200"
+                    >
+                      {showApiKey.wavespeed ? "Hide" : "Show"}
+                    </button>
+                    {envStatus?.wavespeed && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOverrideActive((prev) => ({ ...prev, wavespeed: false }));
+                          updateLocalProvider("wavespeed", { apiKey: null });
                         }}
                         className="text-xs text-neutral-500 hover:text-neutral-300"
                       >

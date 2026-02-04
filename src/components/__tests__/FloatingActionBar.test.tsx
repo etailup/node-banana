@@ -66,6 +66,8 @@ const defaultProviderSettings: ProviderSettings = {
     openai: { id: "openai", name: "OpenAI", enabled: false, apiKey: null },
     replicate: { id: "replicate", name: "Replicate", enabled: false, apiKey: null },
     fal: { id: "fal", name: "fal.ai", enabled: true, apiKey: null },
+    kie: { id: "kie", name: "Kie.ai", enabled: false, apiKey: null },
+    wavespeed: { id: "wavespeed", name: "WaveSpeed", enabled: false, apiKey: null },
   },
 };
 
@@ -79,7 +81,6 @@ const createDefaultState = (overrides = {}) => ({
   validateWorkflow: mockValidateWorkflow,
   edgeStyle: "angular" as const,
   setEdgeStyle: mockSetEdgeStyle,
-  providerSettings: defaultProviderSettings,
   setModelSearchOpen: mockSetModelSearchOpen,
   modelSearchOpen: false,
   modelSearchProvider: null,
@@ -382,8 +383,8 @@ describe("FloatingActionBar", () => {
     });
   });
 
-  describe("Provider Icon Buttons", () => {
-    it("should render fal.ai icon button (always visible)", async () => {
+  describe("Browse Models Button", () => {
+    it("should render Browse models button", async () => {
       render(
         <TestWrapper>
           <FloatingActionBar />
@@ -391,27 +392,11 @@ describe("FloatingActionBar", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByTitle("Browse fal.ai models")).toBeInTheDocument();
+        expect(screen.getByTitle("Browse models")).toBeInTheDocument();
       });
     });
 
-    it("should render Replicate icon when API key is configured", async () => {
-      mockUseWorkflowStore.mockImplementation((selector) => {
-        return selector(createDefaultState({
-          providerSettings: {
-            providers: {
-              ...defaultProviderSettings.providers,
-              replicate: { id: "replicate", name: "Replicate", enabled: true, apiKey: "test-key" },
-            },
-          },
-        }));
-      });
-
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ gemini: true, openai: false, replicate: true }),
-      });
-
+    it("should open ModelSearchDialog when Browse models button is clicked", async () => {
       render(
         <TestWrapper>
           <FloatingActionBar />
@@ -419,58 +404,13 @@ describe("FloatingActionBar", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByTitle("Browse Replicate models")).toBeInTheDocument();
-      });
-    });
-
-    it("should open ModelSearchDialog with fal provider when fal.ai icon is clicked", async () => {
-      render(
-        <TestWrapper>
-          <FloatingActionBar />
-        </TestWrapper>
-      );
-
-      await waitFor(() => {
-        expect(screen.getByTitle("Browse fal.ai models")).toBeInTheDocument();
+        expect(screen.getByTitle("Browse models")).toBeInTheDocument();
       });
 
-      const falButton = screen.getByTitle("Browse fal.ai models");
-      fireEvent.click(falButton);
+      const browseButton = screen.getByTitle("Browse models");
+      fireEvent.click(browseButton);
 
-      expect(mockSetModelSearchOpen).toHaveBeenCalledWith(true, "fal");
-    });
-
-    it("should open ModelSearchDialog with replicate provider when Replicate icon is clicked", async () => {
-      mockUseWorkflowStore.mockImplementation((selector) => {
-        return selector(createDefaultState({
-          providerSettings: {
-            providers: {
-              ...defaultProviderSettings.providers,
-              replicate: { id: "replicate", name: "Replicate", enabled: true, apiKey: "test-key" },
-            },
-          },
-        }));
-      });
-
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ gemini: true, openai: false, replicate: true }),
-      });
-
-      render(
-        <TestWrapper>
-          <FloatingActionBar />
-        </TestWrapper>
-      );
-
-      await waitFor(() => {
-        expect(screen.getByTitle("Browse Replicate models")).toBeInTheDocument();
-      });
-
-      const replicateButton = screen.getByTitle("Browse Replicate models");
-      fireEvent.click(replicateButton);
-
-      expect(mockSetModelSearchOpen).toHaveBeenCalledWith(true, "replicate");
+      expect(mockSetModelSearchOpen).toHaveBeenCalledWith(true);
     });
   });
 

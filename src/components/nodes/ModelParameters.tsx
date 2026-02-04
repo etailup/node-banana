@@ -33,7 +33,7 @@ export function ModelParameters({
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
   // Use stable selector for API keys to prevent unnecessary re-fetches
-  const { replicateApiKey, falApiKey } = useProviderApiKeys();
+  const { replicateApiKey, falApiKey, kieApiKey, wavespeedApiKey } = useProviderApiKeys();
 
   // Fetch schema when modelId changes
   useEffect(() => {
@@ -54,6 +54,12 @@ export function ModelParameters({
         }
         if (falApiKey) {
           headers["X-Fal-Key"] = falApiKey;
+        }
+        if (kieApiKey) {
+          headers["X-Kie-Key"] = kieApiKey;
+        }
+        if (wavespeedApiKey) {
+          headers["X-WaveSpeed-Key"] = wavespeedApiKey;
         }
 
         const encodedModelId = encodeURIComponent(modelId);

@@ -1270,7 +1270,12 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
               } else if (provider === "kie") {
                 const kieConfig = providerSettingsState.providers.kie;
                 if (kieConfig?.apiKey) {
-                  headers["X-Kie-API-Key"] = kieConfig.apiKey;
+                  headers["X-Kie-Key"] = kieConfig.apiKey;
+                }
+              } else if (provider === "wavespeed") {
+                const wavespeedConfig = providerSettingsState.providers.wavespeed;
+                if (wavespeedConfig?.apiKey) {
+                  headers["X-WaveSpeed-Key"] = wavespeedConfig.apiKey;
                 }
               }
 
@@ -1503,7 +1508,12 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
               } else if (provider === "kie") {
                 const kieConfig = providerSettingsState.providers.kie;
                 if (kieConfig?.apiKey) {
-                  headers["X-Kie-API-Key"] = kieConfig.apiKey;
+                  headers["X-Kie-Key"] = kieConfig.apiKey;
+                }
+              } else if (provider === "wavespeed") {
+                const wavespeedConfig = providerSettingsState.providers.wavespeed;
+                if (wavespeedConfig?.apiKey) {
+                  headers["X-WaveSpeed-Key"] = wavespeedConfig.apiKey;
                 }
               }
               logger.info('node.execution', `Calling ${provider} API for video generation`, {
@@ -2167,7 +2177,12 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         } else if (provider === "kie") {
           const kieConfig = providerSettingsState.providers.kie;
           if (kieConfig?.apiKey) {
-            headers["X-Kie-API-Key"] = kieConfig.apiKey;
+            headers["X-Kie-Key"] = kieConfig.apiKey;
+          }
+        } else if (provider === "wavespeed") {
+          const wavespeedConfig = providerSettingsState.providers.wavespeed;
+          if (wavespeedConfig?.apiKey) {
+            headers["X-WaveSpeed-Key"] = wavespeedConfig.apiKey;
           }
         }
 
@@ -2454,7 +2469,12 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         } else if (provider === "kie") {
           const kieConfig = providerSettingsState.providers.kie;
           if (kieConfig?.apiKey) {
-            headers["X-Kie-API-Key"] = kieConfig.apiKey;
+            headers["X-Kie-Key"] = kieConfig.apiKey;
+          }
+        } else if (provider === "wavespeed") {
+          const wavespeedConfig = providerSettingsState.providers.wavespeed;
+          if (wavespeedConfig?.apiKey) {
+            headers["X-WaveSpeed-Key"] = wavespeedConfig.apiKey;
           }
         }
         logger.info('node.execution', `Calling ${provider} API for video regeneration`, {
@@ -3344,6 +3364,7 @@ export function useProviderApiKeys() {
       replicateApiKey: state.providerSettings.providers.replicate?.apiKey ?? null,
       falApiKey: state.providerSettings.providers.fal?.apiKey ?? null,
       kieApiKey: state.providerSettings.providers.kie?.apiKey ?? null,
+      wavespeedApiKey: state.providerSettings.providers.wavespeed?.apiKey ?? null,
       // Provider enabled states (for conditional UI)
       replicateEnabled: state.providerSettings.providers.replicate?.enabled ?? false,
       kieEnabled: state.providerSettings.providers.kie?.enabled ?? false,

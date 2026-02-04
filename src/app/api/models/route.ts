@@ -1,19 +1,21 @@
 /**
  * Unified Models API Endpoint
  *
- * Aggregates models from all configured providers (Replicate, fal.ai).
+ * Aggregates models from all configured providers (Replicate, fal.ai, Gemini, WaveSpeed).
  * Uses in-memory caching to reduce external API calls.
  *
  * GET /api/models
  *
  * Query params:
- *   - provider: Optional, filter to specific provider ("replicate" | "fal")
+ *   - provider: Optional, filter to specific provider ("replicate" | "fal" | "gemini" | "wavespeed")
  *   - search: Optional, search query
  *   - refresh: Optional, bypass cache if "true"
+ *   - capabilities: Optional, filter by capabilities (comma-separated)
  *
  * Headers:
  *   - X-Replicate-Key: Replicate API key
  *   - X-Fal-Key: fal.ai API key (optional, works without but rate limited)
+ *   - X-WaveSpeed-Key: WaveSpeed API key
  *
  * Response:
  *   {
@@ -32,11 +34,14 @@ import {
   getCachedModels,
   setCachedModels,
   getCacheKey,
+  setCachedWaveSpeedSchemas,
+  WaveSpeedApiSchema,
 } from "@/lib/providers/cache";
 
 // API base URLs
 const REPLICATE_API_BASE = "https://api.replicate.com/v1";
 const FAL_API_BASE = "https://api.fal.ai/v1";
+const WAVESPEED_API_BASE = "https://api.wavespeed.ai/api/v3";
 
 // Categories we care about for image/video generation (fal.ai)
 const RELEVANT_CATEGORIES = [
@@ -245,6 +250,8 @@ const GEMINI_IMAGE_MODELS: ProviderModel[] = [
   },
 ];
 
+// WaveSpeed models are now fetched dynamically from https://api.wavespeed.ai/api/v3/models
+
 // ============ Replicate Types ============
 
 interface ReplicateModelsResponse {
@@ -432,6 +439,159 @@ function filterModelsBySearch(
   });
 }
 
+// ============ WaveSpeed Types ============
+
+interface WaveSpeedModel {
+  // Model ID can be in different fields depending on API version
+  model_id?: string;
+  id?: string;
+  modelId?: string;
+  name?: string;
+  display_name?: string;
+  description?: string;
+  category?: string;
+  type?: string;
+  thumbnail_url?: string;
+  cover_image?: string;
+  coverImage?: string;
+  pricing?: {
+    amount?: number;
+    currency?: string;
+  };
+  // Dynamic schema from API (contains api_schemas[] with request_schema)
+  api_schema?: WaveSpeedApiSchema;
+}
+
+interface WaveSpeedModelsResponse {
+  models?: WaveSpeedModel[];
+  data?: WaveSpeedModel[];
+  results?: WaveSpeedModel[];
+}
+
+// ============ WaveSpeed Helpers ============
+
+function inferWaveSpeedCapabilities(model: WaveSpeedModel): ModelCapability[] {
+  const capabilities: ModelCapability[] = [];
+  const modelId = model.model_id?.toLowerCase() || "";
+  const name = (model.name || model.display_name || "").toLowerCase();
+  const description = (model.description || "").toLowerCase();
+  const category = (model.category || model.type || "").toLowerCase();
+  const searchText = `${modelId} ${name} ${description} ${category}`;
+
+  // Check for video-related keywords
+  const isVideoModel =
+    searchText.includes("video") ||
+    searchText.includes("animate") ||
+    searchText.includes("motion") ||
+    searchText.includes("wan") ||
+    searchText.includes("kling") ||
+    searchText.includes("luma") ||
+    searchText.includes("minimax") ||
+    searchText.includes("i2v") ||
+    searchText.includes("t2v") ||
+    category.includes("video");
+
+  if (isVideoModel) {
+    if (
+      searchText.includes("img2vid") ||
+      searchText.includes("image-to-video") ||
+      searchText.includes("i2v")
+    ) {
+      capabilities.push("image-to-video");
+    } else {
+      capabilities.push("text-to-video");
+    }
+  } else {
+    // Image model
+    capabilities.push("text-to-image");
+
+    // Check for image-to-image capability
+    if (
+      searchText.includes("img2img") ||
+      searchText.includes("image-to-image") ||
+      searchText.includes("inpaint") ||
+      searchText.includes("controlnet") ||
+      searchText.includes("upscale") ||
+      searchText.includes("edit") ||
+      searchText.includes("kontext")
+    ) {
+      capabilities.push("image-to-image");
+    }
+  }
+
+  return capabilities.length > 0 ? capabilities : ["text-to-image"];
+}
+
+function mapWaveSpeedModel(model: WaveSpeedModel): ProviderModel {
+  // Handle different field names for model ID
+  const modelId = model.model_id || model.id || model.modelId || model.name || "unknown";
+  const displayName = model.display_name || model.name || modelId;
+
+  return {
+    id: modelId,
+    name: displayName,
+    description: model.description || null,
+    provider: "wavespeed",
+    capabilities: inferWaveSpeedCapabilities(model),
+    coverImage: model.thumbnail_url || model.cover_image || model.coverImage,
+    pricing: model.pricing
+      ? {
+          type: "per-run",
+          amount: model.pricing.amount || 0,
+          currency: model.pricing.currency || "USD",
+        }
+      : undefined,
+  };
+}
+
+async function fetchWaveSpeedModels(apiKey: string): Promise<ProviderModel[]> {
+  const response = await fetch(`${WAVESPEED_API_BASE}/models`, {
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`WaveSpeed API error: ${response.status}`);
+  }
+
+  const data: WaveSpeedModelsResponse = await response.json();
+
+  // Handle different response formats (models, data, or results array)
+  const models = data.models || data.data || data.results || [];
+
+  if (!Array.isArray(models)) {
+    console.warn("[WaveSpeed] Unexpected response format:", data);
+    return [];
+  }
+
+  // Log first model structure for debugging (including api_schema if present)
+  if (models.length > 0) {
+    const firstModel = models[0];
+    console.log("[WaveSpeed] First model sample:", JSON.stringify(firstModel, null, 2).substring(0, 1000));
+    console.log(`[WaveSpeed] Total models: ${models.length}`);
+    console.log(`[WaveSpeed] First model has api_schema: ${!!firstModel.api_schema}`);
+  }
+
+  // Extract and cache schemas from models that have them
+  const schemaMap = new Map<string, WaveSpeedApiSchema>();
+  for (const model of models) {
+    const modelId = model.model_id || model.id || model.modelId || model.name;
+    if (modelId && model.api_schema) {
+      schemaMap.set(modelId, model.api_schema);
+    }
+  }
+
+  // Bulk cache all schemas
+  if (schemaMap.size > 0) {
+    console.log(`[WaveSpeed] Caching ${schemaMap.size} model schemas`);
+    setCachedWaveSpeedSchemas(schemaMap);
+  }
+
+  return models.map(mapWaveSpeedModel);
+}
+
 // ============ Fal.ai Helpers ============
 
 function mapFalCategory(category: string): ModelCapability | null {
@@ -524,6 +684,7 @@ export async function GET(
   const replicateKey = request.headers.get("X-Replicate-Key") || process.env.REPLICATE_API_KEY || null;
   const falKey = request.headers.get("X-Fal-Key") || process.env.FAL_API_KEY || null;
   const kieKey = request.headers.get("X-Kie-Key") || process.env.KIE_API_KEY || null;
+  const wavespeedKey = request.headers.get("X-WaveSpeed-Key") || process.env.WAVESPEED_API_KEY || null;
 
   // Determine which providers to fetch from (excluding gemini/kie - handled separately as hardcoded)
   const providersToFetch: ProviderType[] = [];
@@ -537,6 +698,21 @@ export async function GET(
     } else if (providerFilter === "kie") {
       // Only Kie requested - no external API calls needed (hardcoded models)
       includeKie = true;
+    } else if (providerFilter === "wavespeed") {
+      if (wavespeedKey) {
+        // WaveSpeed requested with key - fetch from API
+        providersToFetch.push("wavespeed");
+      } else {
+        // WaveSpeed requested but no key configured
+        return NextResponse.json<ModelsErrorResponse>(
+          {
+            success: false,
+            error:
+              "WaveSpeed API key required. Add WAVESPEED_API_KEY to .env.local or configure in Settings.",
+          },
+          { status: 400 }
+        );
+      }
     } else if (providerFilter === "replicate" && replicateKey) {
       providersToFetch.push("replicate");
     } else if (providerFilter === "fal") {
@@ -547,6 +723,9 @@ export async function GET(
     // Include all providers
     includeGemini = true; // Gemini always available
     includeKie = kieKey ? true : false; // Kie only if API key is configured
+    if (wavespeedKey) {
+      providersToFetch.push("wavespeed"); // WaveSpeed if key is configured
+    }
     if (replicateKey) {
       providersToFetch.push("replicate");
     }
@@ -560,7 +739,7 @@ export async function GET(
       {
         success: false,
         error:
-          "No providers available. Add REPLICATE_API_KEY, FAL_API_KEY, or KIE_API_KEY to .env.local or configure in Settings.",
+          "No providers available. Add REPLICATE_API_KEY, FAL_API_KEY, KIE_API_KEY, or WAVESPEED_API_KEY to .env.local or configure in Settings.",
       },
       { status: 400 }
     );
@@ -604,12 +783,12 @@ export async function GET(
     anyFromCache = true;
   }
 
-  // Fetch from each provider
+  // Fetch from each provider (replicate, fal, wavespeed)
   for (const provider of providersToFetch) {
-    // For Replicate, always use base cache key since we filter client-side
+    // For Replicate and WaveSpeed, always use base cache key since we filter client-side
     // For fal.ai, include search in cache key since their API supports search
     const cacheKey =
-      provider === "replicate"
+      provider === "replicate" || provider === "wavespeed"
         ? getCacheKey(provider)
         : getCacheKey(provider, searchQuery);
     let models: ProviderModel[] | null = null;
@@ -623,8 +802,8 @@ export async function GET(
         fromCache = true;
         anyFromCache = true;
 
-        // For Replicate, apply client-side search filtering on cached models
-        if (provider === "replicate" && searchQuery) {
+        // For Replicate and WaveSpeed, apply client-side search filtering on cached models
+        if ((provider === "replicate" || provider === "wavespeed") && searchQuery) {
           models = filterModelsBySearch(models, searchQuery);
         }
       }
@@ -647,6 +826,15 @@ export async function GET(
           models = await fetchFalModels(falKey, searchQuery);
           // Cache the results (fal.ai handles search server-side)
           setCachedModels(cacheKey, models);
+        } else if (provider === "wavespeed") {
+          // Fetch all models from WaveSpeed API
+          const allWaveSpeedModels = await fetchWaveSpeedModels(wavespeedKey!);
+          // Cache the full list
+          setCachedModels(cacheKey, allWaveSpeedModels);
+          // Apply search filter if needed (client-side filtering like Replicate)
+          models = searchQuery
+            ? filterModelsBySearch(allWaveSpeedModels, searchQuery)
+            : allWaveSpeedModels;
         } else {
           models = [];
         }
