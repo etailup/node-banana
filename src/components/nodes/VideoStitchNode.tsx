@@ -226,15 +226,26 @@ export function VideoStitchNode({ id, data, selected }: NodeProps<VideoStitchNod
       {videoHandles.map((handle, index) => {
         const topPercent = ((index + 1) / (videoHandles.length + 1)) * 100;
         return (
-          <Handle
-            key={handle.id}
-            type="target"
-            position={Position.Left}
-            id={handle.id}
-            data-handletype="video"
-            isConnectable={true}
-            style={{ top: `${topPercent}%` }}
-          />
+          <React.Fragment key={handle.id}>
+            <Handle
+              type="target"
+              position={Position.Left}
+              id={handle.id}
+              data-handletype="video"
+              isConnectable={true}
+              style={{ top: `${topPercent}%` }}
+            />
+            <div
+              className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none text-right"
+              style={{
+                right: `calc(100% + 8px)`,
+                top: `calc(${topPercent}% - 9px)`,
+                color: "rgb(96, 165, 250)",
+              }}
+            >
+              Video {index + 1}
+            </div>
+          </React.Fragment>
         );
       })}
 
@@ -266,6 +277,16 @@ export function VideoStitchNode({ id, data, selected }: NodeProps<VideoStitchNod
         data-handletype="video"
         isConnectable={true}
       />
+      <div
+        className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none"
+        style={{
+          left: `calc(100% + 8px)`,
+          top: "calc(50% - 9px)",
+          color: "rgb(96, 165, 250)",
+        }}
+      >
+        Output
+      </div>
     </>
   );
 
@@ -377,7 +398,7 @@ export function VideoStitchNode({ id, data, selected }: NodeProps<VideoStitchNod
           ) : (
             <>
               {/* Filmstrip */}
-              <div className="flex-1 overflow-x-auto overflow-y-hidden nowheel flex gap-2 p-2 bg-neutral-900/50 rounded">
+              <div className="flex-1 overflow-y-auto nowheel grid grid-cols-4 gap-2 p-2 bg-neutral-900/50 rounded">
                 {orderedClips.map((clip) => {
                   const thumbnail = thumbnails.get(clip.edgeId);
                   return (
@@ -387,7 +408,7 @@ export function VideoStitchNode({ id, data, selected }: NodeProps<VideoStitchNod
                       onDragStart={(e) => handleDragStart(e, clip.edgeId)}
                       onDragOver={handleDragOver}
                       onDrop={(e) => handleDrop(e, clip.edgeId)}
-                      className="relative flex-shrink-0 w-20 h-[60px] bg-neutral-800 border border-neutral-600 rounded cursor-move hover:border-neutral-500 transition-colors group"
+                      className="relative w-full aspect-video bg-neutral-800 border border-neutral-600 rounded cursor-move hover:border-neutral-500 transition-colors group"
                     >
                       {thumbnail ? (
                         <img
