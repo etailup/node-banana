@@ -163,44 +163,56 @@ export function VideoStitchNode({ id, data, selected }: NodeProps<VideoStitchNod
     extractThumbnails();
   }, [orderedClips]);
 
-  // Drag and drop for reordering clips
+  // Pointer-based drag reorder (HTML5 drag doesn't work inside React Flow nodes)
   const [draggedClipId, setDraggedClipId] = useState<string | null>(null);
+  const [hoverClipId, setHoverClipId] = useState<string | null>(null);
 
-  const handleDragStart = useCallback((e: React.DragEvent, edgeId: string) => {
+  const handlePointerDown = useCallback((e: React.PointerEvent, edgeId: string) => {
+    // Only left mouse button
+    if (e.button !== 0) return;
+    e.stopPropagation();
     setDraggedClipId(edgeId);
-    e.dataTransfer.effectAllowed = "move";
+    setHoverClipId(null);
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
   }, []);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent, targetEdgeId: string) => {
-      e.preventDefault();
-      if (!draggedClipId || draggedClipId === targetEdgeId) {
-        setDraggedClipId(null);
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!draggedClipId) return;
+    // Find which clip element the pointer is over
+    const elementsUnder = document.elementsFromPoint(e.clientX, e.clientY);
+    for (const el of elementsUnder) {
+      const clipEl = (el as HTMLElement).closest("[data-clip-id]") as HTMLElement | null;
+      if (clipEl) {
+        const targetId = clipEl.dataset.clipId!;
+        if (targetId !== draggedClipId) {
+          setHoverClipId(targetId);
+        }
         return;
       }
+    }
+    setHoverClipId(null);
+  }, [draggedClipId]);
 
-      const currentOrder = [...nodeData.clipOrder];
-      const draggedIndex = currentOrder.indexOf(draggedClipId);
-      const targetIndex = currentOrder.indexOf(targetEdgeId);
+  const handlePointerUp = useCallback(() => {
+    if (!draggedClipId || !hoverClipId || draggedClipId === hoverClipId) {
+      setDraggedClipId(null);
+      setHoverClipId(null);
+      return;
+    }
 
-      if (draggedIndex === -1 || targetIndex === -1) {
-        setDraggedClipId(null);
-        return;
-      }
+    const currentOrder = [...(nodeData.clipOrder || [])];
+    const draggedIndex = currentOrder.indexOf(draggedClipId);
+    const targetIndex = currentOrder.indexOf(hoverClipId);
 
+    if (draggedIndex !== -1 && targetIndex !== -1) {
       currentOrder.splice(draggedIndex, 1);
       currentOrder.splice(targetIndex, 0, draggedClipId);
-
       updateNodeData(id, { clipOrder: currentOrder });
-      setDraggedClipId(null);
-    },
-    [draggedClipId, nodeData.clipOrder, id, updateNodeData]
-  );
+    }
+
+    setDraggedClipId(null);
+    setHoverClipId(null);
+  }, [draggedClipId, hoverClipId, nodeData.clipOrder, id, updateNodeData]);
 
   const handleRemoveClip = useCallback(
     (edgeId: string) => {
@@ -404,11 +416,17 @@ export function VideoStitchNode({ id, data, selected }: NodeProps<VideoStitchNod
                   return (
                     <div
                       key={clip.edgeId}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, clip.edgeId)}
-                      onDragOver={handleDragOver}
-                      onDrop={(e) => handleDrop(e, clip.edgeId)}
-                      className="nodrag relative w-full aspect-video bg-neutral-800 border border-neutral-600 rounded cursor-move hover:border-neutral-500 transition-colors group"
+                      data-clip-id={clip.edgeId}
+                      onPointerDown={(e) => handlePointerDown(e, clip.edgeId)}
+                      onPointerMove={handlePointerMove}
+                      onPointerUp={handlePointerUp}
+                      className={`nodrag relative w-full aspect-video bg-neutral-800 border rounded cursor-move transition-colors group ${
+                        draggedClipId === clip.edgeId
+                          ? "opacity-50 border-blue-500"
+                          : hoverClipId === clip.edgeId && draggedClipId
+                            ? "border-blue-400 ring-1 ring-blue-400/50"
+                            : "border-neutral-600 hover:border-neutral-500"
+                      }`}
                     >
                       {thumbnail ? (
                         <img
