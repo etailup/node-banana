@@ -5,7 +5,8 @@ import { Handle, Position, NodeProps, Node, useReactFlow } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
 import { useCommentNavigation } from "@/hooks/useCommentNavigation";
 import { ModelParameters } from "./ModelParameters";
-import { useWorkflowStore, saveNanoBananaDefaults } from "@/store/workflowStore";
+import { useWorkflowStore, saveNanoBananaDefaults, useProviderApiKeys } from "@/store/workflowStore";
+import { deduplicatedFetch } from "@/utils/deduplicatedFetch";
 import { NanoBananaNodeData, AspectRatio, Resolution, ModelType, ProviderType, SelectedModel, ModelInputDef } from "@/types";
 import { ProviderModel, ModelCapability } from "@/lib/providers/types";
 import { ModelSearchDialog } from "@/components/modals/ModelSearchDialog";
@@ -14,7 +15,7 @@ import { getImageDimensions, calculateNodeSizePreservingHeight } from "@/utils/n
 
 // Provider badge component - shows provider icon for all providers
 function ProviderBadge({ provider }: { provider: ProviderType }) {
-  const providerName = provider === "gemini" ? "Gemini" : provider === "replicate" ? "Replicate" : "fal.ai";
+  const providerName = provider === "gemini" ? "Gemini" : provider === "replicate" ? "Replicate" : provider === "kie" ? "Kie.ai" : "fal.ai";
 
   return (
     <span className="text-neutral-500 shrink-0" title={providerName}>
@@ -27,6 +28,10 @@ function ProviderBadge({ provider }: { provider: ProviderType }) {
           <polygon points="1000,427.6 1000,540.6 603.4,540.6 603.4,1000 477,1000 477,427.6" />
           <polygon points="1000,213.8 1000,327 364.8,327 364.8,1000 238.4,1000 238.4,213.8" />
           <polygon points="1000,0 1000,113.2 126.4,113.2 126.4,1000 0,1000 0,0" />
+        </svg>
+      ) : provider === "kie" ? (
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
         </svg>
       ) : (
         <svg className="w-4 h-4" viewBox="0 0 1855 1855" fill="currentColor">
@@ -59,7 +64,8 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
   const commentNavigation = useCommentNavigation(id);
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const generationsPath = useWorkflowStore((state) => state.generationsPath);
-  const providerSettings = useWorkflowStore((state) => state.providerSettings);
+  // Use stable selector for API keys to prevent unnecessary re-fetches
+  const { replicateApiKey, falApiKey, kieApiKey, replicateEnabled, kieEnabled } = useProviderApiKeys();
   const [isLoadingCarouselImage, setIsLoadingCarouselImage] = useState(false);
   const [externalModels, setExternalModels] = useState<ProviderModel[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
@@ -77,20 +83,23 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
     // fal.ai is always available (works without key but rate limited)
     providers.push({ id: "fal", name: "fal.ai" });
     // Add Replicate if configured
-    if (providerSettings.providers.replicate?.enabled && providerSettings.providers.replicate?.apiKey) {
+    if (replicateEnabled && replicateApiKey) {
       providers.push({ id: "replicate", name: "Replicate" });
     }
+    // Add Kie.ai if configured
+    if (kieEnabled && kieApiKey) {
+      providers.push({ id: "kie", name: "Kie.ai" });
+    }
     return providers;
-  }, [providerSettings]);
+  }, [replicateEnabled, replicateApiKey, kieEnabled, kieApiKey]);
 
   // Check if external providers (Replicate/Fal) are enabled
   // fal.ai is always available (works without key but rate limited)
   const hasExternalProviders = useMemo(() => {
-    const hasReplicate = providerSettings.providers.replicate?.enabled &&
-                         providerSettings.providers.replicate?.apiKey;
+    const hasReplicate = replicateEnabled && replicateApiKey;
     // fal.ai is always available
     return !!(hasReplicate || true);
-  }, [providerSettings]);
+  }, [replicateEnabled, replicateApiKey]);
 
   const isGeminiOnly = !hasExternalProviders;
 
@@ -120,13 +129,16 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
     try {
       const capabilities = IMAGE_CAPABILITIES.join(",");
       const headers: HeadersInit = {};
-      if (providerSettings.providers.replicate?.apiKey) {
-        headers["X-Replicate-Key"] = providerSettings.providers.replicate.apiKey;
+      if (replicateApiKey) {
+        headers["X-Replicate-Key"] = replicateApiKey;
       }
-      if (providerSettings.providers.fal?.apiKey) {
-        headers["X-Fal-Key"] = providerSettings.providers.fal.apiKey;
+      if (falApiKey) {
+        headers["X-Fal-Key"] = falApiKey;
       }
-      const response = await fetch(`/api/models?provider=${currentProvider}&capabilities=${capabilities}`, { headers });
+      if (kieApiKey) {
+        headers["X-Kie-Key"] = kieApiKey;
+      }
+      const response = await deduplicatedFetch(`/api/models?provider=${currentProvider}&capabilities=${capabilities}`, { headers });
       if (response.ok) {
         const data = await response.json();
         setExternalModels(data.models || []);
@@ -148,7 +160,7 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
     } finally {
       setIsLoadingModels(false);
     }
-  }, [currentProvider, providerSettings]);
+  }, [currentProvider, replicateApiKey, falApiKey, kieApiKey]);
 
   useEffect(() => {
     fetchModels();
@@ -472,194 +484,46 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
       titlePrefix={titlePrefix}
       commentNavigation={commentNavigation ?? undefined}
     >
-      {/* Dynamic input handles based on model schema (external providers only) */}
-      {!isGeminiProvider && nodeData.inputSchema && nodeData.inputSchema.length > 0 ? (
-        // Render handles from schema, sorted by type (images first, text second)
-        // IMPORTANT: Always render "image" and "text" handles to maintain connection
-        // compatibility. Schema may only have text inputs (text-to-image models) but
-        // we still need the image handle to preserve connections made before model selection.
-        (() => {
-          const imageInputs = nodeData.inputSchema!.filter(i => i.type === "image");
-          const textInputs = nodeData.inputSchema!.filter(i => i.type === "text");
-
-          // Always include at least one image and one text handle for connection stability
-          const hasImageInput = imageInputs.length > 0;
-          const hasTextInput = textInputs.length > 0;
-
-          // Build the handles array: schema inputs + fallback defaults if missing
-          const handles: Array<{
-            id: string;
-            type: "image" | "text";
-            label: string;
-            schemaName: string | null;
-            description: string | null;
-            isPlaceholder: boolean;
-          }> = [];
-
-          // Add image handles from schema, or a placeholder if none exist
-          if (hasImageInput) {
-            imageInputs.forEach((input, index) => {
-              handles.push({
-                // Always use indexed IDs for schema inputs for consistency
-                id: `image-${index}`,
-                type: "image",
-                label: input.label,
-                schemaName: input.name,
-                description: input.description || null,
-                isPlaceholder: false,
-              });
-            });
-          } else {
-            // No image inputs in schema - add placeholder to preserve connections
-            handles.push({
-              id: "image",
-              type: "image",
-              label: "Image",
-              schemaName: null,
-              description: "Not used by this model",
-              isPlaceholder: true,
-            });
-          }
-
-          // Add text handles from schema, or a placeholder if none exist
-          if (hasTextInput) {
-            textInputs.forEach((input, index) => {
-              handles.push({
-                // Always use indexed IDs for schema inputs for consistency
-                id: `text-${index}`,
-                type: "text",
-                label: input.label,
-                schemaName: input.name,
-                description: input.description || null,
-                isPlaceholder: false,
-              });
-            });
-          } else {
-            // No text inputs in schema - add placeholder to preserve connections
-            handles.push({
-              id: "text",
-              type: "text",
-              label: "Prompt",
-              schemaName: null,
-              description: "Not used by this model",
-              isPlaceholder: true,
-            });
-          }
-
-          // Calculate positions
-          const imageHandles = handles.filter(h => h.type === "image");
-          const textHandles = handles.filter(h => h.type === "text");
-          const totalSlots = imageHandles.length + textHandles.length + 1; // +1 for gap
-
-          const renderedHandles = handles.map((handle, index) => {
-            // Position: images first, then gap, then text
-            const isImage = handle.type === "image";
-            const typeIndex = isImage
-              ? imageHandles.findIndex(h => h.id === handle.id)
-              : textHandles.findIndex(h => h.id === handle.id);
-            const adjustedIndex = isImage ? typeIndex : imageHandles.length + 1 + typeIndex;
-            const topPercent = ((adjustedIndex + 1) / (totalSlots + 1)) * 100;
-
-            return (
-              <React.Fragment key={handle.id}>
-                <Handle
-                  type="target"
-                  position={Position.Left}
-                  id={handle.id}
-                  style={{
-                    top: `${topPercent}%`,
-                    opacity: handle.isPlaceholder ? 0.3 : 1,
-                  }}
-                  data-handletype={handle.type}
-                  data-schema-name={handle.schemaName || undefined}
-                  isConnectable={true}
-                  title={handle.description || handle.label}
-                />
-                {/* Handle label - positioned outside node, above the connector */}
-                <div
-                  className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none text-right"
-                  style={{
-                    right: `calc(100% + 8px)`,
-                    top: `calc(${topPercent}% - 18px)`,
-                    color: isImage ? "var(--handle-color-image)" : "var(--handle-color-text)",
-                    opacity: handle.isPlaceholder ? 0.3 : 1,
-                  }}
-                >
-                  {handle.label}
-                </div>
-              </React.Fragment>
-            );
-          });
-
-          // Add hidden backward-compatibility handles for edges using non-indexed IDs
-          // This ensures edges created with "image"/"text" still work when schema uses "image-0"/"text-0"
-          // Note: No data-handletype to avoid being counted in tests - these are purely for edge routing
-          return (
-            <>
-              {renderedHandles}
-              {hasImageInput && (
-                <Handle
-                  type="target"
-                  position={Position.Left}
-                  id="image"
-                  style={{ top: "35%", opacity: 0, pointerEvents: "none" }}
-                  isConnectable={false}
-                />
-              )}
-              {hasTextInput && (
-                <Handle
-                  type="target"
-                  position={Position.Left}
-                  id="text"
-                  style={{ top: "65%", opacity: 0, pointerEvents: "none" }}
-                  isConnectable={false}
-                />
-              )}
-            </>
-          );
-        })()
-      ) : (
-        // Default handles for Gemini or when no schema
-        <>
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="image"
-            style={{ top: "35%" }}
-            data-handletype="image"
-            isConnectable={true}
-          />
-          {/* Default image label */}
-          <div
-            className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none text-right"
-            style={{
-              right: `calc(100% + 8px)`,
-              top: "calc(35% - 18px)",
-              color: "var(--handle-color-image)",
-            }}
-          >
-            Image
-          </div>
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="text"
-            style={{ top: "65%" }}
-            data-handletype="text"
-          />
-          {/* Default text label */}
-          <div
-            className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none text-right"
-            style={{
-              right: `calc(100% + 8px)`,
-              top: "calc(65% - 18px)",
-              color: "var(--handle-color-text)",
-            }}
-          >
-            Prompt
-          </div>
-        </>
-      )}
+      {/* Input handles - ALWAYS use same IDs and positions for connection stability */}
+      {/* Image input at 35%, Text input at 65% - never changes regardless of model */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="image"
+        style={{ top: "35%" }}
+        data-handletype="image"
+        isConnectable={true}
+      />
+      {/* Image label */}
+      <div
+        className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none text-right"
+        style={{
+          right: `calc(100% + 8px)`,
+          top: "calc(35% - 18px)",
+          color: "var(--handle-color-image)",
+        }}
+      >
+        Image
+      </div>
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="text"
+        style={{ top: "65%" }}
+        data-handletype="text"
+        isConnectable={true}
+      />
+      {/* Prompt label */}
+      <div
+        className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none text-right"
+        style={{
+          right: `calc(100% + 8px)`,
+          top: "calc(65% - 18px)",
+          color: "var(--handle-color-text)",
+        }}
+      >
+        Prompt
+      </div>
       {/* Image output */}
       <Handle
         type="source"

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useShallow } from "zustand/shallow";
 import {
   Connection,
   EdgeChange,
@@ -125,11 +126,14 @@ interface WorkflowStore {
 
   // Execution
   isRunning: boolean;
-  currentNodeId: string | null;
+  currentNodeIds: string[];  // Changed from currentNodeId for parallel execution
   pausedAtNodeId: string | null;
+  maxConcurrentCalls: number;  // Configurable concurrency limit (1-10)
+  _abortController: AbortController | null;  // Internal: for cancellation
   executeWorkflow: (startFromNodeId?: string) => Promise<void>;
   regenerateNode: (nodeId: string) => Promise<void>;
   stopWorkflow: () => void;
+  setMaxConcurrentCalls: (value: number) => void;
 
   // Save/Load
   saveWorkflow: (name?: string) => void;
@@ -296,10 +300,112 @@ function trackSaveGeneration(
   pendingImageSyncs.set(tempId, syncPromise);
 }
 
-// Wait for all pending image syncs to complete
-async function waitForPendingImageSyncs(): Promise<void> {
+// Wait for all pending image syncs to complete (with timeout to prevent infinite hangs)
+async function waitForPendingImageSyncs(timeout: number = 60000): Promise<void> {
   if (pendingImageSyncs.size === 0) return;
-  await Promise.all(pendingImageSyncs.values());
+
+  const timeoutPromise = new Promise<void>((resolve) => {
+    setTimeout(() => {
+      console.warn(`Pending image syncs timed out after ${timeout}ms, continuing with save`);
+      resolve();
+    }, timeout);
+  });
+
+  await Promise.race([
+    Promise.all(pendingImageSyncs.values()),
+    timeoutPromise,
+  ]);
+}
+
+// Concurrency settings
+export const CONCURRENCY_SETTINGS_KEY = "node-banana-concurrency-limit";
+const DEFAULT_MAX_CONCURRENT_CALLS = 3;
+
+// Load/save concurrency setting from localStorage
+const loadConcurrencySetting = (): number => {
+  if (typeof window === "undefined") return DEFAULT_MAX_CONCURRENT_CALLS;
+  const stored = localStorage.getItem(CONCURRENCY_SETTINGS_KEY);
+  if (stored) {
+    const parsed = parseInt(stored, 10);
+    if (!isNaN(parsed) && parsed >= 1 && parsed <= 10) {
+      return parsed;
+    }
+  }
+  return DEFAULT_MAX_CONCURRENT_CALLS;
+};
+
+const saveConcurrencySetting = (value: number): void => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(CONCURRENCY_SETTINGS_KEY, String(value));
+};
+
+// Level grouping for parallel execution
+export interface LevelGroup {
+  level: number;
+  nodeIds: string[];
+}
+
+/**
+ * Groups nodes by dependency level using Kahn's algorithm variant.
+ * Nodes at the same level can be executed in parallel.
+ * Level 0 = nodes with no incoming edges (roots)
+ * Level N = nodes whose dependencies are all at levels < N
+ */
+function groupNodesByLevel(
+  nodes: WorkflowNode[],
+  edges: WorkflowEdge[]
+): LevelGroup[] {
+  // Calculate in-degree for each node
+  const inDegree = new Map<string, number>();
+  const adjList = new Map<string, string[]>();
+
+  nodes.forEach((n) => {
+    inDegree.set(n.id, 0);
+    adjList.set(n.id, []);
+  });
+
+  edges.forEach((e) => {
+    inDegree.set(e.target, (inDegree.get(e.target) || 0) + 1);
+    adjList.get(e.source)?.push(e.target);
+  });
+
+  // BFS with level tracking (Kahn's algorithm variant)
+  const levels: LevelGroup[] = [];
+  let currentLevel = nodes
+    .filter((n) => inDegree.get(n.id) === 0)
+    .map((n) => n.id);
+
+  let levelNum = 0;
+  while (currentLevel.length > 0) {
+    levels.push({ level: levelNum, nodeIds: [...currentLevel] });
+
+    const nextLevel: string[] = [];
+    for (const nodeId of currentLevel) {
+      for (const child of adjList.get(nodeId) || []) {
+        const newDegree = (inDegree.get(child) || 1) - 1;
+        inDegree.set(child, newDegree);
+        if (newDegree === 0) {
+          nextLevel.push(child);
+        }
+      }
+    }
+
+    currentLevel = nextLevel;
+    levelNum++;
+  }
+
+  return levels;
+}
+
+/**
+ * Chunk an array into smaller arrays of specified size
+ */
+function chunk<T>(array: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
 }
 
 // Clear all imageRefs from nodes (used when saving to a different directory)
@@ -331,8 +437,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   isModalOpen: false,
   showQuickstart: true,
   isRunning: false,
-  currentNodeId: null,
+  currentNodeIds: [],  // Changed from currentNodeId for parallel execution
   pausedAtNodeId: null,
+  maxConcurrentCalls: loadConcurrencySetting(),  // Default 3, configurable 1-10
+  _abortController: null,  // Internal: for cancellation
   globalImageHistory: [],
 
   // Auto-save initial state
@@ -950,120 +1058,100 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   },
 
   executeWorkflow: async (startFromNodeId?: string) => {
-    const { nodes, edges, groups, updateNodeData, getConnectedInputs, isRunning } = get();
+    const { nodes, edges, groups, updateNodeData, getConnectedInputs, isRunning, maxConcurrentCalls } = get();
 
     if (isRunning) {
       logger.warn('workflow.start', 'Workflow already running, ignoring execution request');
       return;
     }
 
+    // Create AbortController for this execution run
+    const abortController = new AbortController();
+    const isResuming = startFromNodeId === get().pausedAtNodeId;
+    set({ isRunning: true, pausedAtNodeId: null, currentNodeIds: [], _abortController: abortController });
+
     // Start logging session
     await logger.startSession();
-
-    const isResuming = startFromNodeId === get().pausedAtNodeId;
-    set({ isRunning: true, pausedAtNodeId: null });
 
     logger.info('workflow.start', 'Workflow execution started', {
       nodeCount: nodes.length,
       edgeCount: edges.length,
       startFromNodeId,
       isResuming,
+      maxConcurrentCalls,
     });
 
-    // Topological sort
-    const sorted: WorkflowNode[] = [];
-    const visited = new Set<string>();
-    const visiting = new Set<string>();
+    // Group nodes by level for parallel execution
+    const levels = groupNodesByLevel(nodes, edges);
 
-    const visit = (nodeId: string) => {
-      if (visited.has(nodeId)) return;
-      if (visiting.has(nodeId)) {
-        logger.error('workflow.validation', 'Cycle detected in workflow', { nodeId });
-        throw new Error("Cycle detected in workflow");
+    // Find starting level if startFromNodeId specified
+    let startLevel = 0;
+    if (startFromNodeId) {
+      const foundLevel = levels.findIndex((l) => l.nodeIds.includes(startFromNodeId));
+      if (foundLevel !== -1) startLevel = foundLevel;
+    }
+
+    // Helper to execute a single node - returns true if successful, throws on error
+    const executeSingleNode = async (node: WorkflowNode, signal: AbortSignal): Promise<void> => {
+      // Check for abort before starting
+      if (signal.aborted) {
+        throw new DOMException('Aborted', 'AbortError');
       }
 
-      visiting.add(nodeId);
-
-      // Visit all nodes that this node depends on
-      edges
-        .filter((e) => e.target === nodeId)
-        .forEach((e) => visit(e.source));
-
-      visiting.delete(nodeId);
-      visited.add(nodeId);
-
-      const node = nodes.find((n) => n.id === nodeId);
-      if (node) sorted.push(node);
-    };
-
-    try {
-      nodes.forEach((node) => visit(node.id));
-
-      // If starting from a specific node, find its index and skip earlier nodes
-      let startIndex = 0;
-      if (startFromNodeId) {
-        const nodeIndex = sorted.findIndex((n) => n.id === startFromNodeId);
-        if (nodeIndex !== -1) {
-          startIndex = nodeIndex;
-        }
-      }
-
-      // Execute nodes in order, starting from startIndex
-      for (let i = startIndex; i < sorted.length; i++) {
-        const node = sorted[i];
-        if (!get().isRunning) break;
-
-        // Check for pause edges on incoming connections (skip if resuming from this exact node)
-        const isResumingThisNode = isResuming && node.id === startFromNodeId;
-        if (!isResumingThisNode) {
-          const incomingEdges = edges.filter((e) => e.target === node.id);
-          const pauseEdge = incomingEdges.find((e) => e.data?.hasPause);
-          if (pauseEdge) {
-            logger.info('workflow.end', 'Workflow paused at node', {
-              nodeId: node.id,
-              nodeType: node.type,
-            });
-            set({ pausedAtNodeId: node.id, isRunning: false, currentNodeId: null });
-            useToast.getState().show("Workflow paused - click Run to continue", "warning");
-
-            // Save logs to server (on pause)
-            const session = logger.getCurrentSession();
-            if (session) {
-              session.endTime = new Date().toISOString();
-              fetch('/api/logs', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ session }),
-              }).catch((err) => {
-                console.error('Failed to save log session:', err);
-              });
-            }
-
-            await logger.endSession();
-            return;
-          }
-        }
-
-        // Check if node is in a locked group - if so, skip execution
-        const nodeGroup = node.groupId ? groups[node.groupId] : null;
-        if (nodeGroup?.locked) {
-          logger.info('node.execution', `Skipping node in locked group`, {
+      // Check for pause edges on incoming connections (skip if resuming from this exact node)
+      const isResumingThisNode = isResuming && node.id === startFromNodeId;
+      if (!isResumingThisNode) {
+        const incomingEdges = edges.filter((e) => e.target === node.id);
+        const pauseEdge = incomingEdges.find((e) => e.data?.hasPause);
+        if (pauseEdge) {
+          logger.info('workflow.end', 'Workflow paused at node', {
             nodeId: node.id,
             nodeType: node.type,
-            groupId: node.groupId,
-            groupName: nodeGroup.name,
           });
-          continue; // Skip to next node
+          set({ pausedAtNodeId: node.id, isRunning: false, currentNodeIds: [], _abortController: null });
+          useToast.getState().show("Workflow paused - click Run to continue", "warning");
+
+          // Save logs to server (on pause)
+          const session = logger.getCurrentSession();
+          if (session) {
+            session.endTime = new Date().toISOString();
+            fetch('/api/logs', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ session }),
+            }).catch((err) => {
+              console.error('Failed to save log session:', err);
+            });
+          }
+
+          await logger.endSession();
+          // Signal to stop the entire workflow
+          abortController.abort();
+          return;
         }
+      }
 
-        set({ currentNodeId: node.id });
-
-        logger.info('node.execution', `Executing ${node.type} node`, {
+      // Check if node is in a locked group - if so, skip execution
+      const nodeGroup = node.groupId ? groups[node.groupId] : null;
+      if (nodeGroup?.locked) {
+        logger.info('node.execution', `Skipping node in locked group`, {
           nodeId: node.id,
           nodeType: node.type,
+          groupId: node.groupId,
+          groupName: nodeGroup.name,
         });
+        return; // Skip this node but continue with others
+      }
 
-        switch (node.type) {
+      logger.info('node.execution', `Executing ${node.type} node`, {
+        nodeId: node.id,
+        nodeType: node.type,
+      });
+
+      // NOTE: The switch statement below executes the node based on its type
+      // The signal parameter should be passed to any fetch calls for cancellation
+
+      switch (node.type) {
           case "imageInput":
             // Nothing to execute, data is already set
             break;
@@ -1161,7 +1249,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: "Missing text input",
               });
-              set({ isRunning: false, currentNodeId: null });
+              set({ isRunning: false, currentNodeIds: [] });
               await logger.endSession();
               return;
             }
@@ -1211,6 +1299,16 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 if (falConfig?.apiKey) {
                   headers["X-Fal-API-Key"] = falConfig.apiKey;
                 }
+              } else if (provider === "kie") {
+                const kieConfig = providerSettingsState.providers.kie;
+                if (kieConfig?.apiKey) {
+                  headers["X-Kie-Key"] = kieConfig.apiKey;
+                }
+              } else if (provider === "wavespeed") {
+                const wavespeedConfig = providerSettingsState.providers.wavespeed;
+                if (wavespeedConfig?.apiKey) {
+                  headers["X-WaveSpeed-Key"] = wavespeedConfig.apiKey;
+                }
               }
 
               logger.info('node.execution', `Calling ${provider} API for image generation`, {
@@ -1227,6 +1325,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 method: "POST",
                 headers,
                 body: JSON.stringify(requestPayload),
+                signal,  // Pass abort signal for cancellation
               });
 
               if (!response.ok) {
@@ -1251,7 +1350,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   status: "error",
                   error: errorMessage,
                 });
-                set({ isRunning: false, currentNodeId: null });
+                set({ isRunning: false, currentNodeIds: [] });
                 await logger.endSession();
                 return;
               }
@@ -1329,7 +1428,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   status: "error",
                   error: result.error || "Generation failed",
                 });
-                set({ isRunning: false, currentNodeId: null });
+                set({ isRunning: false, currentNodeIds: [] });
                 await logger.endSession();
                 return;
               }
@@ -1357,7 +1456,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: errorMessage,
               });
-              set({ isRunning: false, currentNodeId: null });
+              set({ isRunning: false, currentNodeIds: [] });
               await logger.endSession();
               return;
             }
@@ -1377,7 +1476,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: "Missing required inputs",
               });
-              set({ isRunning: false, currentNodeId: null });
+              set({ isRunning: false, currentNodeIds: [] });
               await logger.endSession();
               return;
             }
@@ -1394,7 +1493,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: "No model selected",
               });
-              set({ isRunning: false, currentNodeId: null });
+              set({ isRunning: false, currentNodeIds: [] });
               await logger.endSession();
               return;
             }
@@ -1438,6 +1537,16 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 if (falConfig?.apiKey) {
                   headers["X-Fal-API-Key"] = falConfig.apiKey;
                 }
+              } else if (provider === "kie") {
+                const kieConfig = providerSettingsState.providers.kie;
+                if (kieConfig?.apiKey) {
+                  headers["X-Kie-Key"] = kieConfig.apiKey;
+                }
+              } else if (provider === "wavespeed") {
+                const wavespeedConfig = providerSettingsState.providers.wavespeed;
+                if (wavespeedConfig?.apiKey) {
+                  headers["X-WaveSpeed-Key"] = wavespeedConfig.apiKey;
+                }
               }
               logger.info('node.execution', `Calling ${provider} API for video generation`, {
                 nodeId: node.id,
@@ -1451,6 +1560,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 method: "POST",
                 headers,
                 body: JSON.stringify(requestPayload),
+                signal,  // Pass abort signal for cancellation
               });
 
               if (!response.ok) {
@@ -1475,7 +1585,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   status: "error",
                   error: errorMessage,
                 });
-                set({ isRunning: false, currentNodeId: null });
+                set({ isRunning: false, currentNodeIds: [] });
                 await logger.endSession();
                 return;
               }
@@ -1560,7 +1670,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   status: "error",
                   error: result.error || "Video generation failed",
                 });
-                set({ isRunning: false, currentNodeId: null });
+                set({ isRunning: false, currentNodeIds: [] });
                 await logger.endSession();
                 return;
               }
@@ -1586,7 +1696,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: errorMessage,
               });
-              set({ isRunning: false, currentNodeId: null });
+              set({ isRunning: false, currentNodeIds: [] });
               await logger.endSession();
               return;
             }
@@ -1594,7 +1704,11 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           }
 
           case "llmGenerate": {
-            const { images, text } = getConnectedInputs(node.id);
+            const inputs = getConnectedInputs(node.id);
+            const images = inputs.images;
+            const llmData = node.data as LLMGenerateNodeData;
+            // Fall back to node's internal inputPrompt if no text connection
+            const text = inputs.text ?? llmData.inputPrompt;
 
             if (!text) {
               logger.error('node.error', 'llmGenerate node missing text input', {
@@ -1602,9 +1716,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
               });
               updateNodeData(node.id, {
                 status: "error",
-                error: "Missing text input",
+                error: "Missing text input - connect a prompt node or set internal prompt",
               });
-              set({ isRunning: false, currentNodeId: null });
+              set({ isRunning: false, currentNodeIds: [] });
               await logger.endSession();
               return;
             }
@@ -1657,6 +1771,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   temperature: nodeData.temperature,
                   maxTokens: nodeData.maxTokens,
                 }),
+                signal,  // Pass abort signal for cancellation
               });
 
               if (!response.ok) {
@@ -1677,7 +1792,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   status: "error",
                   error: errorMessage,
                 });
-                set({ isRunning: false, currentNodeId: null });
+                set({ isRunning: false, currentNodeIds: [] });
                 await logger.endSession();
                 return;
               }
@@ -1699,7 +1814,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   status: "error",
                   error: result.error || "LLM generation failed",
                 });
-                set({ isRunning: false, currentNodeId: null });
+                set({ isRunning: false, currentNodeIds: [] });
                 await logger.endSession();
                 return;
               }
@@ -1711,7 +1826,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: error instanceof Error ? error.message : "LLM generation failed",
               });
-              set({ isRunning: false, currentNodeId: null });
+              set({ isRunning: false, currentNodeIds: [] });
               await logger.endSession();
               return;
             }
@@ -1727,7 +1842,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: "No input image connected",
               });
-              set({ isRunning: false, currentNodeId: null });
+              set({ isRunning: false, currentNodeIds: [] });
               return;
             }
 
@@ -1738,7 +1853,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: "Node not configured - open settings first",
               });
-              set({ isRunning: false, currentNodeId: null });
+              set({ isRunning: false, currentNodeIds: [] });
               return;
             }
 
@@ -1787,7 +1902,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: error instanceof Error ? error.message : "Failed to split image",
               });
-              set({ isRunning: false, currentNodeId: null });
+              set({ isRunning: false, currentNodeIds: [] });
               await logger.endSession();
               return;
             }
@@ -2104,10 +2219,67 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             break;
           }
         }
+    }; // End of executeSingleNode helper
+
+    try {
+      // Execute levels sequentially, but nodes within each level in parallel
+      for (let levelIdx = startLevel; levelIdx < levels.length; levelIdx++) {
+        // Check if execution was stopped
+        if (abortController.signal.aborted || !get().isRunning) break;
+
+        const level = levels[levelIdx];
+        const levelNodes = level.nodeIds
+          .map((id) => nodes.find((n) => n.id === id))
+          .filter((n): n is WorkflowNode => n !== undefined);
+
+        if (levelNodes.length === 0) continue;
+
+        // Execute nodes in batches respecting concurrency limit
+        const batches = chunk(levelNodes, maxConcurrentCalls);
+
+        for (const batch of batches) {
+          if (abortController.signal.aborted || !get().isRunning) break;
+
+          // Update currentNodeIds to show which nodes are executing
+          const batchIds = batch.map((n) => n.id);
+          set({ currentNodeIds: batchIds });
+
+          logger.info('node.execution', `Executing level ${levelIdx} batch`, {
+            level: levelIdx,
+            nodeCount: batch.length,
+            nodeIds: batchIds,
+          });
+
+          // Execute batch in parallel
+          const results = await Promise.allSettled(
+            batch.map((node) => executeSingleNode(node, abortController.signal))
+          );
+
+          // Check for failures (fail-fast behavior)
+          const failed = results.find(
+            (r): r is PromiseRejectedResult =>
+              r.status === 'rejected' &&
+              !(r.reason instanceof DOMException && r.reason.name === 'AbortError')
+          );
+
+          if (failed) {
+            // Log the failure and abort remaining executions
+            logger.error('workflow.error', 'Node execution failed in parallel batch', {
+              level: levelIdx,
+              error: failed.reason instanceof Error ? failed.reason.message : String(failed.reason),
+            });
+            abortController.abort();
+            throw failed.reason;
+          }
+        }
       }
 
-      logger.info('workflow.end', 'Workflow execution completed successfully');
-      set({ isRunning: false, currentNodeId: null });
+      // Check if we completed or were aborted
+      if (!abortController.signal.aborted && get().isRunning) {
+        logger.info('workflow.end', 'Workflow execution completed successfully');
+      }
+
+      set({ isRunning: false, currentNodeIds: [], _abortController: null });
 
       // Save logs to server
       const session = logger.getCurrentSession();
@@ -2124,8 +2296,18 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
       await logger.endSession();
     } catch (error) {
-      logger.error('workflow.error', 'Workflow execution failed', {}, error instanceof Error ? error : undefined);
-      set({ isRunning: false, currentNodeId: null });
+      // Handle AbortError gracefully (user cancelled)
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        logger.info('workflow.end', 'Workflow execution cancelled by user');
+      } else {
+        logger.error('workflow.error', 'Workflow execution failed', {}, error instanceof Error ? error : undefined);
+        // Show error toast for the failed node
+        useToast.getState().show(
+          `Workflow failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          "error"
+        );
+      }
+      set({ isRunning: false, currentNodeIds: [], _abortController: null });
 
       // Save logs to server (even on error)
       const session = logger.getCurrentSession();
@@ -2145,7 +2327,18 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   },
 
   stopWorkflow: () => {
-    set({ isRunning: false, currentNodeId: null });
+    // Abort any in-flight requests
+    const controller = get()._abortController;
+    if (controller) {
+      controller.abort();
+    }
+    set({ isRunning: false, currentNodeIds: [], _abortController: null });
+  },
+
+  setMaxConcurrentCalls: (value: number) => {
+    const clamped = Math.max(1, Math.min(10, value));
+    saveConcurrencySetting(clamped);
+    set({ maxConcurrentCalls: clamped });
   },
 
   regenerateNode: async (nodeId: string) => {
@@ -2162,13 +2355,13 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       return;
     }
 
+    set({ isRunning: true, currentNodeIds: [nodeId] });
+
     await logger.startSession();
     logger.info('node.execution', 'Regenerating node', {
       nodeId,
       nodeType: node.type,
     });
-
-    set({ isRunning: true, currentNodeId: nodeId });
 
     try {
       if (node.type === "nanoBanana") {
@@ -2192,7 +2385,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             status: "error",
             error: "Missing text input",
           });
-          set({ isRunning: false, currentNodeId: null });
+          set({ isRunning: false, currentNodeIds: [] });
           await logger.endSession();
           return;
         }
@@ -2220,6 +2413,16 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           const falConfig = providerSettingsState.providers.fal;
           if (falConfig?.apiKey) {
             headers["X-Fal-API-Key"] = falConfig.apiKey;
+          }
+        } else if (provider === "kie") {
+          const kieConfig = providerSettingsState.providers.kie;
+          if (kieConfig?.apiKey) {
+            headers["X-Kie-Key"] = kieConfig.apiKey;
+          }
+        } else if (provider === "wavespeed") {
+          const wavespeedConfig = providerSettingsState.providers.wavespeed;
+          if (wavespeedConfig?.apiKey) {
+            headers["X-WaveSpeed-Key"] = wavespeedConfig.apiKey;
           }
         }
 
@@ -2265,7 +2468,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             errorMessage,
           });
           updateNodeData(nodeId, { status: "error", error: errorMessage });
-          set({ isRunning: false, currentNodeId: null });
+          set({ isRunning: false, currentNodeIds: [] });
           await logger.endSession();
           return;
         }
@@ -2351,7 +2554,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             status: "error",
             error: "Missing text input",
           });
-          set({ isRunning: false, currentNodeId: null });
+          set({ isRunning: false, currentNodeIds: [] });
           await logger.endSession();
           return;
         }
@@ -2418,7 +2621,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             errorMessage,
           });
           updateNodeData(nodeId, { status: "error", error: errorMessage });
-          set({ isRunning: false, currentNodeId: null });
+          set({ isRunning: false, currentNodeIds: [] });
           await logger.endSession();
           return;
         }
@@ -2459,7 +2662,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             status: "error",
             error: "Missing text input",
           });
-          set({ isRunning: false, currentNodeId: null });
+          set({ isRunning: false, currentNodeIds: [] });
           await logger.endSession();
           return;
         }
@@ -2472,7 +2675,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             status: "error",
             error: "No model selected",
           });
-          set({ isRunning: false, currentNodeId: null });
+          set({ isRunning: false, currentNodeIds: [] });
           await logger.endSession();
           return;
         }
@@ -2502,6 +2705,16 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           const falConfig = providerSettingsState.providers.fal;
           if (falConfig?.apiKey) {
             headers["X-Fal-API-Key"] = falConfig.apiKey;
+          }
+        } else if (provider === "kie") {
+          const kieConfig = providerSettingsState.providers.kie;
+          if (kieConfig?.apiKey) {
+            headers["X-Kie-Key"] = kieConfig.apiKey;
+          }
+        } else if (provider === "wavespeed") {
+          const wavespeedConfig = providerSettingsState.providers.wavespeed;
+          if (wavespeedConfig?.apiKey) {
+            headers["X-WaveSpeed-Key"] = wavespeedConfig.apiKey;
           }
         }
         logger.info('node.execution', `Calling ${provider} API for video regeneration`, {
@@ -2541,7 +2754,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             errorMessage,
           });
           updateNodeData(nodeId, { status: "error", error: errorMessage });
-          set({ isRunning: false, currentNodeId: null });
+          set({ isRunning: false, currentNodeIds: [] });
           await logger.endSession();
           return;
         }
@@ -2638,7 +2851,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             status: "error",
             error: "No input image connected",
           });
-          set({ isRunning: false, currentNodeId: null });
+          set({ isRunning: false, currentNodeIds: [] });
           await logger.endSession();
           return;
         }
@@ -2651,7 +2864,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             status: "error",
             error: "Node not configured - open settings first",
           });
-          set({ isRunning: false, currentNodeId: null });
+          set({ isRunning: false, currentNodeIds: [] });
           await logger.endSession();
           return;
         }
@@ -2712,7 +2925,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             status: "error",
             error: error instanceof Error ? error.message : "Failed to split image",
           });
-          set({ isRunning: false, currentNodeId: null });
+          set({ isRunning: false, currentNodeIds: [] });
           await logger.endSession();
           return;
         }
@@ -2920,7 +3133,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       }
 
       logger.info('node.execution', 'Node regeneration completed successfully', { nodeId });
-      set({ isRunning: false, currentNodeId: null });
+      set({ isRunning: false, currentNodeIds: [] });
 
       // Save logs to server
       const session = logger.getCurrentSession();
@@ -2944,7 +3157,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         status: "error",
         error: error instanceof Error ? error.message : "Regeneration failed",
       });
-      set({ isRunning: false, currentNodeId: null });
+      set({ isRunning: false, currentNodeIds: [] });
 
       // Save logs to server (even on error)
       const session = logger.getCurrentSession();
@@ -3068,7 +3281,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       edgeStyle: hydratedWorkflow.edgeStyle || "angular",
       groups: hydratedWorkflow.groups || {},
       isRunning: false,
-      currentNodeId: null,
+      currentNodeIds: [],
       // Restore workflow ID and paths from localStorage if available
       workflowId: workflow.id || null,
       workflowName: workflow.name,
@@ -3098,7 +3311,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       edges: [],
       groups: {},
       isRunning: false,
-      currentNodeId: null,
+      currentNodeIds: [],
       // Reset auto-save state when clearing workflow
       workflowId: null,
       workflowName: null,
@@ -3294,7 +3507,6 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             nodes: nodesWithRefs,
             lastSavedAt: timestamp,
             hasUnsavedChanges: false,
-            isSaving: false,
             // Update imageRefBasePath to reflect new save location
             imageRefBasePath: saveDirectoryPath,
           });
@@ -3302,7 +3514,6 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           set({
             lastSavedAt: timestamp,
             hasUnsavedChanges: false,
-            isSaving: false,
             // Update imageRefBasePath to reflect save location
             imageRefBasePath: useExternalImageStorage ? saveDirectoryPath : null,
           });
@@ -3320,12 +3531,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
         return true;
       } else {
-        set({ isSaving: false });
         useToast.getState().show(`Auto-save failed: ${result.error}`, "error");
         return false;
       }
     } catch (error) {
-      set({ isSaving: false });
       useToast
         .getState()
         .show(
@@ -3333,6 +3542,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           "error"
         );
       return false;
+    } finally {
+      set({ isSaving: false });
     }
   },
 
@@ -3576,3 +3787,28 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     return { applied: result.applied, skipped: result.skipped };
   },
 }));
+
+/**
+ * Stable hook for provider API keys.
+ *
+ * Returns individual primitive values for each provider's API key.
+ * Uses shallow equality comparison to prevent re-renders when the
+ * providerSettings object reference changes but the actual key values
+ * don't change.
+ *
+ * This prevents unnecessary re-fetches of /api/models when multiple
+ * node instances subscribe to provider settings.
+ */
+export function useProviderApiKeys() {
+  return useWorkflowStore(
+    useShallow((state) => ({
+      replicateApiKey: state.providerSettings.providers.replicate?.apiKey ?? null,
+      falApiKey: state.providerSettings.providers.fal?.apiKey ?? null,
+      kieApiKey: state.providerSettings.providers.kie?.apiKey ?? null,
+      wavespeedApiKey: state.providerSettings.providers.wavespeed?.apiKey ?? null,
+      // Provider enabled states (for conditional UI)
+      replicateEnabled: state.providerSettings.providers.replicate?.enabled ?? false,
+      kieEnabled: state.providerSettings.providers.kie?.enabled ?? false,
+    }))
+  );
+}

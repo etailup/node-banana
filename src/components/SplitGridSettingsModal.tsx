@@ -10,7 +10,7 @@ interface SplitGridSettingsModalProps {
   onClose: () => void;
 }
 
-const TARGET_COUNT_OPTIONS = [4, 6, 8, 9, 10] as const;
+const TARGET_COUNT_OPTIONS = [4, 5, 6, 8, 9, 10] as const;
 
 const ASPECT_RATIOS: AspectRatio[] = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"];
 const RESOLUTIONS: Resolution[] = ["1K", "2K", "4K"];
@@ -23,6 +23,7 @@ const MODELS: { value: ModelType; label: string }[] = [
 const getGridDimensions = (count: number): { rows: number; cols: number } => {
   const grids: Record<number, { rows: number; cols: number }> = {
     4: { rows: 2, cols: 2 },
+    5: { rows: 1, cols: 5 },  // 1x5 vertical strip (e.g., for A+ content)
     6: { rows: 2, cols: 3 },
     8: { rows: 2, cols: 4 },
     9: { rows: 3, cols: 3 },

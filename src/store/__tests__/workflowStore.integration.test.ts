@@ -907,7 +907,7 @@ describe("workflowStore integration tests", () => {
 
         // Workflow should complete successfully
         expect(useWorkflowStore.getState().isRunning).toBe(false);
-        expect(useWorkflowStore.getState().currentNodeId).toBeNull();
+        expect(useWorkflowStore.getState().currentNodeIds).toEqual([]);
       });
 
       it("should throw error on cycle detection", async () => {
@@ -1228,7 +1228,7 @@ describe("workflowStore integration tests", () => {
         expect(useWorkflowStore.getState().isRunning).toBe(true);
       });
 
-      it("should clear currentNodeId after execution completes", async () => {
+      it("should clear currentNodeIds after execution completes", async () => {
         useWorkflowStore.setState({
           nodes: [
             createTestNode("prompt-1", "prompt", { prompt: "test" }),
@@ -1239,7 +1239,7 @@ describe("workflowStore integration tests", () => {
         const store = useWorkflowStore.getState();
         await store.executeWorkflow();
 
-        expect(useWorkflowStore.getState().currentNodeId).toBeNull();
+        expect(useWorkflowStore.getState().currentNodeIds).toEqual([]);
       });
     });
   });
@@ -1785,7 +1785,7 @@ describe("workflowStore integration tests", () => {
         vi.unstubAllGlobals();
       });
 
-      it("should set currentNodeId to null after completion", async () => {
+      it("should set currentNodeIds to empty after completion", async () => {
         vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
           ok: true,
           json: () => Promise.resolve({ success: true, image: "data:image/png;base64,test" }),
@@ -1809,7 +1809,7 @@ describe("workflowStore integration tests", () => {
         const store = useWorkflowStore.getState();
         await store.executeWorkflow();
 
-        expect(useWorkflowStore.getState().currentNodeId).toBeNull();
+        expect(useWorkflowStore.getState().currentNodeIds).toEqual([]);
 
         vi.unstubAllGlobals();
       });
@@ -1846,7 +1846,7 @@ describe("workflowStore integration tests", () => {
         await store.executeWorkflow("output-1");
 
         expect(useWorkflowStore.getState().isRunning).toBe(false);
-        expect(useWorkflowStore.getState().currentNodeId).toBeNull();
+        expect(useWorkflowStore.getState().currentNodeIds).toEqual([]);
 
         vi.unstubAllGlobals();
       });
@@ -2305,6 +2305,137 @@ describe("workflowStore integration tests", () => {
 
         expect(useWorkflowStore.getState().viewedCommentNodeIds.size).toBe(0);
       });
+    });
+  });
+
+  describe("Race condition prevention", () => {
+    let mockFetch: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ success: true, image: "data:image/png;base64,generated" }),
+        text: () => Promise.resolve(""),
+      });
+      vi.stubGlobal("fetch", mockFetch);
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it("should only execute nodes once when executeWorkflow is called concurrently", async () => {
+      useWorkflowStore.setState({
+        nodes: [
+          createTestNode("prompt-1", "prompt", { prompt: "test" }),
+          createTestNode("nanoBanana-1", "nanoBanana", {
+            aspectRatio: "1:1",
+            resolution: "1K",
+            model: "nano-banana",
+          }),
+        ],
+        edges: [
+          createTestEdge("prompt-1", "nanoBanana-1", "text", "text"),
+        ],
+      });
+
+      const store = useWorkflowStore.getState();
+
+      // Fire two calls back-to-back without awaiting the first
+      const p1 = store.executeWorkflow();
+      const p2 = store.executeWorkflow();
+      await Promise.all([p1, p2]);
+
+      // Only one execution should have reached fetch (one nanoBanana node)
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it("should set isRunning synchronously before any await", async () => {
+      useWorkflowStore.setState({
+        nodes: [
+          createTestNode("prompt-1", "prompt", { prompt: "test" }),
+          createTestNode("nanoBanana-1", "nanoBanana", {
+            aspectRatio: "1:1",
+            resolution: "1K",
+            model: "nano-banana",
+          }),
+        ],
+        edges: [
+          createTestEdge("prompt-1", "nanoBanana-1", "text", "text"),
+        ],
+      });
+
+      const store = useWorkflowStore.getState();
+      expect(useWorkflowStore.getState().isRunning).toBe(false);
+
+      // Call without awaiting — isRunning should be true synchronously
+      const promise = store.executeWorkflow();
+      expect(useWorkflowStore.getState().isRunning).toBe(true);
+
+      await promise;
+    });
+
+    it("should only execute once when regenerateNode is called concurrently", async () => {
+      useWorkflowStore.setState({
+        nodes: [
+          createTestNode("prompt-1", "prompt", { prompt: "test" }),
+          createTestNode("nanoBanana-1", "nanoBanana", {
+            aspectRatio: "1:1",
+            resolution: "1K",
+            model: "nano-banana",
+            inputImages: [],
+            outputImage: "data:image/png;base64,previous",
+          }),
+        ],
+        edges: [
+          createTestEdge("prompt-1", "nanoBanana-1", "text", "text"),
+        ],
+      });
+
+      const store = useWorkflowStore.getState();
+
+      // Fire two calls back-to-back — second should be blocked by isRunning
+      const p1 = store.regenerateNode("nanoBanana-1");
+      const p2 = store.regenerateNode("nanoBanana-1");
+      await Promise.all([p1, p2]);
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it("should execute each node exactly once with multiple disconnected nodes", async () => {
+      useWorkflowStore.setState({
+        nodes: [
+          createTestNode("prompt-1", "prompt", { prompt: "a" }),
+          createTestNode("prompt-2", "prompt", { prompt: "b" }),
+          createTestNode("prompt-3", "prompt", { prompt: "c" }),
+          createTestNode("nanoBanana-1", "nanoBanana", {
+            aspectRatio: "1:1",
+            resolution: "1K",
+            model: "nano-banana",
+          }),
+          createTestNode("nanoBanana-2", "nanoBanana", {
+            aspectRatio: "1:1",
+            resolution: "1K",
+            model: "nano-banana",
+          }),
+          createTestNode("nanoBanana-3", "nanoBanana", {
+            aspectRatio: "1:1",
+            resolution: "1K",
+            model: "nano-banana",
+          }),
+        ],
+        edges: [
+          createTestEdge("prompt-1", "nanoBanana-1", "text", "text"),
+          createTestEdge("prompt-2", "nanoBanana-2", "text", "text"),
+          createTestEdge("prompt-3", "nanoBanana-3", "text", "text"),
+        ],
+      });
+
+      const store = useWorkflowStore.getState();
+      await store.executeWorkflow();
+
+      // Exactly 3 fetch calls — one per nanoBanana node
+      expect(mockFetch).toHaveBeenCalledTimes(3);
     });
   });
 });

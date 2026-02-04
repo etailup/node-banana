@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { ProviderType, ModelInputDef } from "@/types";
 import { ModelParameter } from "@/lib/providers/types";
-import { useWorkflowStore } from "@/store/workflowStore";
+import { useProviderApiKeys } from "@/store/workflowStore";
+import { deduplicatedFetch } from "@/utils/deduplicatedFetch";
 
 interface ModelParametersProps {
   modelId: string;
@@ -31,7 +32,8 @@ export function ModelParameters({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
-  const providerSettings = useWorkflowStore((state) => state.providerSettings);
+  // Use stable selector for API keys to prevent unnecessary re-fetches
+  const { replicateApiKey, falApiKey, kieApiKey, wavespeedApiKey } = useProviderApiKeys();
 
   // Fetch schema when modelId changes
   useEffect(() => {
@@ -47,15 +49,21 @@ export function ModelParameters({
 
       try {
         const headers: HeadersInit = {};
-        if (providerSettings.providers.replicate?.apiKey) {
-          headers["X-Replicate-Key"] = providerSettings.providers.replicate.apiKey;
+        if (replicateApiKey) {
+          headers["X-Replicate-Key"] = replicateApiKey;
         }
-        if (providerSettings.providers.fal?.apiKey) {
-          headers["X-Fal-Key"] = providerSettings.providers.fal.apiKey;
+        if (falApiKey) {
+          headers["X-Fal-Key"] = falApiKey;
+        }
+        if (kieApiKey) {
+          headers["X-Kie-Key"] = kieApiKey;
+        }
+        if (wavespeedApiKey) {
+          headers["X-WaveSpeed-Key"] = wavespeedApiKey;
         }
 
         const encodedModelId = encodeURIComponent(modelId);
-        const response = await fetch(
+        const response = await deduplicatedFetch(
           `/api/models/${encodedModelId}?provider=${provider}`,
           { headers }
         );
@@ -83,7 +91,7 @@ export function ModelParameters({
     };
 
     fetchSchema();
-  }, [modelId, provider, providerSettings, onInputsLoaded]);
+  }, [modelId, provider, replicateApiKey, falApiKey, onInputsLoaded]);
 
   // Notify parent to resize node when schema loads and panel is expanded
   useEffect(() => {
