@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Handle, Position, NodeProps, Node } from "@xyflow/react";
+import { Handle, Position, NodeProps, Node, useReactFlow } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
 import { useCommentNavigation } from "@/hooks/useCommentNavigation";
 import { useWorkflowStore } from "@/store/workflowStore";
@@ -44,19 +44,33 @@ export function EaseCurveNode({ id, data, selected }: NodeProps<EaseCurveNodeTyp
   const isRunning = useWorkflowStore((state) => state.isRunning);
   const edges = useWorkflowStore((state) => state.edges);
   const removeEdge = useWorkflowStore((state) => state.removeEdge);
+  const { setNodes } = useReactFlow();
 
   const [activeTab, setActiveTab] = useState<"editor" | "video">("editor");
   const [showPresets, setShowPresets] = useState(false);
   const presetsRef = useRef<HTMLDivElement>(null);
 
+  // Auto-resize node height when switching tabs
+  const EDITOR_HEIGHT = 480;
+  const VIDEO_HEIGHT = 320;
+  const switchTab = useCallback((tab: "editor" | "video") => {
+    setActiveTab(tab);
+    const height = tab === "editor" ? EDITOR_HEIGHT : VIDEO_HEIGHT;
+    setNodes((nodes) =>
+      nodes.map((n) =>
+        n.id === id ? { ...n, style: { ...n.style, height } } : n
+      )
+    );
+  }, [id, setNodes]);
+
   // Auto-switch to Video tab when processing completes
   const prevOutputRef = useRef(nodeData.outputVideo);
   useEffect(() => {
     if (!prevOutputRef.current && nodeData.outputVideo) {
-      setActiveTab("video");
+      switchTab("video");
     }
     prevOutputRef.current = nodeData.outputVideo;
-  }, [nodeData.outputVideo]);
+  }, [nodeData.outputVideo, switchTab]);
 
   // Check encoder support on mount
   useEffect(() => {
@@ -145,6 +159,13 @@ export function EaseCurveNode({ id, data, selected }: NodeProps<EaseCurveNodeTyp
   }, [edges, id]);
   const isInherited = inheritedEdge !== null;
 
+  // Default to video tab when inherited
+  useEffect(() => {
+    if (isInherited) {
+      switchTab("video");
+    }
+  }, [isInherited, switchTab]);
+
   const handleBreakInheritance = useCallback(() => {
     if (inheritedEdge) {
       removeEdge(inheritedEdge.id);
@@ -202,7 +223,7 @@ export function EaseCurveNode({ id, data, selected }: NodeProps<EaseCurveNodeTyp
         Video Out
       </div>
 
-      {/* Ease In (target, left, 75%) */}
+      {/* Settings In (target, left, 75%) */}
       <Handle
         type="target"
         position={Position.Left}
@@ -215,10 +236,10 @@ export function EaseCurveNode({ id, data, selected }: NodeProps<EaseCurveNodeTyp
         className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none text-right"
         style={{ right: "calc(100% + 8px)", top: "calc(75% - 7px)", color: "rgb(190, 242, 100)" }}
       >
-        Ease In
+        Settings
       </div>
 
-      {/* Ease Out (source, right, 75%) */}
+      {/* Settings Out (source, right, 75%) */}
       <Handle
         type="source"
         position={Position.Right}
@@ -231,7 +252,7 @@ export function EaseCurveNode({ id, data, selected }: NodeProps<EaseCurveNodeTyp
         className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none"
         style={{ left: "calc(100% + 8px)", top: "calc(75% - 7px)", color: "rgb(190, 242, 100)" }}
       >
-        Ease Out
+        Settings
       </div>
     </>
   );
@@ -315,7 +336,7 @@ export function EaseCurveNode({ id, data, selected }: NodeProps<EaseCurveNodeTyp
       hasError={nodeData.status === "error"}
       commentNavigation={commentNavigation ?? undefined}
       minWidth={340}
-      minHeight={480}
+      minHeight={VIDEO_HEIGHT}
     >
       {renderHandles()}
 
@@ -328,7 +349,7 @@ export function EaseCurveNode({ id, data, selected }: NodeProps<EaseCurveNodeTyp
                 ? "text-lime-300 border-b-2 border-lime-300"
                 : "text-neutral-400 hover:text-neutral-300"
             }`}
-            onClick={() => setActiveTab("editor")}
+            onClick={() => switchTab("editor")}
           >
             Editor
           </button>
@@ -338,7 +359,7 @@ export function EaseCurveNode({ id, data, selected }: NodeProps<EaseCurveNodeTyp
                 ? "text-lime-300 border-b-2 border-lime-300"
                 : "text-neutral-400 hover:text-neutral-300"
             }`}
-            onClick={() => setActiveTab("video")}
+            onClick={() => switchTab("video")}
           >
             Video
           </button>
