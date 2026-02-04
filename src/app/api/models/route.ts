@@ -13,7 +13,7 @@
  *
  * Headers:
  *   - X-Replicate-Key: Replicate API key
- *   - X-Fal-Key: fal.ai API key (optional, works without but rate limited)
+ *   - X-Fal-Key: fal.ai API key (required for fal.ai models)
  *
  * Response:
  *   {
@@ -357,18 +357,18 @@ export async function GET(
       includeGemini = true;
     } else if (providerFilter === "replicate" && replicateKey) {
       providersToFetch.push("replicate");
-    } else if (providerFilter === "fal") {
-      // fal.ai works without key
+    } else if (providerFilter === "fal" && falKey) {
       providersToFetch.push("fal");
     }
   } else {
-    // Include all providers
+    // Include all providers that have keys configured
     includeGemini = true; // Gemini always available
     if (replicateKey) {
       providersToFetch.push("replicate");
     }
-    // fal.ai always included (works without key)
-    providersToFetch.push("fal");
+    if (falKey) {
+      providersToFetch.push("fal");
+    }
   }
 
   // Gemini is always available, so we don't fail if no external providers

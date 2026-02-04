@@ -13,6 +13,7 @@ import {
   WorkflowEdge,
   NodeType,
   ImageInputNodeData,
+  AudioInputNodeData,
   AnnotationNodeData,
   PromptNodeData,
   PromptConstructorNodeData,
@@ -29,6 +30,8 @@ import {
   ProviderSettings,
   RecentModel,
   OutputGalleryNodeData,
+  VideoStitchNodeData,
+  EaseCurveNodeData,
 } from "@/types";
 import { useToast } from "@/components/Toast";
 import { calculateGenerationCost } from "@/utils/costCalculator";
@@ -135,7 +138,7 @@ interface WorkflowStore {
 
   // Helpers
   getNodeById: (id: string) => WorkflowNode | undefined;
-  getConnectedInputs: (nodeId: string) => { images: string[]; videos: string[]; text: string | null; dynamicInputs: Record<string, string | string[]> };
+  getConnectedInputs: (nodeId: string) => { images: string[]; videos: string[]; audio: string[]; text: string | null; dynamicInputs: Record<string, string | string[]>; easeCurve: { bezierHandles: [number, number, number, number]; easingPreset: string | null } | null };
   validateWorkflow: () => { valid: boolean; errors: string[] };
 
   // Global Image History
@@ -750,6 +753,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     const { edges, nodes } = get();
     const images: string[] = [];
     const videos: string[] = [];
+    const audio: string[] = [];
     let text: string | null = null;
     const dynamicInputs: Record<string, string | string[]> = {};
 
@@ -799,9 +803,11 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     };
 
     // Helper to extract output from source node
-    const getSourceOutput = (sourceNode: WorkflowNode): { type: "image" | "text" | "video"; value: string | null } => {
+    const getSourceOutput = (sourceNode: WorkflowNode): { type: "image" | "text" | "video" | "audio"; value: string | null } => {
       if (sourceNode.type === "imageInput") {
         return { type: "image", value: (sourceNode.data as ImageInputNodeData).image };
+      } else if (sourceNode.type === "audioInput") {
+        return { type: "audio", value: (sourceNode.data as AudioInputNodeData).audioFile };
       } else if (sourceNode.type === "annotation") {
         return { type: "image", value: (sourceNode.data as AnnotationNodeData).outputImage };
       } else if (sourceNode.type === "nanoBanana") {
@@ -809,6 +815,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       } else if (sourceNode.type === "generateVideo") {
         // Return video type - generateVideo and output nodes handle this appropriately
         return { type: "video", value: (sourceNode.data as GenerateVideoNodeData).outputVideo };
+      } else if (sourceNode.type === "videoStitch") {
+        return { type: "video", value: (sourceNode.data as VideoStitchNodeData).outputVideo };
+      } else if (sourceNode.type === "easeCurve") {
+        return { type: "video", value: (sourceNode.data as EaseCurveNodeData).outputVideo };
       } else if (sourceNode.type === "prompt") {
         return { type: "text", value: (sourceNode.data as PromptNodeData).prompt };
       } else if (sourceNode.type === "promptConstructor") {
@@ -849,6 +859,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         // This preserves type information from the source node
         if (type === "video") {
           videos.push(value);
+        } else if (type === "audio") {
+          audio.push(value);
         } else if (type === "text" || isTextHandle(handleId)) {
           text = value;
         } else if (isImageHandle(handleId) || !handleId) {
@@ -856,7 +868,23 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         }
       });
 
-    return { images, videos, text, dynamicInputs };
+    // Extract easeCurve data from parent EaseCurve node
+    let easeCurve: { bezierHandles: [number, number, number, number]; easingPreset: string | null } | null = null;
+    const easeCurveEdge = edges.find(
+      (e) => e.target === nodeId && e.targetHandle === "easeCurve"
+    );
+    if (easeCurveEdge) {
+      const sourceNode = nodes.find((n) => n.id === easeCurveEdge.source);
+      if (sourceNode?.type === "easeCurve") {
+        const sourceData = sourceNode.data as EaseCurveNodeData;
+        easeCurve = {
+          bezierHandles: sourceData.bezierHandles,
+          easingPreset: sourceData.easingPreset,
+        };
+      }
+    }
+
+    return { images, videos, audio, text, dynamicInputs, easeCurve };
   },
 
   validateWorkflow: () => {
@@ -1038,6 +1066,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         switch (node.type) {
           case "imageInput":
             // Nothing to execute, data is already set
+            break;
+
+          case "audioInput":
+            // Audio input is a data source - no execution needed
             break;
 
           case "annotation": {
@@ -1863,6 +1895,214 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             });
             break;
           }
+
+          case "videoStitch": {
+            const nodeData = node.data as VideoStitchNodeData;
+
+            // Check encoder support
+            if (nodeData.encoderSupported === false) {
+              updateNodeData(node.id, {
+                status: "error",
+                error: "Browser does not support video encoding",
+                progress: 0,
+              });
+              break;
+            }
+
+            updateNodeData(node.id, { status: "loading", progress: 0, error: null });
+
+            try {
+              const inputs = getConnectedInputs(node.id);
+
+              if (inputs.videos.length < 2) {
+                updateNodeData(node.id, {
+                  status: "error",
+                  error: "Need at least 2 video clips to stitch",
+                  progress: 0,
+                });
+                break;
+              }
+
+              // Convert video data/blob URLs to Blobs
+              const videoBlobs = await Promise.all(
+                inputs.videos.map((v) => fetch(v).then((r) => r.blob()))
+              );
+
+              // Prepare audio if connected
+              let audioData = null;
+              if (inputs.audio.length > 0 && inputs.audio[0]) {
+                const { prepareAudioAsync } = await import('@/hooks/useAudioMixing');
+                const audioUrl = inputs.audio[0];
+                const audioResponse = await fetch(audioUrl);
+                const rawBlob = await audioResponse.blob();
+                // Ensure the blob has the correct MIME type for MediaBunny format detection
+                // Data URLs from AudioInput preserve the original MIME type, but fetch() may lose it
+                const audioMime = rawBlob.type || (audioUrl.startsWith('data:') ? audioUrl.split(';')[0].split(':')[1] : 'audio/mpeg');
+                const audioBlob = rawBlob.type ? rawBlob : new Blob([rawBlob], { type: audioMime });
+                audioData = await prepareAudioAsync(audioBlob, 0);
+              }
+
+              // Stitch videos
+              const { stitchVideosAsync } = await import('@/hooks/useStitchVideos');
+              const outputBlob = await stitchVideosAsync(
+                videoBlobs,
+                audioData,
+                (progress) => {
+                  updateNodeData(node.id, { progress: progress.progress });
+                }
+              );
+
+              // Store output - blob URL for large files, data URL for small
+              let outputVideo: string;
+              if (outputBlob.size > 20 * 1024 * 1024) {
+                // Large file: use blob URL
+                outputVideo = URL.createObjectURL(outputBlob);
+              } else {
+                // Small file: convert to data URL for workflow saving
+                const reader = new FileReader();
+                outputVideo = await new Promise<string>((resolve) => {
+                  reader.onload = () => resolve(reader.result as string);
+                  reader.readAsDataURL(outputBlob);
+                });
+              }
+
+              updateNodeData(node.id, {
+                outputVideo,
+                status: "complete",
+                progress: 100,
+                error: null,
+              });
+            } catch (err) {
+              const errorMessage = err instanceof Error ? err.message : "Stitch failed";
+              updateNodeData(node.id, {
+                status: "error",
+                error: errorMessage,
+                progress: 0,
+              });
+            }
+            break;
+          }
+
+          case "easeCurve": {
+            const nodeData = node.data as EaseCurveNodeData;
+
+            // Check encoder support
+            if (nodeData.encoderSupported === false) {
+              updateNodeData(node.id, {
+                status: "error",
+                error: "Browser does not support video encoding",
+                progress: 0,
+              });
+              break;
+            }
+
+            updateNodeData(node.id, { status: "loading", progress: 0, error: null });
+
+            try {
+              const inputs = getConnectedInputs(node.id);
+
+              // Propagate parent easeCurve settings if inherited
+              let activeBezierHandles = nodeData.bezierHandles;
+              let activeEasingPreset = nodeData.easingPreset;
+              if (inputs.easeCurve) {
+                activeBezierHandles = inputs.easeCurve.bezierHandles;
+                activeEasingPreset = inputs.easeCurve.easingPreset;
+                const easeCurveSourceId = edges.filter(
+                  (e) => e.target === node.id && e.targetHandle === "easeCurve"
+                )[0]?.source ?? null;
+                updateNodeData(node.id, {
+                  bezierHandles: activeBezierHandles,
+                  easingPreset: activeEasingPreset,
+                  inheritedFrom: easeCurveSourceId,
+                });
+              }
+
+              if (inputs.videos.length === 0) {
+                updateNodeData(node.id, {
+                  status: "error",
+                  error: "Connect a video input to apply ease curve",
+                  progress: 0,
+                });
+                break;
+              }
+
+              // Get the first connected video (EaseCurve takes single video input)
+              const videoUrl = inputs.videos[0];
+              const videoBlob = await fetch(videoUrl).then((r) => r.blob());
+
+              // Get video duration for warpTime input
+              const videoDuration = await new Promise<number>((resolve) => {
+                const video = document.createElement("video");
+                video.preload = "metadata";
+                video.onloadedmetadata = () => {
+                  resolve(video.duration);
+                  URL.revokeObjectURL(video.src);
+                };
+                video.onerror = () => {
+                  resolve(5); // Fallback to 5 seconds
+                  URL.revokeObjectURL(video.src);
+                };
+                video.src = URL.createObjectURL(videoBlob);
+              });
+
+              // Determine easing function: use named preset if set, otherwise create from Bezier handles
+              let easingFunction: string | ((t: number) => number);
+              if (activeEasingPreset) {
+                easingFunction = activeEasingPreset;
+              } else {
+                const { createBezierEasing } = await import('@/lib/easing-functions');
+                easingFunction = createBezierEasing(
+                  activeBezierHandles[0],
+                  activeBezierHandles[1],
+                  activeBezierHandles[2],
+                  activeBezierHandles[3]
+                );
+              }
+
+              // Apply speed curve
+              const { applySpeedCurveAsync } = await import('@/hooks/useApplySpeedCurve');
+              const outputBlob = await applySpeedCurveAsync(
+                videoBlob,
+                videoDuration,
+                nodeData.outputDuration,
+                (progress) => {
+                  updateNodeData(node.id, { progress: progress.progress });
+                },
+                easingFunction
+              );
+
+              if (!outputBlob) {
+                throw new Error("Speed curve processing returned no output");
+              }
+
+              // Store output - blob URL for large files, data URL for small
+              let outputVideo: string;
+              if (outputBlob.size > 20 * 1024 * 1024) {
+                outputVideo = URL.createObjectURL(outputBlob);
+              } else {
+                const reader = new FileReader();
+                outputVideo = await new Promise<string>((resolve) => {
+                  reader.onload = () => resolve(reader.result as string);
+                  reader.readAsDataURL(outputBlob);
+                });
+              }
+
+              updateNodeData(node.id, {
+                outputVideo,
+                status: "complete",
+                progress: 100,
+                error: null,
+              });
+            } catch (err) {
+              const errorMessage = err instanceof Error ? err.message : "Ease curve processing failed";
+              updateNodeData(node.id, {
+                status: "error",
+                error: errorMessage,
+                progress: 0,
+              });
+            }
+            break;
+          }
         }
       }
 
@@ -2476,6 +2716,207 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           await logger.endSession();
           return;
         }
+      } else if (node.type === "videoStitch") {
+        const nodeData = node.data as VideoStitchNodeData;
+
+        if (nodeData.encoderSupported === false) {
+          updateNodeData(nodeId, {
+            status: "error",
+            error: "Browser does not support video encoding",
+            progress: 0,
+          });
+          set({ isRunning: false, currentNodeId: null });
+          await logger.endSession();
+          return;
+        }
+
+        updateNodeData(nodeId, { status: "loading", progress: 0, error: null });
+
+        try {
+          const inputs = getConnectedInputs(nodeId);
+
+          if (inputs.videos.length < 2) {
+            updateNodeData(nodeId, {
+              status: "error",
+              error: "Need at least 2 video clips to stitch",
+              progress: 0,
+            });
+            set({ isRunning: false, currentNodeId: null });
+            await logger.endSession();
+            return;
+          }
+
+          const videoBlobs = await Promise.all(
+            inputs.videos.map((v) => fetch(v).then((r) => r.blob()))
+          );
+
+          let audioData = null;
+          if (inputs.audio.length > 0 && inputs.audio[0]) {
+            const { prepareAudioAsync } = await import('@/hooks/useAudioMixing');
+            const audioUrl = inputs.audio[0];
+            const audioResponse = await fetch(audioUrl);
+            const rawBlob = await audioResponse.blob();
+            // Ensure the blob has the correct MIME type for MediaBunny format detection
+            const audioMime = rawBlob.type || (audioUrl.startsWith('data:') ? audioUrl.split(';')[0].split(':')[1] : 'audio/mpeg');
+            const audioBlob = rawBlob.type ? rawBlob : new Blob([rawBlob], { type: audioMime });
+            audioData = await prepareAudioAsync(audioBlob, 0);
+          }
+
+          const { stitchVideosAsync } = await import('@/hooks/useStitchVideos');
+          const outputBlob = await stitchVideosAsync(
+            videoBlobs,
+            audioData,
+            (progress) => {
+              updateNodeData(nodeId, { progress: progress.progress });
+            }
+          );
+
+          let outputVideo: string;
+          if (outputBlob.size > 20 * 1024 * 1024) {
+            outputVideo = URL.createObjectURL(outputBlob);
+          } else {
+            const reader = new FileReader();
+            outputVideo = await new Promise<string>((resolve) => {
+              reader.onload = () => resolve(reader.result as string);
+              reader.readAsDataURL(outputBlob);
+            });
+          }
+
+          updateNodeData(nodeId, {
+            outputVideo,
+            status: "complete",
+            progress: 100,
+            error: null,
+          });
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : "Stitch failed";
+          updateNodeData(nodeId, {
+            status: "error",
+            error: errorMessage,
+            progress: 0,
+          });
+        }
+      } else if (node.type === "easeCurve") {
+        const nodeData = node.data as EaseCurveNodeData;
+
+        if (nodeData.encoderSupported === false) {
+          updateNodeData(nodeId, {
+            status: "error",
+            error: "Browser does not support video encoding",
+            progress: 0,
+          });
+          set({ isRunning: false, currentNodeId: null });
+          await logger.endSession();
+          return;
+        }
+
+        updateNodeData(nodeId, { status: "loading", progress: 0, error: null });
+
+        try {
+          const inputs = getConnectedInputs(nodeId);
+
+          // Propagate parent easeCurve settings if inherited
+          let activeBezierHandles = nodeData.bezierHandles;
+          let activeEasingPreset = nodeData.easingPreset;
+          if (inputs.easeCurve) {
+            activeBezierHandles = inputs.easeCurve.bezierHandles;
+            activeEasingPreset = inputs.easeCurve.easingPreset;
+            const { edges } = get();
+            const easeCurveSourceId = edges.filter(
+              (e) => e.target === nodeId && e.targetHandle === "easeCurve"
+            )[0]?.source ?? null;
+            updateNodeData(nodeId, {
+              bezierHandles: activeBezierHandles,
+              easingPreset: activeEasingPreset,
+              inheritedFrom: easeCurveSourceId,
+            });
+          }
+
+          if (inputs.videos.length === 0) {
+            updateNodeData(nodeId, {
+              status: "error",
+              error: "Connect a video input to apply ease curve",
+              progress: 0,
+            });
+            set({ isRunning: false, currentNodeId: null });
+            await logger.endSession();
+            return;
+          }
+
+          const videoUrl = inputs.videos[0];
+          const videoBlob = await fetch(videoUrl).then((r) => r.blob());
+
+          const videoDuration = await new Promise<number>((resolve) => {
+            const video = document.createElement("video");
+            video.preload = "metadata";
+            video.onloadedmetadata = () => {
+              resolve(video.duration);
+              URL.revokeObjectURL(video.src);
+            };
+            video.onerror = () => {
+              resolve(5);
+              URL.revokeObjectURL(video.src);
+            };
+            video.src = URL.createObjectURL(videoBlob);
+          });
+
+          let easingFunction: string | ((t: number) => number);
+          if (activeEasingPreset) {
+            easingFunction = activeEasingPreset;
+          } else {
+            const { createBezierEasing } = await import('@/lib/easing-functions');
+            easingFunction = createBezierEasing(
+              activeBezierHandles[0],
+              activeBezierHandles[1],
+              activeBezierHandles[2],
+              activeBezierHandles[3]
+            );
+          }
+
+          const { applySpeedCurveAsync } = await import('@/hooks/useApplySpeedCurve');
+          const outputBlob = await applySpeedCurveAsync(
+            videoBlob,
+            videoDuration,
+            nodeData.outputDuration,
+            (progress) => {
+              updateNodeData(nodeId, { progress: progress.progress });
+            },
+            easingFunction
+          );
+
+          if (!outputBlob) {
+            throw new Error("Speed curve processing returned no output");
+          }
+
+          let outputVideo: string;
+          if (outputBlob.size > 20 * 1024 * 1024) {
+            outputVideo = URL.createObjectURL(outputBlob);
+          } else {
+            const reader = new FileReader();
+            outputVideo = await new Promise<string>((resolve) => {
+              reader.onload = () => resolve(reader.result as string);
+              reader.readAsDataURL(outputBlob);
+            });
+          }
+
+          updateNodeData(nodeId, {
+            outputVideo,
+            status: "complete",
+            progress: 100,
+            error: null,
+          });
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : "Ease curve processing failed";
+          updateNodeData(nodeId, {
+            status: "error",
+            error: errorMessage,
+            progress: 0,
+          });
+        }
+
+        set({ isRunning: false, currentNodeId: null });
+        await logger.endSession();
+        return;
       }
 
       logger.info('node.execution', 'Node regeneration completed successfully', { nodeId });

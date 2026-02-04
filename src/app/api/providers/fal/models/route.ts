@@ -108,10 +108,21 @@ type ModelsResponse = ModelsSuccessResponse | ModelsErrorResponse;
 export async function GET(
   request: NextRequest
 ): Promise<NextResponse<ModelsResponse>> {
-  // Get optional API key from header only (never from query params to avoid credential leakage)
+  // Get API key from header or env (never from query params to avoid credential leakage)
   const apiKey =
     request.headers.get("X-API-Key") ||
-    request.headers.get("Authorization")?.replace(/^Key\s+/i, "");
+    request.headers.get("Authorization")?.replace(/^Key\s+/i, "") ||
+    process.env.FAL_API_KEY;
+
+  if (!apiKey) {
+    return NextResponse.json<ModelsErrorResponse>(
+      {
+        success: false,
+        error: "fal.ai API key not configured. Add FAL_API_KEY to .env.local or configure in Settings.",
+      },
+      { status: 401 }
+    );
+  }
 
   const searchQuery = request.nextUrl.searchParams.get("search");
 

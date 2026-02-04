@@ -90,6 +90,8 @@ function createFalResponse(models: Array<{ id: string; name: string; category: s
 describe("/api/models route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset fetch mock fully (clears mockResolvedValueOnce queue to prevent leaks)
+    mockFetch.mockReset();
     // Reset env to original
     process.env = { ...originalEnv };
     // Clear API keys
@@ -108,7 +110,7 @@ describe("/api/models route", () => {
 
   describe("basic functionality", () => {
     it("GET: should return models from fal.ai when no Replicate key", async () => {
-      // fal.ai works without key
+      process.env.FAL_API_KEY = "test-fal-key";
       mockFetch.mockResolvedValueOnce(
         createFalResponse([
           { id: "fal-ai/flux", name: "Flux", category: "text-to-image" },
@@ -256,6 +258,7 @@ describe("/api/models route", () => {
 
     it("GET: should return cached=true when all from cache", async () => {
       process.env.REPLICATE_API_KEY = "test-replicate-key";
+      process.env.FAL_API_KEY = "test-fal-key";
 
       // Set up cache hits for both providers
       mockGetCachedModels.mockImplementation((key: string) => {
@@ -282,6 +285,7 @@ describe("/api/models route", () => {
     });
 
     it("GET: should return cached=false when fresh fetch", async () => {
+      process.env.FAL_API_KEY = "test-fal-key";
       // No cache hits
       mockGetCachedModels.mockReturnValue(null);
 
@@ -416,6 +420,7 @@ describe("/api/models route", () => {
   describe("error handling", () => {
     it("GET: should handle partial provider failures gracefully", async () => {
       process.env.REPLICATE_API_KEY = "test-key";
+      process.env.FAL_API_KEY = "test-fal-key";
 
       // Mock fetch to handle both providers
       mockFetch.mockImplementation((url: string) => {
@@ -449,6 +454,7 @@ describe("/api/models route", () => {
     });
 
     it("GET: should return 500 when all requested providers fail", async () => {
+      process.env.FAL_API_KEY = "test-fal-key";
       // Filter to only fal provider (exclude gemini which is always available)
       // When fal fails and it's the only provider requested, should get 500
       mockFetch.mockImplementation((url: string) => {
@@ -472,6 +478,7 @@ describe("/api/models route", () => {
   describe("pagination", () => {
     it("GET: should paginate through Replicate results (max 15 pages)", async () => {
       process.env.REPLICATE_API_KEY = "test-key";
+      process.env.FAL_API_KEY = "test-fal-key";
 
       // Track Replicate page fetches
       let replicatePageCount = 0;
@@ -523,7 +530,7 @@ describe("/api/models route", () => {
     });
 
     it("GET: should paginate through fal.ai results (max 15 pages)", async () => {
-      // Only fal.ai (no Replicate key)
+      process.env.FAL_API_KEY = "test-fal-key";
       let falPageCount = 0;
 
       mockFetch.mockImplementation((url: string) => {
@@ -657,7 +664,7 @@ describe("/api/models route", () => {
 
   describe("fal.ai category mapping", () => {
     it("GET: should map fal.ai categories to ModelCapability", async () => {
-      // Filter to only fal provider so we can test without Replicate
+      process.env.FAL_API_KEY = "test-fal-key";
       mockFetch.mockImplementation((url: string) => {
         if (url.includes("fal.ai")) {
           return Promise.resolve(
@@ -686,6 +693,7 @@ describe("/api/models route", () => {
     });
 
     it("GET: should filter out non-relevant fal.ai categories", async () => {
+      process.env.FAL_API_KEY = "test-fal-key";
       mockFetch.mockImplementation((url: string) => {
         if (url.includes("fal.ai")) {
           return Promise.resolve(
@@ -713,6 +721,7 @@ describe("/api/models route", () => {
   describe("sorting", () => {
     it("GET: should sort models by provider, then by name", async () => {
       process.env.REPLICATE_API_KEY = "test-key";
+      process.env.FAL_API_KEY = "test-fal-key";
 
       mockFetch.mockImplementation((url: string) => {
         if (url.includes("replicate.com")) {
