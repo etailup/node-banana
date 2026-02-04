@@ -31,6 +31,7 @@ import {
   RecentModel,
   OutputGalleryNodeData,
   VideoStitchNodeData,
+  EaseCurveNodeData,
 } from "@/types";
 import { useToast } from "@/components/Toast";
 import { calculateGenerationCost } from "@/utils/costCalculator";
@@ -816,6 +817,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         return { type: "video", value: (sourceNode.data as GenerateVideoNodeData).outputVideo };
       } else if (sourceNode.type === "videoStitch") {
         return { type: "video", value: (sourceNode.data as VideoStitchNodeData).outputVideo };
+      } else if (sourceNode.type === "easeCurve") {
+        return { type: "video", value: (sourceNode.data as EaseCurveNodeData).outputVideo };
       } else if (sourceNode.type === "prompt") {
         return { type: "text", value: (sourceNode.data as PromptNodeData).prompt };
       } else if (sourceNode.type === "promptConstructor") {
@@ -1963,6 +1966,111 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             }
             break;
           }
+
+          case "easeCurve": {
+            const nodeData = node.data as EaseCurveNodeData;
+
+            // Check encoder support
+            if (nodeData.encoderSupported === false) {
+              updateNodeData(node.id, {
+                status: "error",
+                error: "Browser does not support video encoding",
+                progress: 0,
+              });
+              break;
+            }
+
+            updateNodeData(node.id, { status: "loading", progress: 0, error: null });
+
+            try {
+              const inputs = getConnectedInputs(node.id);
+
+              if (inputs.videos.length === 0) {
+                updateNodeData(node.id, {
+                  status: "error",
+                  error: "Connect a video input to apply ease curve",
+                  progress: 0,
+                });
+                break;
+              }
+
+              // Get the first connected video (EaseCurve takes single video input)
+              const videoUrl = inputs.videos[0];
+              const videoBlob = await fetch(videoUrl).then((r) => r.blob());
+
+              // Get video duration for warpTime input
+              const videoDuration = await new Promise<number>((resolve) => {
+                const video = document.createElement("video");
+                video.preload = "metadata";
+                video.onloadedmetadata = () => {
+                  resolve(video.duration);
+                  URL.revokeObjectURL(video.src);
+                };
+                video.onerror = () => {
+                  resolve(5); // Fallback to 5 seconds
+                  URL.revokeObjectURL(video.src);
+                };
+                video.src = URL.createObjectURL(videoBlob);
+              });
+
+              // Determine easing function: use named preset if set, otherwise create from Bezier handles
+              let easingFunction: string | ((t: number) => number);
+              if (nodeData.easingPreset) {
+                easingFunction = nodeData.easingPreset;
+              } else {
+                const { createBezierEasing } = await import('@/lib/easing-functions');
+                easingFunction = createBezierEasing(
+                  nodeData.bezierHandles[0],
+                  nodeData.bezierHandles[1],
+                  nodeData.bezierHandles[2],
+                  nodeData.bezierHandles[3]
+                );
+              }
+
+              // Apply speed curve
+              const { applySpeedCurveAsync } = await import('@/hooks/useApplySpeedCurve');
+              const outputBlob = await applySpeedCurveAsync(
+                videoBlob,
+                videoDuration,
+                nodeData.outputDuration,
+                (progress) => {
+                  updateNodeData(node.id, { progress: progress.progress });
+                },
+                easingFunction
+              );
+
+              if (!outputBlob) {
+                throw new Error("Speed curve processing returned no output");
+              }
+
+              // Store output - blob URL for large files, data URL for small
+              let outputVideo: string;
+              if (outputBlob.size > 20 * 1024 * 1024) {
+                outputVideo = URL.createObjectURL(outputBlob);
+              } else {
+                const reader = new FileReader();
+                outputVideo = await new Promise<string>((resolve) => {
+                  reader.onload = () => resolve(reader.result as string);
+                  reader.readAsDataURL(outputBlob);
+                });
+              }
+
+              updateNodeData(node.id, {
+                outputVideo,
+                status: "complete",
+                progress: 100,
+                error: null,
+              });
+            } catch (err) {
+              const errorMessage = err instanceof Error ? err.message : "Ease curve processing failed";
+              updateNodeData(node.id, {
+                status: "error",
+                error: errorMessage,
+                progress: 0,
+              });
+            }
+            break;
+          }
         }
       }
 
@@ -2656,6 +2764,110 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             progress: 0,
           });
         }
+      } else if (node.type === "easeCurve") {
+        const nodeData = node.data as EaseCurveNodeData;
+
+        if (nodeData.encoderSupported === false) {
+          updateNodeData(nodeId, {
+            status: "error",
+            error: "Browser does not support video encoding",
+            progress: 0,
+          });
+          set({ isRunning: false, currentNodeId: null });
+          await logger.endSession();
+          return;
+        }
+
+        updateNodeData(nodeId, { status: "loading", progress: 0, error: null });
+
+        try {
+          const inputs = getConnectedInputs(nodeId);
+
+          if (inputs.videos.length === 0) {
+            updateNodeData(nodeId, {
+              status: "error",
+              error: "Connect a video input to apply ease curve",
+              progress: 0,
+            });
+            set({ isRunning: false, currentNodeId: null });
+            await logger.endSession();
+            return;
+          }
+
+          const videoUrl = inputs.videos[0];
+          const videoBlob = await fetch(videoUrl).then((r) => r.blob());
+
+          const videoDuration = await new Promise<number>((resolve) => {
+            const video = document.createElement("video");
+            video.preload = "metadata";
+            video.onloadedmetadata = () => {
+              resolve(video.duration);
+              URL.revokeObjectURL(video.src);
+            };
+            video.onerror = () => {
+              resolve(5);
+              URL.revokeObjectURL(video.src);
+            };
+            video.src = URL.createObjectURL(videoBlob);
+          });
+
+          let easingFunction: string | ((t: number) => number);
+          if (nodeData.easingPreset) {
+            easingFunction = nodeData.easingPreset;
+          } else {
+            const { createBezierEasing } = await import('@/lib/easing-functions');
+            easingFunction = createBezierEasing(
+              nodeData.bezierHandles[0],
+              nodeData.bezierHandles[1],
+              nodeData.bezierHandles[2],
+              nodeData.bezierHandles[3]
+            );
+          }
+
+          const { applySpeedCurveAsync } = await import('@/hooks/useApplySpeedCurve');
+          const outputBlob = await applySpeedCurveAsync(
+            videoBlob,
+            videoDuration,
+            nodeData.outputDuration,
+            (progress) => {
+              updateNodeData(nodeId, { progress: progress.progress });
+            },
+            easingFunction
+          );
+
+          if (!outputBlob) {
+            throw new Error("Speed curve processing returned no output");
+          }
+
+          let outputVideo: string;
+          if (outputBlob.size > 20 * 1024 * 1024) {
+            outputVideo = URL.createObjectURL(outputBlob);
+          } else {
+            const reader = new FileReader();
+            outputVideo = await new Promise<string>((resolve) => {
+              reader.onload = () => resolve(reader.result as string);
+              reader.readAsDataURL(outputBlob);
+            });
+          }
+
+          updateNodeData(nodeId, {
+            outputVideo,
+            status: "complete",
+            progress: 100,
+            error: null,
+          });
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : "Ease curve processing failed";
+          updateNodeData(nodeId, {
+            status: "error",
+            error: errorMessage,
+            progress: 0,
+          });
+        }
+
+        set({ isRunning: false, currentNodeId: null });
+        await logger.endSession();
+        return;
       }
 
       logger.info('node.execution', 'Node regeneration completed successfully', { nodeId });
