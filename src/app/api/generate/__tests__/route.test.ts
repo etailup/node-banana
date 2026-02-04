@@ -878,7 +878,7 @@ describe("/api/generate route", () => {
 
     beforeEach(() => {
       global.fetch = mockFetch;
-      mockFetch.mockClear();
+      mockFetch.mockReset();
     });
 
     afterEach(() => {
@@ -1617,7 +1617,7 @@ describe("/api/generate route", () => {
 
     beforeEach(() => {
       global.fetch = mockFetch;
-      mockFetch.mockClear();
+      mockFetch.mockReset();
     });
 
     afterEach(() => {
@@ -1720,29 +1720,8 @@ describe("/api/generate route", () => {
       expect(data.contentType).toBe("video");
     });
 
-    it("should work without API key (fal.ai allows unauthenticated)", async () => {
+    it("should return 401 without API key", async () => {
       delete process.env.FAL_API_KEY;
-
-      // Schema fetch (for input mapping when no dynamicInputs)
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ models: [] }),
-      });
-
-      // fal.run API call
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          images: [{ url: "https://fal.media/output.png" }],
-        }),
-      });
-
-      // Fetch output media
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        headers: new Headers({ "content-type": "image/png" }),
-        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
-      });
 
       const request = createMockPostRequest({
         prompt: "A beautiful landscape",
@@ -1756,12 +1735,9 @@ describe("/api/generate route", () => {
       const response = await POST(request);
       const data = await response.json();
 
-      expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
-
-      // Verify fal.run request was made without Authorization header (2nd call)
-      const falRunCall = mockFetch.mock.calls[1];
-      expect(falRunCall[1].headers).not.toHaveProperty("Authorization");
+      expect(response.status).toBe(401);
+      expect(data.success).toBe(false);
+      expect(data.error).toContain("API key not configured");
     });
 
     it("should handle rate limit (429) with API key", async () => {
@@ -1799,21 +1775,8 @@ describe("/api/generate route", () => {
       expect(data.error).toContain("Try again in a moment");
     });
 
-    it("should handle rate limit (429) without API key", async () => {
+    it("should return 401 for rate limit scenario without API key", async () => {
       delete process.env.FAL_API_KEY;
-
-      // Schema fetch (for input mapping when no dynamicInputs)
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ models: [] }),
-      });
-
-      // fal.run returns 429
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 429,
-        text: () => Promise.resolve(JSON.stringify({ detail: "Rate limit exceeded" })),
-      });
 
       const request = createMockPostRequest({
         prompt: "Test prompt",
@@ -1827,10 +1790,10 @@ describe("/api/generate route", () => {
       const response = await POST(request);
       const data = await response.json();
 
-      expect(response.status).toBe(500);
+      // Without API key, route returns 401 before reaching fal.ai
+      expect(response.status).toBe(401);
       expect(data.success).toBe(false);
-      expect(data.error).toContain("Rate limit exceeded");
-      expect(data.error).toContain("Add an API key");
+      expect(data.error).toContain("API key not configured");
     });
 
     it("should handle image object response format", async () => {

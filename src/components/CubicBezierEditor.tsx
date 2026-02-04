@@ -1,22 +1,24 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 interface CubicBezierEditorProps {
   value: [number, number, number, number];
   onChange: (value: [number, number, number, number]) => void;
   onCommit?: (value: [number, number, number, number]) => void;
   disabled?: boolean;
+  /** SVG polyline points string (in 0–100 coordinate space) for the actual easing curve overlay */
+  easingCurve?: string;
 }
 
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
 
-// Hardcoded dark-theme palette (node-banana is dark mode only)
+// Hardcoded dark-theme palette matching easy-peasy-ease color scheme
 const palette = {
-  background: "#171717",      // neutral-900
+  background: "#0f1720",      // dark navy (easy-peasy-ease bg tint)
   border: "rgba(255,255,255,0.12)",
   muted: "rgba(255,255,255,0.35)",
-  primary: "#f59e0b",         // amber-500
+  primary: "#bef264",         // lime-300 (easy-peasy-ease primary)
 };
 
 const now = () =>
@@ -24,11 +26,12 @@ const now = () =>
     ? performance.now()
     : Date.now();
 
-function CubicBezierEditorComponent({
+export function CubicBezierEditor({
   value,
   onChange,
   onCommit,
   disabled = false,
+  easingCurve,
 }: CubicBezierEditorProps) {
   const editorRef = useRef<HTMLDivElement | null>(null);
   const valueRef = useRef(value);
@@ -40,9 +43,12 @@ function CubicBezierEditorComponent({
     capturedAt: number;
   } | null>(null);
 
+  const [v0, v1, v2, v3] = value;
+
+  // Sync valueRef with prop values (used by drag handlers)
   useEffect(() => {
     valueRef.current = value;
-  }, [value]);
+  }, [v0, v1, v2, v3]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const flushPendingChange = useCallback(() => {
     commitFrameRef.current = null;
@@ -132,25 +138,25 @@ function CubicBezierEditorComponent({
   const controlStyles = useMemo(
     () => ({
       p1: {
-        left: `${(value[0] * 100).toFixed(2)}%`,
-        top: `${((1 - value[1]) * 100).toFixed(2)}%`,
+        left: `${(v0 * 100).toFixed(2)}%`,
+        top: `${((1 - v1) * 100).toFixed(2)}%`,
       },
       p2: {
-        left: `${(value[2] * 100).toFixed(2)}%`,
-        top: `${((1 - value[3]) * 100).toFixed(2)}%`,
+        left: `${(v2 * 100).toFixed(2)}%`,
+        top: `${((1 - v3) * 100).toFixed(2)}%`,
       },
     }),
-    [value]
+    [v0, v1, v2, v3]
   );
 
   const svgPoints = useMemo(
     () => ({
       start: { x: 0, y: 100 },
       end: { x: 100, y: 0 },
-      c1: { x: value[0] * 100, y: (1 - value[1]) * 100 },
-      c2: { x: value[2] * 100, y: (1 - value[3]) * 100 },
+      c1: { x: v0 * 100, y: (1 - v1) * 100 },
+      c2: { x: v2 * 100, y: (1 - v3) * 100 },
     }),
-    [value]
+    [v0, v1, v2, v3]
   );
 
   const curvePath = useMemo(
@@ -199,21 +205,33 @@ function CubicBezierEditorComponent({
             <line x1="0" y1="100" x2={svgPoints.c1.x} y2={svgPoints.c1.y} />
             <line x1="100" y1="0" x2={svgPoints.c2.x} y2={svgPoints.c2.y} />
           </g>
-          {/* Bezier curve */}
+          {/* Bezier curve — dimmed when easing overlay is active */}
           <path
             d={curvePath}
             fill="none"
-            stroke={palette.primary}
-            strokeWidth="1.5"
+            stroke={easingCurve ? palette.muted : palette.primary}
+            strokeWidth={easingCurve ? "0.8" : "1.5"}
             strokeLinecap="round"
+            strokeDasharray={easingCurve ? "3 2" : undefined}
           />
+          {/* Actual easing function curve overlay */}
+          {easingCurve && (
+            <polyline
+              points={easingCurve}
+              fill="none"
+              stroke={palette.primary}
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          )}
         </svg>
         {/* Control point 1 - nodrag nopan touch-none prevents React Flow node dragging */}
         <button
           type="button"
           aria-label="Adjust control point 1"
-          className={`nodrag nopan absolute h-6 w-6 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full border-2 border-neutral-900/80 bg-amber-500/80 shadow transition active:cursor-grabbing active:scale-95 disabled:cursor-not-allowed disabled:pointer-events-none touch-none ${
-            draggingHandle === "p1" ? "ring-2 ring-amber-500/80" : ""
+          className={`nodrag nopan absolute h-6 w-6 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full border-2 border-neutral-900/80 bg-lime-300/80 shadow transition active:cursor-grabbing active:scale-95 disabled:cursor-not-allowed disabled:pointer-events-none touch-none ${
+            draggingHandle === "p1" ? "ring-2 ring-lime-300/80" : ""
           }`}
           style={controlStyles.p1}
           onPointerDown={(event) => startDragging("p1", event)}
@@ -223,8 +241,8 @@ function CubicBezierEditorComponent({
         <button
           type="button"
           aria-label="Adjust control point 2"
-          className={`nodrag nopan absolute h-6 w-6 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full border-2 border-neutral-900/80 bg-amber-500/80 shadow transition active:cursor-grabbing active:scale-95 disabled:cursor-not-allowed disabled:pointer-events-none touch-none ${
-            draggingHandle === "p2" ? "ring-2 ring-amber-500/80" : ""
+          className={`nodrag nopan absolute h-6 w-6 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full border-2 border-neutral-900/80 bg-lime-300/80 shadow transition active:cursor-grabbing active:scale-95 disabled:cursor-not-allowed disabled:pointer-events-none touch-none ${
+            draggingHandle === "p2" ? "ring-2 ring-lime-300/80" : ""
           }`}
           style={controlStyles.p2}
           onPointerDown={(event) => startDragging("p2", event)}
@@ -234,5 +252,3 @@ function CubicBezierEditorComponent({
     </div>
   );
 }
-
-export const CubicBezierEditor = memo(CubicBezierEditorComponent);

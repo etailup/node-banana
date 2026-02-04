@@ -529,6 +529,15 @@ export async function GET(
     } else {
       // User-provided key takes precedence over env variable
       const apiKey = request.headers.get("X-Fal-Key") || process.env.FAL_API_KEY || null;
+      if (!apiKey) {
+        return NextResponse.json<SchemaErrorResponse>(
+          {
+            success: false,
+            error: "fal.ai API key not configured. Add FAL_API_KEY to .env.local or configure in Settings.",
+          },
+          { status: 401 }
+        );
+      }
       result = await fetchFalSchema(decodedModelId, apiKey);
     }
 
