@@ -35,7 +35,8 @@ export type NodeType =
   | "output"
   | "outputGallery"
   | "imageCompare"
-  | "videoStitch";
+  | "videoStitch"
+  | "easeCurve";
 
 /**
  * Node execution status
@@ -239,6 +240,20 @@ export interface VideoStitchNodeData extends BaseNodeData {
 }
 
 /**
+ * Ease Curve node - applies speed curve to video using easing functions
+ */
+export interface EaseCurveNodeData extends BaseNodeData {
+  bezierHandles: [number, number, number, number];
+  easingPreset: string | null;
+  outputDuration: number;
+  outputVideo: string | null;
+  status: NodeStatus;
+  error: string | null;
+  progress: number;
+  encoderSupported: boolean | null;
+}
+
+/**
  * Split Grid node - splits image into grid cells for parallel processing
  */
 export interface SplitGridNodeData extends BaseNodeData {
@@ -280,7 +295,8 @@ export type WorkflowNodeData =
   | OutputNodeData
   | OutputGalleryNodeData
   | ImageCompareNodeData
-  | VideoStitchNodeData;
+  | VideoStitchNodeData
+  | EaseCurveNodeData;
 
 /**
  * Workflow node with typed data (extended with optional groupId)
