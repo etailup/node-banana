@@ -3,6 +3,38 @@ import { WorkflowFile } from "@/store/workflowStore";
 import crypto from "crypto";
 
 /**
+ * Fetch with timeout support using AbortController
+ * @param url - The URL to fetch
+ * @param options - Fetch options (RequestInit)
+ * @param timeout - Timeout in milliseconds (default: 30000ms / 30 seconds)
+ * @returns Promise<Response>
+ * @throws Error if the request times out or fails
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeout: number = 30000
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    return response;
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`Request timed out after ${timeout}ms: ${url}`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
  * Compute MD5 hash of image content for deduplication
  * Consistent with save-generation API (Phase 13 decision)
  */
@@ -34,12 +66,24 @@ export async function externalizeWorkflowImages(
   workflow: WorkflowFile,
   workflowPath: string
 ): Promise<WorkflowFile> {
-  const externalizedNodes: WorkflowNode[] = [];
   const savedImageIds = new Map<string, string>(); // base64 hash -> imageId (for deduplication)
 
-  for (const node of workflow.nodes) {
-    const newNode = await externalizeNodeImages(node, workflowPath, savedImageIds);
-    externalizedNodes.push(newNode);
+  // Process nodes in parallel batches with controlled concurrency
+  const BATCH_SIZE = 3;
+  const externalizedNodes: WorkflowNode[] = new Array(workflow.nodes.length);
+
+  for (let i = 0; i < workflow.nodes.length; i += BATCH_SIZE) {
+    const batch = workflow.nodes.slice(i, i + BATCH_SIZE);
+    const results = await Promise.all(
+      batch.map((node, batchIndex) =>
+        externalizeNodeImages(node, workflowPath, savedImageIds)
+          .then(result => ({ index: i + batchIndex, result }))
+      )
+    );
+
+    for (const { index, result } of results) {
+      externalizedNodes[index] = result;
+    }
   }
 
   return {
@@ -135,7 +179,7 @@ async function externalizeNodeImages(
 
       // Handle input images array (these come from connected nodes, save to inputs if present)
       // Skip if corresponding inputImageRef already exists
-      for (let i = 0; i < d.inputImages.length; i++) {
+      for (let i = 0; i < (d.inputImages?.length || 0); i++) {
         const img = d.inputImages[i];
         const existingRef = d.inputImageRefs?.[i];
         if (existingRef && isBase64DataUrl(img)) {
@@ -166,7 +210,7 @@ async function externalizeNodeImages(
 
       // Handle input images array (save to inputs)
       // Skip if corresponding inputImageRef already exists
-      for (let i = 0; i < d.inputImages.length; i++) {
+      for (let i = 0; i < (d.inputImages?.length || 0); i++) {
         const img = d.inputImages[i];
         const existingRef = d.inputImageRefs?.[i];
         if (existingRef && isBase64DataUrl(img)) {
@@ -195,7 +239,7 @@ async function externalizeNodeImages(
 
       // Handle input images array (save to inputs)
       // Skip if corresponding inputImageRef already exists
-      for (let i = 0; i < d.inputImages.length; i++) {
+      for (let i = 0; i < (d.inputImages?.length || 0); i++) {
         const img = d.inputImages[i];
         const existingRef = d.inputImageRefs?.[i];
         if (existingRef && isBase64DataUrl(img)) {
@@ -251,6 +295,9 @@ async function externalizeNodeImages(
   } as WorkflowNode;
 }
 
+// In-flight saves guard to prevent duplicate concurrent uploads of the same image
+const inFlightSaves = new Map<string, Promise<string>>();
+
 /**
  * Save an image and return its ID (with deduplication)
  * @param folder - "inputs" for user-uploaded images, "generations" for AI-generated images
@@ -273,28 +320,50 @@ async function saveImageAndGetId(
     return savedImageIds.get(hash)!;
   }
 
+  // Check if there's already an in-flight save for this hash
+  if (!existingId && inFlightSaves.has(hash)) {
+    return inFlightSaves.get(hash)!;
+  }
+
   // Use existing ID if provided (for consistency with imageHistory), otherwise generate new
   const imageId = existingId || generateImageId();
 
-  const response = await fetch("/api/workflow-images", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      workflowPath,
-      imageId,
-      imageData,
-      folder,
-    }),
-  });
+  const savePromise = (async () => {
+    const response = await fetchWithTimeout(
+      "/api/workflow-images",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workflowPath,
+          imageId,
+          imageData,
+          folder,
+        }),
+      }
+    );
 
-  const result = await response.json();
+    const result = await response.json();
 
-  if (!result.success) {
-    throw new Error(`Failed to save image: ${result.error}`);
+    if (!result.success) {
+      throw new Error(`Failed to save image: ${result.error}`);
+    }
+
+    savedImageIds.set(hash, imageId);
+    return imageId;
+  })();
+
+  if (!existingId) {
+    inFlightSaves.set(hash, savePromise);
   }
 
-  savedImageIds.set(hash, imageId);
-  return imageId;
+  try {
+    return await savePromise;
+  } catch (error) {
+    throw error;
+  } finally {
+    inFlightSaves.delete(hash);
+  }
 }
 
 /**
@@ -368,7 +437,7 @@ async function hydrateNodeImages(
     case "nanoBanana": {
       const d = data as import("@/types").NanoBananaNodeData;
       let outputImage = d.outputImage;
-      const inputImages = [...d.inputImages];
+      const inputImages = [...(d.inputImages || [])];
 
       if (d.outputImageRef && !d.outputImage) {
         outputImage = await loadImageById(d.outputImageRef, workflowPath, loadedImages, "generations");
@@ -394,7 +463,7 @@ async function hydrateNodeImages(
 
     case "llmGenerate": {
       const d = data as import("@/types").LLMGenerateNodeData;
-      const inputImages = [...d.inputImages];
+      const inputImages = [...(d.inputImages || [])];
 
       // Hydrate input images from refs
       if (d.inputImageRefs && d.inputImageRefs.length > 0) {
@@ -415,7 +484,7 @@ async function hydrateNodeImages(
 
     case "generateVideo": {
       const d = data as import("@/types").GenerateVideoNodeData;
-      const inputImages = [...d.inputImages];
+      const inputImages = [...(d.inputImages || [])];
 
       // Hydrate input images from refs
       if (d.inputImageRefs && d.inputImageRefs.length > 0) {

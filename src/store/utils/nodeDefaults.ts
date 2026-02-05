@@ -1,6 +1,7 @@
 import {
   NodeType,
   ImageInputNodeData,
+  AudioInputNodeData,
   AnnotationNodeData,
   PromptNodeData,
   PromptConstructorNodeData,
@@ -11,6 +12,7 @@ import {
   OutputNodeData,
   OutputGalleryNodeData,
   ImageCompareNodeData,
+  EaseCurveNodeData,
   WorkflowNodeData,
   GroupColor,
   SelectedModel,
@@ -23,6 +25,7 @@ import { loadGenerateImageDefaults, loadNodeDefaults } from "./localStorage";
  */
 export const defaultNodeDimensions: Record<NodeType, { width: number; height: number }> = {
   imageInput: { width: 300, height: 280 },
+  audioInput: { width: 300, height: 200 },
   annotation: { width: 300, height: 280 },
   prompt: { width: 320, height: 220 },
   promptConstructor: { width: 340, height: 280 },
@@ -33,6 +36,8 @@ export const defaultNodeDimensions: Record<NodeType, { width: number; height: nu
   output: { width: 320, height: 320 },
   outputGallery: { width: 320, height: 360 },
   imageCompare: { width: 400, height: 360 },
+  videoStitch: { width: 400, height: 280 },
+  easeCurve: { width: 340, height: 480 },
 };
 
 /**
@@ -65,6 +70,13 @@ export const createDefaultNodeData = (type: NodeType): WorkflowNodeData => {
         filename: null,
         dimensions: null,
       } as ImageInputNodeData;
+    case "audioInput":
+      return {
+        audioFile: null,
+        filename: null,
+        duration: null,
+        format: null,
+      } as AudioInputNodeData;
     case "annotation":
       return {
         sourceImage: null,
@@ -178,5 +190,27 @@ export const createDefaultNodeData = (type: NodeType): WorkflowNodeData => {
         imageA: null,
         imageB: null,
       } as ImageCompareNodeData;
+    case "videoStitch":
+      return {
+        clips: [],
+        clipOrder: [],
+        outputVideo: null,
+        status: "idle",
+        error: null,
+        progress: 0,
+        encoderSupported: null,
+      };
+    case "easeCurve":
+      return {
+        bezierHandles: [0.445, 0.05, 0.55, 0.95], // easeInOutSine preset
+        easingPreset: "easeInOutSine",
+        inheritedFrom: null,
+        outputDuration: 1.5,
+        outputVideo: null,
+        status: "idle",
+        error: null,
+        progress: 0,
+        encoderSupported: null,
+      } as EaseCurveNodeData;
   }
 };

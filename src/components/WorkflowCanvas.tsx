@@ -21,6 +21,7 @@ import { useWorkflowStore, WorkflowFile } from "@/store/workflowStore";
 import { useToast } from "@/components/Toast";
 import {
   ImageInputNode,
+  AudioInputNode,
   AnnotationNode,
   PromptNode,
   PromptConstructorNode,
@@ -31,6 +32,8 @@ import {
   OutputNode,
   OutputGalleryNode,
   ImageCompareNode,
+  VideoStitchNode,
+  EaseCurveNode,
 } from "./nodes";
 import { EditableEdge, ReferenceEdge } from "./edges";
 import { ConnectionDropMenu, MenuAction } from "./ConnectionDropMenu";
@@ -39,6 +42,7 @@ import { EdgeToolbar } from "./EdgeToolbar";
 import { GlobalImageHistory } from "./GlobalImageHistory";
 import { GroupBackgroundsPortal, GroupControlsOverlay } from "./GroupsOverlay";
 import { NodeType, NanoBananaNodeData } from "@/types";
+import { defaultNodeDimensions } from "@/store/utils/nodeDefaults";
 import { detectAndSplitGrid } from "@/utils/gridSplitter";
 import { logger } from "@/utils/logger";
 import { WelcomeModal } from "./quickstart";
@@ -49,6 +53,7 @@ import { stripBinaryData } from "@/lib/chat/contextBuilder";
 
 const nodeTypes: NodeTypes = {
   imageInput: ImageInputNode,
+  audioInput: AudioInputNode,
   annotation: AnnotationNode,
   prompt: PromptNode,
   promptConstructor: PromptConstructorNode,
@@ -59,6 +64,8 @@ const nodeTypes: NodeTypes = {
   output: OutputNode,
   outputGallery: OutputGalleryNode,
   imageCompare: ImageCompareNode,
+  videoStitch: VideoStitchNode,
+  easeCurve: EaseCurveNode,
 };
 
 const edgeTypes: EdgeTypes = {
@@ -72,10 +79,13 @@ const edgeTypes: EdgeTypes = {
 // - Video handles can only connect to generateVideo or output nodes
 // Helper to determine handle type from handle ID
 // For dynamic handles, we use naming convention: image inputs contain "image", text inputs are "prompt" or "negative_prompt"
-const getHandleType = (handleId: string | null | undefined): "image" | "text" | "video" | null => {
+const getHandleType = (handleId: string | null | undefined): "image" | "text" | "video" | "audio" | "easeCurve" | null => {
   if (!handleId) return null;
+  // EaseCurve handles (must check before other types)
+  if (handleId === "easeCurve") return "easeCurve";
   // Standard handles
   if (handleId === "video") return "video";
+  if (handleId === "audio" || handleId.startsWith("audio")) return "audio";
   if (handleId === "image" || handleId === "text") return handleId;
   // Dynamic handles - check naming patterns (including indexed: text-0, image-0)
   if (handleId.includes("video")) return "video";
@@ -89,6 +99,8 @@ const getNodeHandles = (nodeType: string): { inputs: string[]; outputs: string[]
   switch (nodeType) {
     case "imageInput":
       return { inputs: ["reference"], outputs: ["image"] };
+    case "audioInput":
+      return { inputs: [], outputs: ["audio"] };
     case "annotation":
       return { inputs: ["image"], outputs: ["image"] };
     case "prompt":
@@ -104,11 +116,15 @@ const getNodeHandles = (nodeType: string): { inputs: string[]; outputs: string[]
     case "splitGrid":
       return { inputs: ["image"], outputs: ["reference"] };
     case "output":
-      return { inputs: ["image"], outputs: [] };
+      return { inputs: ["image", "video"], outputs: [] };
     case "outputGallery":
       return { inputs: ["image"], outputs: [] };
     case "imageCompare":
       return { inputs: ["image"], outputs: [] };
+    case "videoStitch":
+      return { inputs: ["video", "audio"], outputs: ["video"] };
+    case "easeCurve":
+      return { inputs: ["video", "easeCurve"], outputs: ["video", "easeCurve"] };
     default:
       return { inputs: [], outputs: [] };
   }
@@ -117,7 +133,7 @@ const getNodeHandles = (nodeType: string): { inputs: string[]; outputs: string[]
 interface ConnectionDropState {
   position: { x: number; y: number };
   flowPosition: { x: number; y: number };
-  handleType: "image" | "text" | "video" | null;
+  handleType: "image" | "text" | "video" | "audio" | "easeCurve" | null;
   connectionType: "source" | "target";
   sourceNodeId: string | null;
   sourceHandleId: string | null;
@@ -199,7 +215,7 @@ export function WorkflowCanvas() {
   const { screenToFlowPosition, getViewport, zoomIn, zoomOut, setViewport, setCenter } = useReactFlow();
   const { show: showToast } = useToast();
   const [isDragOver, setIsDragOver] = useState(false);
-  const [dropType, setDropType] = useState<"image" | "workflow" | "node" | null>(null);
+  const [dropType, setDropType] = useState<"image" | "audio" | "workflow" | "node" | null>(null);
   const [connectionDrop, setConnectionDrop] = useState<ConnectionDropState | null>(null);
   const [isSplitting, setIsSplitting] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -241,8 +257,9 @@ export function WorkflowCanvas() {
       // Skip if it's a group node
       if (node.id.startsWith("group-")) return;
 
-      const nodeWidth = (node.style?.width as number) || 300;
-      const nodeHeight = (node.style?.height as number) || 280;
+      const defaults = defaultNodeDimensions[node.type as NodeType] || { width: 300, height: 280 };
+      const nodeWidth = node.measured?.width || (node.style?.width as number) || defaults.width;
+      const nodeHeight = node.measured?.height || (node.style?.height as number) || defaults.height;
       const nodeCenterX = node.position.x + nodeWidth / 2;
       const nodeCenterY = node.position.y + nodeHeight / 2;
 
@@ -281,22 +298,35 @@ export function WorkflowCanvas() {
       // If we can't determine types, allow the connection
       if (!sourceType || !targetType) return true;
 
+      // EaseCurve connections: only between easeCurve nodes
+      if (sourceType === "easeCurve" || targetType === "easeCurve") {
+        if (sourceType !== "easeCurve" || targetType !== "easeCurve") return false;
+        const targetNode = nodes.find((n) => n.id === connection.target);
+        return targetNode?.type === "easeCurve";
+      }
+
       // Video connections have special rules
       if (sourceType === "video") {
         // Video source can ONLY connect to:
         // 1. generateVideo nodes (for video-to-video)
-        // 2. output nodes (for display)
+        // 2. videoStitch nodes (for concatenation)
+        // 3. output nodes (for display)
         const targetNode = nodes.find((n) => n.id === connection.target);
         if (!targetNode) return false;
 
         const targetNodeType = targetNode.type;
-        if (targetNodeType === "generateVideo" || targetNodeType === "output") {
+        if (targetNodeType === "generateVideo" || targetNodeType === "videoStitch" || targetNodeType === "easeCurve" || targetNodeType === "output") {
           // For output node, we allow video even though its handle is typed as "image"
           // because output node can display both images and videos
           return true;
         }
         // Video cannot connect to other node types
         return false;
+      }
+
+      // Audio connections: audio handles can only connect to audio handles
+      if (sourceType === "audio" || targetType === "audio") {
+        return sourceType === "audio" && targetType === "audio";
       }
 
       // Standard type matching for image and text
@@ -336,7 +366,22 @@ export function WorkflowCanvas() {
         selectedNodes.forEach((node) => {
           // Skip if this is already the connection source
           if (node.id === connection.source) {
-            const resolved = resolveImageCompareHandle(connection, batchUsed);
+            let resolved = resolveImageCompareHandle(connection, batchUsed);
+            // Resolve videoStitch handles for batch connections
+            const tgtNode = nodes.find((n) => n.id === resolved.target);
+            if (tgtNode?.type === "videoStitch" && resolved.targetHandle?.startsWith("video-")) {
+              for (let i = 0; i < 50; i++) {
+                const candidateHandle = `video-${i}`;
+                const isOccupied = edges.some(
+                  (e) => e.target === resolved.target && e.targetHandle === candidateHandle
+                ) || batchUsed.has(candidateHandle);
+                if (!isOccupied) {
+                  resolved = { ...resolved, targetHandle: candidateHandle };
+                  batchUsed.add(candidateHandle);
+                  break;
+                }
+              }
+            }
             if (resolved.targetHandle) batchUsed.add(resolved.targetHandle);
             onConnect(resolved);
             return;
@@ -350,12 +395,28 @@ export function WorkflowCanvas() {
           }
 
           // Create connection from this selected node to the same target
-          const multiConnection: Connection = {
+          let multiConnection: Connection = {
             source: node.id,
             sourceHandle: connection.sourceHandle,
             target: connection.target,
             targetHandle: connection.targetHandle,
           };
+
+          // Resolve videoStitch handle for batch connections
+          const targetNode = nodes.find((n) => n.id === multiConnection.target);
+          if (targetNode?.type === "videoStitch" && multiConnection.targetHandle?.startsWith("video-")) {
+            for (let i = 0; i < 50; i++) {
+              const candidateHandle = `video-${i}`;
+              const isOccupied = edges.some(
+                (e) => e.target === multiConnection.target && e.targetHandle === candidateHandle
+              ) || batchUsed.has(candidateHandle);
+              if (!isOccupied) {
+                multiConnection = { ...multiConnection, targetHandle: candidateHandle };
+                batchUsed.add(candidateHandle);
+                break;
+              }
+            }
+          }
 
           const resolved = resolveImageCompareHandle(multiConnection, batchUsed);
           if (resolved.targetHandle) batchUsed.add(resolved.targetHandle);
@@ -387,8 +448,9 @@ export function WorkflowCanvas() {
       // Helper to find a compatible handle on a node by type
       const findCompatibleHandle = (
         node: Node,
-        handleType: "image" | "text" | "video",
-        needInput: boolean
+        handleType: "image" | "text" | "video" | "audio" | "easeCurve",
+        needInput: boolean,
+        batchUsed?: Set<string>
       ): string | null => {
         // Check for dynamic inputSchema first
         const nodeData = node.data as { inputSchema?: Array<{ name: string; type: string }> };
@@ -398,12 +460,12 @@ export function WorkflowCanvas() {
             const matchingInputs = nodeData.inputSchema.filter(i => i.type === handleType);
             const numHandles = matchingInputs.length;
             if (numHandles > 0) {
-              // Find the first unoccupied indexed handle by checking existing edges
+              // Find the first unoccupied indexed handle by checking existing edges and batchUsed
               for (let i = 0; i < numHandles; i++) {
                 const candidateHandle = `${handleType}-${i}`;
                 const isOccupied = edges.some(
                   (edge) => edge.target === node.id && edge.targetHandle === candidateHandle
-                );
+                ) || batchUsed?.has(candidateHandle);
                 if (!isOccupied) {
                   return candidateHandle;
                 }
@@ -415,6 +477,18 @@ export function WorkflowCanvas() {
           // Output handle - check for video or image type
           if (handleType === "video") return "video";
           return handleType === "image" ? "image" : null;
+        }
+
+        // VideoStitch has dynamic indexed video input handles (video-0, video-1, ...)
+        if (node.type === "videoStitch" && needInput && handleType === "video") {
+          for (let i = 0; i < 50; i++) {
+            const candidateHandle = `video-${i}`;
+            const isOccupied = edges.some(
+              (edge) => edge.target === node.id && edge.targetHandle === candidateHandle
+            ) || batchUsed?.has(candidateHandle);
+            if (!isOccupied) return candidateHandle;
+          }
+          return null;
         }
 
         // Fall back to static handles
@@ -726,6 +800,35 @@ export function WorkflowCanvas() {
           targetHandleId = "text";
           sourceHandleIdForNewNode = "text";
         }
+      } else if (handleType === "video") {
+        if (nodeType === "videoStitch") {
+          // VideoStitch has dynamic video-N inputs and a video output
+          targetHandleId = "video-0";
+          sourceHandleIdForNewNode = "video";
+        } else if (nodeType === "easeCurve") {
+          // EaseCurve accepts video input and outputs video
+          targetHandleId = "video";
+          sourceHandleIdForNewNode = "video";
+        } else if (nodeType === "generateVideo") {
+          // GenerateVideo outputs video
+          sourceHandleIdForNewNode = "video";
+        } else if (nodeType === "output") {
+          // Output accepts video on its image handle (it detects video content type)
+          targetHandleId = "image";
+        }
+      } else if (handleType === "audio") {
+        if (nodeType === "audioInput") {
+          // AudioInput outputs audio
+          sourceHandleIdForNewNode = "audio";
+        } else if (nodeType === "videoStitch") {
+          // VideoStitch accepts audio
+          targetHandleId = "audio";
+        }
+      } else if (handleType === "easeCurve") {
+        if (nodeType === "easeCurve") {
+          targetHandleId = "easeCurve";
+          sourceHandleIdForNewNode = "easeCurve";
+        }
       }
 
       // Get all selected nodes to connect them all to the new node
@@ -743,6 +846,16 @@ export function WorkflowCanvas() {
             let resolvedTargetHandle = targetHandleId;
             if (nodeType === "imageCompare" && targetHandleId === "image" && batchUsed.has("image")) {
               resolvedTargetHandle = "image-1";
+            }
+            // For videoStitch, find next available video-N handle
+            if (nodeType === "videoStitch" && targetHandleId.startsWith("video-")) {
+              for (let i = 0; i < 50; i++) {
+                const candidateHandle = `video-${i}`;
+                if (!batchUsed.has(candidateHandle)) {
+                  resolvedTargetHandle = candidateHandle;
+                  break;
+                }
+              }
             }
             batchUsed.add(resolvedTargetHandle);
 
@@ -923,6 +1036,7 @@ export function WorkflowCanvas() {
           // Offset by half the default node dimensions to center it
           const defaultDimensions: Record<NodeType, { width: number; height: number }> = {
             imageInput: { width: 300, height: 280 },
+            audioInput: { width: 300, height: 200 },
             annotation: { width: 300, height: 280 },
             prompt: { width: 320, height: 220 },
             promptConstructor: { width: 340, height: 280 },
@@ -933,6 +1047,8 @@ export function WorkflowCanvas() {
             output: { width: 320, height: 320 },
             outputGallery: { width: 320, height: 360 },
             imageCompare: { width: 400, height: 360 },
+            videoStitch: { width: 400, height: 280 },
+            easeCurve: { width: 340, height: 480 },
           };
           const dims = defaultDimensions[nodeType];
           addNode(nodeType, { x: centerX - dims.width / 2, y: centerY - dims.height / 2 });
@@ -1192,9 +1308,16 @@ export function WorkflowCanvas() {
       (item) => item.kind === "file" && item.type === "application/json"
     );
 
+    const hasAudioFile = items.some(
+      (item) => item.kind === "file" && item.type.startsWith("audio/")
+    );
+
     if (hasJsonFile) {
       setIsDragOver(true);
       setDropType("workflow");
+    } else if (hasAudioFile) {
+      setIsDragOver(true);
+      setDropType("audio");
     } else if (hasImageFile) {
       setIsDragOver(true);
       setDropType("image");
@@ -1276,6 +1399,32 @@ export function WorkflowCanvas() {
         return;
       }
 
+      // Handle audio files
+      const audioFiles = allFiles.filter((file) => file.type.startsWith("audio/"));
+      if (audioFiles.length > 0) {
+        const position = screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY,
+        });
+        audioFiles.forEach((file, index) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const dataUrl = e.target?.result as string;
+            const nodeId = addNode("audioInput", {
+              x: position.x + index * 240,
+              y: position.y,
+            });
+            updateNodeData(nodeId, {
+              audioFile: dataUrl,
+              filename: file.name,
+              format: file.type,
+            });
+          };
+          reader.readAsDataURL(file);
+        });
+        return;
+      }
+
       // Handle image files
       const imageFiles = allFiles.filter((file) => file.type.startsWith("image/"));
       if (imageFiles.length === 0) return;
@@ -1333,6 +1482,8 @@ export function WorkflowCanvas() {
                 ? "Drop to load workflow"
                 : dropType === "node"
                 ? "Drop to create node"
+                : dropType === "audio"
+                ? "Drop audio to create node"
                 : "Drop image to create node"}
             </p>
           </div>
@@ -1426,6 +1577,8 @@ export function WorkflowCanvas() {
             switch (node.type) {
               case "imageInput":
                 return "#3b82f6";
+              case "audioInput":
+                return "#a78bfa";
               case "annotation":
                 return "#8b5cf6";
               case "prompt":
@@ -1446,6 +1599,10 @@ export function WorkflowCanvas() {
                 return "#ec4899";
               case "imageCompare":
                 return "#14b8a6";
+              case "videoStitch":
+                return "#f97316";
+              case "easeCurve":
+                return "#bef264"; // lime-300 (easy-peasy-ease)
               default:
                 return "#94a3b8";
             }

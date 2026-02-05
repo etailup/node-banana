@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useShallow } from "zustand/shallow";
 import {
   Connection,
   EdgeChange,
@@ -13,6 +14,7 @@ import {
   WorkflowEdge,
   NodeType,
   ImageInputNodeData,
+  AudioInputNodeData,
   AnnotationNodeData,
   PromptNodeData,
   PromptConstructorNodeData,
@@ -29,6 +31,8 @@ import {
   ProviderSettings,
   RecentModel,
   OutputGalleryNodeData,
+  VideoStitchNodeData,
+  EaseCurveNodeData,
 } from "@/types";
 import { useToast } from "@/components/Toast";
 import { calculateGenerationCost } from "@/utils/costCalculator";
@@ -122,11 +126,14 @@ interface WorkflowStore {
 
   // Execution
   isRunning: boolean;
-  currentNodeId: string | null;
+  currentNodeIds: string[];  // Changed from currentNodeId for parallel execution
   pausedAtNodeId: string | null;
+  maxConcurrentCalls: number;  // Configurable concurrency limit (1-10)
+  _abortController: AbortController | null;  // Internal: for cancellation
   executeWorkflow: (startFromNodeId?: string) => Promise<void>;
   regenerateNode: (nodeId: string) => Promise<void>;
   stopWorkflow: () => void;
+  setMaxConcurrentCalls: (value: number) => void;
 
   // Save/Load
   saveWorkflow: (name?: string) => void;
@@ -135,7 +142,7 @@ interface WorkflowStore {
 
   // Helpers
   getNodeById: (id: string) => WorkflowNode | undefined;
-  getConnectedInputs: (nodeId: string) => { images: string[]; videos: string[]; text: string | null; dynamicInputs: Record<string, string | string[]> };
+  getConnectedInputs: (nodeId: string) => { images: string[]; videos: string[]; audio: string[]; text: string | null; dynamicInputs: Record<string, string | string[]>; easeCurve: { bezierHandles: [number, number, number, number]; easingPreset: string | null } | null };
   validateWorkflow: () => { valid: boolean; errors: string[] };
 
   // Global Image History
@@ -293,16 +300,133 @@ function trackSaveGeneration(
   pendingImageSyncs.set(tempId, syncPromise);
 }
 
-// Wait for all pending image syncs to complete
-async function waitForPendingImageSyncs(): Promise<void> {
+// Wait for all pending image syncs to complete (with timeout to prevent infinite hangs)
+async function waitForPendingImageSyncs(timeout: number = 60000): Promise<void> {
   if (pendingImageSyncs.size === 0) return;
-  await Promise.all(pendingImageSyncs.values());
+
+  let timeoutId: ReturnType<typeof setTimeout>;
+  const timeoutPromise = new Promise<void>((resolve) => {
+    timeoutId = setTimeout(() => {
+      console.warn(`Pending image syncs timed out after ${timeout}ms, continuing with save`);
+      resolve();
+    }, timeout);
+  });
+
+  try {
+    await Promise.race([
+      Promise.all(pendingImageSyncs.values()),
+      timeoutPromise,
+    ]);
+  } finally {
+    clearTimeout(timeoutId!);
+  }
+}
+
+// Concurrency settings
+export const CONCURRENCY_SETTINGS_KEY = "node-banana-concurrency-limit";
+const DEFAULT_MAX_CONCURRENT_CALLS = 3;
+
+// Load/save concurrency setting from localStorage
+const loadConcurrencySetting = (): number => {
+  if (typeof window === "undefined") return DEFAULT_MAX_CONCURRENT_CALLS;
+  const stored = localStorage.getItem(CONCURRENCY_SETTINGS_KEY);
+  if (stored) {
+    const parsed = parseInt(stored, 10);
+    if (!isNaN(parsed) && parsed >= 1 && parsed <= 10) {
+      return parsed;
+    }
+  }
+  return DEFAULT_MAX_CONCURRENT_CALLS;
+};
+
+const saveConcurrencySetting = (value: number): void => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(CONCURRENCY_SETTINGS_KEY, String(value));
+};
+
+// Level grouping for parallel execution
+export interface LevelGroup {
+  level: number;
+  nodeIds: string[];
+}
+
+/**
+ * Groups nodes by dependency level using Kahn's algorithm variant.
+ * Nodes at the same level can be executed in parallel.
+ * Level 0 = nodes with no incoming edges (roots)
+ * Level N = nodes whose dependencies are all at levels < N
+ */
+function groupNodesByLevel(
+  nodes: WorkflowNode[],
+  edges: WorkflowEdge[]
+): LevelGroup[] {
+  // Calculate in-degree for each node
+  const inDegree = new Map<string, number>();
+  const adjList = new Map<string, string[]>();
+
+  nodes.forEach((n) => {
+    inDegree.set(n.id, 0);
+    adjList.set(n.id, []);
+  });
+
+  edges.forEach((e) => {
+    inDegree.set(e.target, (inDegree.get(e.target) || 0) + 1);
+    adjList.get(e.source)?.push(e.target);
+  });
+
+  // BFS with level tracking (Kahn's algorithm variant)
+  const levels: LevelGroup[] = [];
+  let currentLevel = nodes
+    .filter((n) => inDegree.get(n.id) === 0)
+    .map((n) => n.id);
+
+  let levelNum = 0;
+  while (currentLevel.length > 0) {
+    levels.push({ level: levelNum, nodeIds: [...currentLevel] });
+
+    const nextLevel: string[] = [];
+    for (const nodeId of currentLevel) {
+      for (const child of adjList.get(nodeId) || []) {
+        const newDegree = (inDegree.get(child) || 1) - 1;
+        inDegree.set(child, newDegree);
+        if (newDegree === 0) {
+          nextLevel.push(child);
+        }
+      }
+    }
+
+    currentLevel = nextLevel;
+    levelNum++;
+  }
+
+  return levels;
+}
+
+/**
+ * Chunk an array into smaller arrays of specified size
+ */
+function chunk<T>(array: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
 }
 
 // Clear all imageRefs from nodes (used when saving to a different directory)
+/** Revoke a blob URL if the value is one, to free the underlying memory. */
+function revokeBlobUrl(url: string | null | undefined): void {
+  if (url && url.startsWith('blob:')) {
+    try { URL.revokeObjectURL(url); } catch { /* ignore */ }
+  }
+}
+
 function clearNodeImageRefs(nodes: WorkflowNode[]): WorkflowNode[] {
   return nodes.map(node => {
     const data = { ...node.data } as Record<string, unknown>;
+
+    // Revoke blob URLs for video outputs before clearing
+    revokeBlobUrl(data.outputVideo as string | undefined);
 
     // Clear all ref fields regardless of node type
     delete data.imageRef;
@@ -328,8 +452,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   isModalOpen: false,
   showQuickstart: true,
   isRunning: false,
-  currentNodeId: null,
+  currentNodeIds: [],  // Changed from currentNodeId for parallel execution
   pausedAtNodeId: null,
+  maxConcurrentCalls: loadConcurrencySetting(),  // Default 3, configurable 1-10
+  _abortController: null,  // Internal: for cancellation
   globalImageHistory: [],
 
   // Auto-save initial state
@@ -750,6 +876,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     const { edges, nodes } = get();
     const images: string[] = [];
     const videos: string[] = [];
+    const audio: string[] = [];
     let text: string | null = null;
     const dynamicInputs: Record<string, string | string[]> = {};
 
@@ -799,9 +926,11 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     };
 
     // Helper to extract output from source node
-    const getSourceOutput = (sourceNode: WorkflowNode): { type: "image" | "text" | "video"; value: string | null } => {
+    const getSourceOutput = (sourceNode: WorkflowNode): { type: "image" | "text" | "video" | "audio"; value: string | null } => {
       if (sourceNode.type === "imageInput") {
         return { type: "image", value: (sourceNode.data as ImageInputNodeData).image };
+      } else if (sourceNode.type === "audioInput") {
+        return { type: "audio", value: (sourceNode.data as AudioInputNodeData).audioFile };
       } else if (sourceNode.type === "annotation") {
         return { type: "image", value: (sourceNode.data as AnnotationNodeData).outputImage };
       } else if (sourceNode.type === "nanoBanana") {
@@ -809,6 +938,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       } else if (sourceNode.type === "generateVideo") {
         // Return video type - generateVideo and output nodes handle this appropriately
         return { type: "video", value: (sourceNode.data as GenerateVideoNodeData).outputVideo };
+      } else if (sourceNode.type === "videoStitch") {
+        return { type: "video", value: (sourceNode.data as VideoStitchNodeData).outputVideo };
+      } else if (sourceNode.type === "easeCurve") {
+        return { type: "video", value: (sourceNode.data as EaseCurveNodeData).outputVideo };
       } else if (sourceNode.type === "prompt") {
         return { type: "text", value: (sourceNode.data as PromptNodeData).prompt };
       } else if (sourceNode.type === "promptConstructor") {
@@ -849,6 +982,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         // This preserves type information from the source node
         if (type === "video") {
           videos.push(value);
+        } else if (type === "audio") {
+          audio.push(value);
         } else if (type === "text" || isTextHandle(handleId)) {
           text = value;
         } else if (isImageHandle(handleId) || !handleId) {
@@ -856,7 +991,23 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         }
       });
 
-    return { images, videos, text, dynamicInputs };
+    // Extract easeCurve data from parent EaseCurve node
+    let easeCurve: { bezierHandles: [number, number, number, number]; easingPreset: string | null } | null = null;
+    const easeCurveEdge = edges.find(
+      (e) => e.target === nodeId && e.targetHandle === "easeCurve"
+    );
+    if (easeCurveEdge) {
+      const sourceNode = nodes.find((n) => n.id === easeCurveEdge.source);
+      if (sourceNode?.type === "easeCurve") {
+        const sourceData = sourceNode.data as EaseCurveNodeData;
+        easeCurve = {
+          bezierHandles: sourceData.bezierHandles,
+          easingPreset: sourceData.easingPreset,
+        };
+      }
+    }
+
+    return { images, videos, audio, text, dynamicInputs, easeCurve };
   },
 
   validateWorkflow: () => {
@@ -922,15 +1073,17 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   },
 
   executeWorkflow: async (startFromNodeId?: string) => {
-    const { nodes, edges, groups, updateNodeData, getConnectedInputs, isRunning } = get();
+    const { nodes, edges, groups, updateNodeData, getConnectedInputs, isRunning, maxConcurrentCalls } = get();
 
     if (isRunning) {
       logger.warn('workflow.start', 'Workflow already running, ignoring execution request');
       return;
     }
 
+    // Create AbortController for this execution run
+    const abortController = new AbortController();
     const isResuming = startFromNodeId === get().pausedAtNodeId;
-    set({ isRunning: true, pausedAtNodeId: null });
+    set({ isRunning: true, pausedAtNodeId: null, currentNodeIds: [], _abortController: abortController });
 
     // Start logging session
     await logger.startSession();
@@ -940,176 +1093,162 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       edgeCount: edges.length,
       startFromNodeId,
       isResuming,
+      maxConcurrentCalls,
     });
 
-    // Topological sort
-    const sorted: WorkflowNode[] = [];
-    const visited = new Set<string>();
-    const visiting = new Set<string>();
+    // Group nodes by level for parallel execution
+    const levels = groupNodesByLevel(nodes, edges);
 
-    const visit = (nodeId: string) => {
-      if (visited.has(nodeId)) return;
-      if (visiting.has(nodeId)) {
-        logger.error('workflow.validation', 'Cycle detected in workflow', { nodeId });
-        throw new Error("Cycle detected in workflow");
+    // Find starting level if startFromNodeId specified
+    let startLevel = 0;
+    if (startFromNodeId) {
+      const foundLevel = levels.findIndex((l) => l.nodeIds.includes(startFromNodeId));
+      if (foundLevel !== -1) startLevel = foundLevel;
+    }
+
+    // Helper to execute a single node - returns true if successful, throws on error
+    const executeSingleNode = async (node: WorkflowNode, signal: AbortSignal): Promise<void> => {
+      // Check for abort before starting
+      if (signal.aborted) {
+        throw new DOMException('Aborted', 'AbortError');
       }
 
-      visiting.add(nodeId);
-
-      // Visit all nodes that this node depends on
-      edges
-        .filter((e) => e.target === nodeId)
-        .forEach((e) => visit(e.source));
-
-      visiting.delete(nodeId);
-      visited.add(nodeId);
-
-      const node = nodes.find((n) => n.id === nodeId);
-      if (node) sorted.push(node);
-    };
-
-    try {
-      nodes.forEach((node) => visit(node.id));
-
-      // If starting from a specific node, find its index and skip earlier nodes
-      let startIndex = 0;
-      if (startFromNodeId) {
-        const nodeIndex = sorted.findIndex((n) => n.id === startFromNodeId);
-        if (nodeIndex !== -1) {
-          startIndex = nodeIndex;
-        }
-      }
-
-      // Execute nodes in order, starting from startIndex
-      for (let i = startIndex; i < sorted.length; i++) {
-        const node = sorted[i];
-        if (!get().isRunning) break;
-
-        // Check for pause edges on incoming connections (skip if resuming from this exact node)
-        const isResumingThisNode = isResuming && node.id === startFromNodeId;
-        if (!isResumingThisNode) {
-          const incomingEdges = edges.filter((e) => e.target === node.id);
-          const pauseEdge = incomingEdges.find((e) => e.data?.hasPause);
-          if (pauseEdge) {
-            logger.info('workflow.end', 'Workflow paused at node', {
-              nodeId: node.id,
-              nodeType: node.type,
-            });
-            set({ pausedAtNodeId: node.id, isRunning: false, currentNodeId: null });
-            useToast.getState().show("Workflow paused - click Run to continue", "warning");
-
-            // Save logs to server (on pause)
-            const session = logger.getCurrentSession();
-            if (session) {
-              session.endTime = new Date().toISOString();
-              fetch('/api/logs', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ session }),
-              }).catch((err) => {
-                console.error('Failed to save log session:', err);
-              });
-            }
-
-            await logger.endSession();
-            return;
-          }
-        }
-
-        // Check if node is in a locked group - if so, skip execution
-        const nodeGroup = node.groupId ? groups[node.groupId] : null;
-        if (nodeGroup?.locked) {
-          logger.info('node.execution', `Skipping node in locked group`, {
+      // Check for pause edges on incoming connections (skip if resuming from this exact node)
+      const isResumingThisNode = isResuming && node.id === startFromNodeId;
+      if (!isResumingThisNode) {
+        const incomingEdges = edges.filter((e) => e.target === node.id);
+        const pauseEdge = incomingEdges.find((e) => e.data?.hasPause);
+        if (pauseEdge) {
+          logger.info('workflow.end', 'Workflow paused at node', {
             nodeId: node.id,
             nodeType: node.type,
-            groupId: node.groupId,
-            groupName: nodeGroup.name,
           });
-          continue; // Skip to next node
+          set({ pausedAtNodeId: node.id });
+          useToast.getState().show("Workflow paused - click Run to continue", "warning");
+
+          // Signal to stop the entire workflow — outer loop handles isRunning/session cleanup
+          abortController.abort();
+          return;
         }
+      }
 
-        set({ currentNodeId: node.id });
-
-        logger.info('node.execution', `Executing ${node.type} node`, {
+      // Check if node is in a locked group - if so, skip execution
+      const nodeGroup = node.groupId ? groups[node.groupId] : null;
+      if (nodeGroup?.locked) {
+        logger.info('node.execution', `Skipping node in locked group`, {
           nodeId: node.id,
           nodeType: node.type,
+          groupId: node.groupId,
+          groupName: nodeGroup.name,
         });
+        return; // Skip this node but continue with others
+      }
 
-        switch (node.type) {
+      logger.info('node.execution', `Executing ${node.type} node`, {
+        nodeId: node.id,
+        nodeType: node.type,
+      });
+
+      // NOTE: The switch statement below executes the node based on its type
+      // The signal parameter should be passed to any fetch calls for cancellation
+
+      switch (node.type) {
           case "imageInput":
             // Nothing to execute, data is already set
             break;
 
+          case "audioInput":
+            // Audio input is a data source - no execution needed
+            break;
+
           case "annotation": {
-            // Get connected image and set as source (use first image)
-            const { images } = getConnectedInputs(node.id);
-            const image = images[0] || null;
-            if (image) {
-              updateNodeData(node.id, { sourceImage: image });
-              // If no annotations, pass through the image
-              const nodeData = node.data as AnnotationNodeData;
-              if (!nodeData.outputImage) {
-                updateNodeData(node.id, { outputImage: image });
+            try {
+              // Get connected image and set as source (use first image)
+              const { images } = getConnectedInputs(node.id);
+              const image = images[0] || null;
+              if (image) {
+                updateNodeData(node.id, { sourceImage: image });
+                // If no annotations, pass through the image
+                const nodeData = node.data as AnnotationNodeData;
+                if (!nodeData.outputImage) {
+                  updateNodeData(node.id, { outputImage: image });
+                }
               }
+            } catch (err) {
+              const message = err instanceof Error ? err.message : String(err);
+              console.error(`[Workflow] Annotation node ${node.id} failed:`, message);
+              updateNodeData(node.id, { error: message });
             }
             break;
           }
 
           case "prompt": {
-            // Check for connected text input and update prompt if connected
-            const { text: connectedText } = getConnectedInputs(node.id);
-            if (connectedText !== null) {
-              updateNodeData(node.id, { prompt: connectedText });
+            try {
+              // Check for connected text input and update prompt if connected
+              const { text: connectedText } = getConnectedInputs(node.id);
+              if (connectedText !== null) {
+                updateNodeData(node.id, { prompt: connectedText });
+              }
+            } catch (err) {
+              const message = err instanceof Error ? err.message : String(err);
+              console.error(`[Workflow] Prompt node ${node.id} failed:`, message);
+              updateNodeData(node.id, { error: message });
             }
             break;
           }
 
           case "promptConstructor": {
-            // Get fresh node data from store
-            const freshNode = get().nodes.find((n) => n.id === node.id);
-            const nodeData = (freshNode?.data || node.data) as PromptConstructorNodeData;
-            const template = nodeData.template;
+            try {
+              // Get fresh node data from store
+              const freshNode = get().nodes.find((n) => n.id === node.id);
+              const nodeData = (freshNode?.data || node.data) as PromptConstructorNodeData;
+              const template = nodeData.template;
 
-            // Find connected prompt nodes via text edges
-            const connectedPromptNodes = edges
-              .filter((e) => e.target === node.id && e.targetHandle === "text")
-              .map((e) => nodes.find((n) => n.id === e.source))
-              .filter((n): n is WorkflowNode => n !== undefined && n.type === "prompt");
+              // Find connected prompt nodes via text edges
+              const connectedPromptNodes = edges
+                .filter((e) => e.target === node.id && e.targetHandle === "text")
+                .map((e) => nodes.find((n) => n.id === e.source))
+                .filter((n): n is WorkflowNode => n !== undefined && n.type === "prompt");
 
-            // Build variable map from connected prompt nodes
-            const variableMap: Record<string, string> = {};
-            connectedPromptNodes.forEach((promptNode) => {
-              const promptData = promptNode.data as PromptNodeData;
-              if (promptData.variableName) {
-                variableMap[promptData.variableName] = promptData.prompt;
-              }
-            });
+              // Build variable map from connected prompt nodes
+              const variableMap: Record<string, string> = {};
+              connectedPromptNodes.forEach((promptNode) => {
+                const promptData = promptNode.data as PromptNodeData;
+                if (promptData.variableName) {
+                  variableMap[promptData.variableName] = promptData.prompt;
+                }
+              });
 
-            // Find all @variable patterns in template
-            const varPattern = /@(\w+)/g;
-            const unresolvedVars: string[] = [];
-            let resolvedText = template;
+              // Find all @variable patterns in template
+              const varPattern = /@(\w+)/g;
+              const unresolvedVars: string[] = [];
+              let resolvedText = template;
 
-            // Replace @variables with values or track unresolved
-            const matches = template.matchAll(varPattern);
-            for (const match of matches) {
-              const varName = match[1];
-              if (variableMap[varName] !== undefined) {
-                // Replace with actual value
-                resolvedText = resolvedText.replace(new RegExp(`@${varName}`, 'g'), variableMap[varName]);
-              } else {
-                // Track unresolved variable
-                if (!unresolvedVars.includes(varName)) {
-                  unresolvedVars.push(varName);
+              // Replace @variables with values or track unresolved
+              const matches = template.matchAll(varPattern);
+              for (const match of matches) {
+                const varName = match[1];
+                if (variableMap[varName] !== undefined) {
+                  // Replace with actual value
+                  resolvedText = resolvedText.replaceAll(`@${varName}`, variableMap[varName]);
+                } else {
+                  // Track unresolved variable
+                  if (!unresolvedVars.includes(varName)) {
+                    unresolvedVars.push(varName);
+                  }
                 }
               }
-            }
 
-            // Update node with resolved text and unresolved vars list
-            updateNodeData(node.id, {
-              outputText: resolvedText,
-              unresolvedVars,
-            });
+              // Update node with resolved text and unresolved vars list
+              updateNodeData(node.id, {
+                outputText: resolvedText,
+                unresolvedVars,
+              });
+            } catch (err) {
+              const message = err instanceof Error ? err.message : String(err);
+              console.error(`[Workflow] PromptConstructor node ${node.id} failed:`, message);
+              updateNodeData(node.id, { error: message });
+            }
             break;
           }
 
@@ -1129,9 +1268,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: "Missing text input",
               });
-              set({ isRunning: false, currentNodeId: null });
-              await logger.endSession();
-              return;
+              throw new Error("Missing text input");
             }
 
             updateNodeData(node.id, {
@@ -1179,6 +1316,16 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 if (falConfig?.apiKey) {
                   headers["X-Fal-API-Key"] = falConfig.apiKey;
                 }
+              } else if (provider === "kie") {
+                const kieConfig = providerSettingsState.providers.kie;
+                if (kieConfig?.apiKey) {
+                  headers["X-Kie-Key"] = kieConfig.apiKey;
+                }
+              } else if (provider === "wavespeed") {
+                const wavespeedConfig = providerSettingsState.providers.wavespeed;
+                if (wavespeedConfig?.apiKey) {
+                  headers["X-WaveSpeed-Key"] = wavespeedConfig.apiKey;
+                }
               }
 
               logger.info('node.execution', `Calling ${provider} API for image generation`, {
@@ -1195,6 +1342,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 method: "POST",
                 headers,
                 body: JSON.stringify(requestPayload),
+                signal,  // Pass abort signal for cancellation
               });
 
               if (!response.ok) {
@@ -1219,9 +1367,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   status: "error",
                   error: errorMessage,
                 });
-                set({ isRunning: false, currentNodeId: null });
-                await logger.endSession();
-                return;
+                throw new Error(errorMessage);
               }
 
               const result = await response.json();
@@ -1297,9 +1443,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   status: "error",
                   error: result.error || "Generation failed",
                 });
-                set({ isRunning: false, currentNodeId: null });
-                await logger.endSession();
-                return;
+                throw new Error(result.error || "Generation failed");
               }
             } catch (error) {
               let errorMessage = "Generation failed";
@@ -1325,9 +1469,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: errorMessage,
               });
-              set({ isRunning: false, currentNodeId: null });
-              await logger.endSession();
-              return;
+              if (error instanceof DOMException && error.name === 'AbortError') throw error;
+              throw new Error(errorMessage);
             }
             break;
           }
@@ -1345,9 +1488,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: "Missing required inputs",
               });
-              set({ isRunning: false, currentNodeId: null });
-              await logger.endSession();
-              return;
+              throw new Error("Missing required inputs");
             }
 
             // Get fresh node data from store (not stale data from sorted array)
@@ -1362,9 +1503,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: "No model selected",
               });
-              set({ isRunning: false, currentNodeId: null });
-              await logger.endSession();
-              return;
+              throw new Error("No model selected");
             }
 
             updateNodeData(node.id, {
@@ -1406,6 +1545,16 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 if (falConfig?.apiKey) {
                   headers["X-Fal-API-Key"] = falConfig.apiKey;
                 }
+              } else if (provider === "kie") {
+                const kieConfig = providerSettingsState.providers.kie;
+                if (kieConfig?.apiKey) {
+                  headers["X-Kie-Key"] = kieConfig.apiKey;
+                }
+              } else if (provider === "wavespeed") {
+                const wavespeedConfig = providerSettingsState.providers.wavespeed;
+                if (wavespeedConfig?.apiKey) {
+                  headers["X-WaveSpeed-Key"] = wavespeedConfig.apiKey;
+                }
               }
               logger.info('node.execution', `Calling ${provider} API for video generation`, {
                 nodeId: node.id,
@@ -1419,6 +1568,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 method: "POST",
                 headers,
                 body: JSON.stringify(requestPayload),
+                signal,  // Pass abort signal for cancellation
               });
 
               if (!response.ok) {
@@ -1443,9 +1593,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   status: "error",
                   error: errorMessage,
                 });
-                set({ isRunning: false, currentNodeId: null });
-                await logger.endSession();
-                return;
+                throw new Error(errorMessage);
               }
 
               const result = await response.json();
@@ -1528,9 +1676,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   status: "error",
                   error: result.error || "Video generation failed",
                 });
-                set({ isRunning: false, currentNodeId: null });
-                await logger.endSession();
-                return;
+                throw new Error(result.error || "Video generation failed");
               }
             } catch (error) {
               let errorMessage = "Video generation failed";
@@ -1554,15 +1700,18 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: errorMessage,
               });
-              set({ isRunning: false, currentNodeId: null });
-              await logger.endSession();
-              return;
+              if (error instanceof DOMException && error.name === 'AbortError') throw error;
+              throw new Error(errorMessage);
             }
             break;
           }
 
           case "llmGenerate": {
-            const { images, text } = getConnectedInputs(node.id);
+            const inputs = getConnectedInputs(node.id);
+            const images = inputs.images;
+            const llmData = node.data as LLMGenerateNodeData;
+            // Fall back to node's internal inputPrompt if no text connection
+            const text = inputs.text ?? llmData.inputPrompt;
 
             if (!text) {
               logger.error('node.error', 'llmGenerate node missing text input', {
@@ -1570,11 +1719,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
               });
               updateNodeData(node.id, {
                 status: "error",
-                error: "Missing text input",
+                error: "Missing text input - connect a prompt node or set internal prompt",
               });
-              set({ isRunning: false, currentNodeId: null });
-              await logger.endSession();
-              return;
+              throw new Error("Missing text input");
             }
 
             updateNodeData(node.id, {
@@ -1625,6 +1772,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   temperature: nodeData.temperature,
                   maxTokens: nodeData.maxTokens,
                 }),
+                signal,  // Pass abort signal for cancellation
               });
 
               if (!response.ok) {
@@ -1645,9 +1793,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   status: "error",
                   error: errorMessage,
                 });
-                set({ isRunning: false, currentNodeId: null });
-                await logger.endSession();
-                return;
+                throw new Error(errorMessage);
               }
 
               const result = await response.json();
@@ -1667,9 +1813,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   status: "error",
                   error: result.error || "LLM generation failed",
                 });
-                set({ isRunning: false, currentNodeId: null });
-                await logger.endSession();
-                return;
+                throw new Error(result.error || "LLM generation failed");
               }
             } catch (error) {
               logger.error('node.error', 'llmGenerate node execution failed', {
@@ -1679,9 +1823,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: error instanceof Error ? error.message : "LLM generation failed",
               });
-              set({ isRunning: false, currentNodeId: null });
-              await logger.endSession();
-              return;
+              if (error instanceof DOMException && error.name === 'AbortError') throw error;
+              throw error instanceof Error ? error : new Error("LLM generation failed");
             }
             break;
           }
@@ -1695,8 +1838,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: "No input image connected",
               });
-              set({ isRunning: false, currentNodeId: null });
-              return;
+              throw new Error("No input image connected");
             }
 
             const nodeData = node.data as SplitGridNodeData;
@@ -1706,8 +1848,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: "Node not configured - open settings first",
               });
-              set({ isRunning: false, currentNodeId: null });
-              return;
+              throw new Error("Node not configured - open settings first");
             }
 
             updateNodeData(node.id, {
@@ -1755,9 +1896,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: error instanceof Error ? error.message : "Failed to split image",
               });
-              set({ isRunning: false, currentNodeId: null });
-              await logger.endSession();
-              return;
+              if (error instanceof DOMException && error.name === 'AbortError') throw error;
+              throw error instanceof Error ? error : new Error("Failed to split image");
             }
             break;
           }
@@ -1863,11 +2003,282 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             });
             break;
           }
+
+          case "videoStitch": {
+            const nodeData = node.data as VideoStitchNodeData;
+
+            // Check encoder support
+            if (nodeData.encoderSupported === false) {
+              updateNodeData(node.id, {
+                status: "error",
+                error: "Browser does not support video encoding",
+                progress: 0,
+              });
+              break;
+            }
+
+            updateNodeData(node.id, { status: "loading", progress: 0, error: null });
+
+            try {
+              const inputs = getConnectedInputs(node.id);
+
+              if (inputs.videos.length < 2) {
+                updateNodeData(node.id, {
+                  status: "error",
+                  error: "Need at least 2 video clips to stitch",
+                  progress: 0,
+                });
+                break;
+              }
+
+              // Convert video data/blob URLs to Blobs
+              const videoBlobs = await Promise.all(
+                inputs.videos.map((v) => fetch(v).then((r) => r.blob()))
+              );
+
+              // Prepare audio if connected
+              let audioData = null;
+              if (inputs.audio.length > 0 && inputs.audio[0]) {
+                const { prepareAudioAsync } = await import('@/hooks/useAudioMixing');
+                const audioUrl = inputs.audio[0];
+                const audioResponse = await fetch(audioUrl);
+                const rawBlob = await audioResponse.blob();
+                // Ensure the blob has the correct MIME type for MediaBunny format detection
+                // Data URLs from AudioInput preserve the original MIME type, but fetch() may lose it
+                const audioMime = rawBlob.type || (audioUrl.startsWith('data:') ? audioUrl.split(';')[0].split(':')[1] : 'audio/mpeg');
+                const audioBlob = rawBlob.type ? rawBlob : new Blob([rawBlob], { type: audioMime });
+                audioData = await prepareAudioAsync(audioBlob, 0);
+              }
+
+              // Stitch videos
+              const { stitchVideosAsync } = await import('@/hooks/useStitchVideos');
+              const outputBlob = await stitchVideosAsync(
+                videoBlobs,
+                audioData,
+                (progress) => {
+                  updateNodeData(node.id, { progress: progress.progress });
+                }
+              );
+
+              // Revoke old blob URL before replacing
+              revokeBlobUrl((node.data as Record<string, unknown>).outputVideo as string | undefined);
+
+              // Store output - blob URL for large files, data URL for small
+              let outputVideo: string;
+              if (outputBlob.size > 20 * 1024 * 1024) {
+                // Large file: use blob URL
+                outputVideo = URL.createObjectURL(outputBlob);
+              } else {
+                // Small file: convert to data URL for workflow saving
+                const reader = new FileReader();
+                outputVideo = await new Promise<string>((resolve) => {
+                  reader.onload = () => resolve(reader.result as string);
+                  reader.readAsDataURL(outputBlob);
+                });
+              }
+
+              updateNodeData(node.id, {
+                outputVideo,
+                status: "complete",
+                progress: 100,
+                error: null,
+              });
+            } catch (err) {
+              const errorMessage = err instanceof Error ? err.message : "Stitch failed";
+              updateNodeData(node.id, {
+                status: "error",
+                error: errorMessage,
+                progress: 0,
+              });
+            }
+            break;
+          }
+
+          case "easeCurve": {
+            const nodeData = node.data as EaseCurveNodeData;
+
+            // Check encoder support
+            if (nodeData.encoderSupported === false) {
+              updateNodeData(node.id, {
+                status: "error",
+                error: "Browser does not support video encoding",
+                progress: 0,
+              });
+              break;
+            }
+
+            updateNodeData(node.id, { status: "loading", progress: 0, error: null });
+
+            try {
+              const inputs = getConnectedInputs(node.id);
+
+              // Propagate parent easeCurve settings if inherited
+              let activeBezierHandles = nodeData.bezierHandles;
+              let activeEasingPreset = nodeData.easingPreset;
+              if (inputs.easeCurve) {
+                activeBezierHandles = inputs.easeCurve.bezierHandles;
+                activeEasingPreset = inputs.easeCurve.easingPreset;
+                const easeCurveSourceId = edges.filter(
+                  (e) => e.target === node.id && e.targetHandle === "easeCurve"
+                )[0]?.source ?? null;
+                updateNodeData(node.id, {
+                  bezierHandles: activeBezierHandles,
+                  easingPreset: activeEasingPreset,
+                  inheritedFrom: easeCurveSourceId,
+                });
+              }
+
+              if (inputs.videos.length === 0) {
+                updateNodeData(node.id, {
+                  status: "error",
+                  error: "Connect a video input to apply ease curve",
+                  progress: 0,
+                });
+                break;
+              }
+
+              // Get the first connected video (EaseCurve takes single video input)
+              const videoUrl = inputs.videos[0];
+              const videoBlob = await fetch(videoUrl).then((r) => r.blob());
+
+              // Get video duration for warpTime input
+              const videoDuration = await new Promise<number>((resolve) => {
+                const video = document.createElement("video");
+                video.preload = "metadata";
+                video.onloadedmetadata = () => {
+                  resolve(video.duration);
+                  URL.revokeObjectURL(video.src);
+                };
+                video.onerror = () => {
+                  resolve(5); // Fallback to 5 seconds
+                  URL.revokeObjectURL(video.src);
+                };
+                video.src = URL.createObjectURL(videoBlob);
+              });
+
+              // Determine easing function: use named preset if set, otherwise create from Bezier handles
+              let easingFunction: string | ((t: number) => number);
+              if (activeEasingPreset) {
+                easingFunction = activeEasingPreset;
+              } else {
+                const { createBezierEasing } = await import('@/lib/easing-functions');
+                easingFunction = createBezierEasing(
+                  activeBezierHandles[0],
+                  activeBezierHandles[1],
+                  activeBezierHandles[2],
+                  activeBezierHandles[3]
+                );
+              }
+
+              // Apply speed curve
+              const { applySpeedCurveAsync } = await import('@/hooks/useApplySpeedCurve');
+              const outputBlob = await applySpeedCurveAsync(
+                videoBlob,
+                videoDuration,
+                nodeData.outputDuration,
+                (progress) => {
+                  updateNodeData(node.id, { progress: progress.progress });
+                },
+                easingFunction
+              );
+
+              if (!outputBlob) {
+                throw new Error("Speed curve processing returned no output");
+              }
+
+              // Revoke old blob URL before replacing
+              revokeBlobUrl((node.data as Record<string, unknown>).outputVideo as string | undefined);
+
+              // Store output - blob URL for large files, data URL for small
+              let outputVideo: string;
+              if (outputBlob.size > 20 * 1024 * 1024) {
+                outputVideo = URL.createObjectURL(outputBlob);
+              } else {
+                const reader = new FileReader();
+                outputVideo = await new Promise<string>((resolve) => {
+                  reader.onload = () => resolve(reader.result as string);
+                  reader.readAsDataURL(outputBlob);
+                });
+              }
+
+              updateNodeData(node.id, {
+                outputVideo,
+                status: "complete",
+                progress: 100,
+                error: null,
+              });
+            } catch (err) {
+              const errorMessage = err instanceof Error ? err.message : "Ease curve processing failed";
+              updateNodeData(node.id, {
+                status: "error",
+                error: errorMessage,
+                progress: 0,
+              });
+            }
+            break;
+          }
+        }
+    }; // End of executeSingleNode helper
+
+    try {
+      // Execute levels sequentially, but nodes within each level in parallel
+      for (let levelIdx = startLevel; levelIdx < levels.length; levelIdx++) {
+        // Check if execution was stopped
+        if (abortController.signal.aborted || !get().isRunning) break;
+
+        const level = levels[levelIdx];
+        const levelNodes = level.nodeIds
+          .map((id) => nodes.find((n) => n.id === id))
+          .filter((n): n is WorkflowNode => n !== undefined);
+
+        if (levelNodes.length === 0) continue;
+
+        // Execute nodes in batches respecting concurrency limit
+        const batches = chunk(levelNodes, maxConcurrentCalls);
+
+        for (const batch of batches) {
+          if (abortController.signal.aborted || !get().isRunning) break;
+
+          // Update currentNodeIds to show which nodes are executing
+          const batchIds = batch.map((n) => n.id);
+          set({ currentNodeIds: batchIds });
+
+          logger.info('node.execution', `Executing level ${levelIdx} batch`, {
+            level: levelIdx,
+            nodeCount: batch.length,
+            nodeIds: batchIds,
+          });
+
+          // Execute batch in parallel
+          const results = await Promise.allSettled(
+            batch.map((node) => executeSingleNode(node, abortController.signal))
+          );
+
+          // Check for failures (fail-fast behavior)
+          const failed = results.find(
+            (r): r is PromiseRejectedResult =>
+              r.status === 'rejected' &&
+              !(r.reason instanceof DOMException && r.reason.name === 'AbortError')
+          );
+
+          if (failed) {
+            // Log the failure and abort remaining executions
+            logger.error('workflow.error', 'Node execution failed in parallel batch', {
+              level: levelIdx,
+              error: failed.reason instanceof Error ? failed.reason.message : String(failed.reason),
+            });
+            abortController.abort();
+            throw failed.reason;
+          }
         }
       }
 
-      logger.info('workflow.end', 'Workflow execution completed successfully');
-      set({ isRunning: false, currentNodeId: null });
+      // Check if we completed or were aborted
+      if (!abortController.signal.aborted && get().isRunning) {
+        logger.info('workflow.end', 'Workflow execution completed successfully');
+      }
+
+      set({ isRunning: false, currentNodeIds: [], _abortController: null });
 
       // Save logs to server
       const session = logger.getCurrentSession();
@@ -1884,8 +2295,18 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
       await logger.endSession();
     } catch (error) {
-      logger.error('workflow.error', 'Workflow execution failed', {}, error instanceof Error ? error : undefined);
-      set({ isRunning: false, currentNodeId: null });
+      // Handle AbortError gracefully (user cancelled)
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        logger.info('workflow.end', 'Workflow execution cancelled by user');
+      } else {
+        logger.error('workflow.error', 'Workflow execution failed', {}, error instanceof Error ? error : undefined);
+        // Show error toast for the failed node
+        useToast.getState().show(
+          `Workflow failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          "error"
+        );
+      }
+      set({ isRunning: false, currentNodeIds: [], _abortController: null });
 
       // Save logs to server (even on error)
       const session = logger.getCurrentSession();
@@ -1905,7 +2326,18 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   },
 
   stopWorkflow: () => {
-    set({ isRunning: false, currentNodeId: null });
+    // Abort any in-flight requests
+    const controller = get()._abortController;
+    if (controller) {
+      controller.abort();
+    }
+    set({ isRunning: false, currentNodeIds: [], _abortController: null });
+  },
+
+  setMaxConcurrentCalls: (value: number) => {
+    const clamped = Math.max(1, Math.min(10, value));
+    saveConcurrencySetting(clamped);
+    set({ maxConcurrentCalls: clamped });
   },
 
   regenerateNode: async (nodeId: string) => {
@@ -1922,7 +2354,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       return;
     }
 
-    set({ isRunning: true, currentNodeId: nodeId });
+    set({ isRunning: true, currentNodeIds: [nodeId] });
 
     await logger.startSession();
     logger.info('node.execution', 'Regenerating node', {
@@ -1952,7 +2384,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             status: "error",
             error: "Missing text input",
           });
-          set({ isRunning: false, currentNodeId: null });
+          set({ isRunning: false, currentNodeIds: [] });
           await logger.endSession();
           return;
         }
@@ -1980,6 +2412,16 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           const falConfig = providerSettingsState.providers.fal;
           if (falConfig?.apiKey) {
             headers["X-Fal-API-Key"] = falConfig.apiKey;
+          }
+        } else if (provider === "kie") {
+          const kieConfig = providerSettingsState.providers.kie;
+          if (kieConfig?.apiKey) {
+            headers["X-Kie-Key"] = kieConfig.apiKey;
+          }
+        } else if (provider === "wavespeed") {
+          const wavespeedConfig = providerSettingsState.providers.wavespeed;
+          if (wavespeedConfig?.apiKey) {
+            headers["X-WaveSpeed-Key"] = wavespeedConfig.apiKey;
           }
         }
 
@@ -2025,7 +2467,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             errorMessage,
           });
           updateNodeData(nodeId, { status: "error", error: errorMessage });
-          set({ isRunning: false, currentNodeId: null });
+          set({ isRunning: false, currentNodeIds: [] });
           await logger.endSession();
           return;
         }
@@ -2111,7 +2553,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             status: "error",
             error: "Missing text input",
           });
-          set({ isRunning: false, currentNodeId: null });
+          set({ isRunning: false, currentNodeIds: [] });
           await logger.endSession();
           return;
         }
@@ -2178,7 +2620,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             errorMessage,
           });
           updateNodeData(nodeId, { status: "error", error: errorMessage });
-          set({ isRunning: false, currentNodeId: null });
+          set({ isRunning: false, currentNodeIds: [] });
           await logger.endSession();
           return;
         }
@@ -2219,7 +2661,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             status: "error",
             error: "Missing text input",
           });
-          set({ isRunning: false, currentNodeId: null });
+          set({ isRunning: false, currentNodeIds: [] });
           await logger.endSession();
           return;
         }
@@ -2232,7 +2674,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             status: "error",
             error: "No model selected",
           });
-          set({ isRunning: false, currentNodeId: null });
+          set({ isRunning: false, currentNodeIds: [] });
           await logger.endSession();
           return;
         }
@@ -2262,6 +2704,16 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           const falConfig = providerSettingsState.providers.fal;
           if (falConfig?.apiKey) {
             headers["X-Fal-API-Key"] = falConfig.apiKey;
+          }
+        } else if (provider === "kie") {
+          const kieConfig = providerSettingsState.providers.kie;
+          if (kieConfig?.apiKey) {
+            headers["X-Kie-Key"] = kieConfig.apiKey;
+          }
+        } else if (provider === "wavespeed") {
+          const wavespeedConfig = providerSettingsState.providers.wavespeed;
+          if (wavespeedConfig?.apiKey) {
+            headers["X-WaveSpeed-Key"] = wavespeedConfig.apiKey;
           }
         }
         logger.info('node.execution', `Calling ${provider} API for video regeneration`, {
@@ -2301,7 +2753,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             errorMessage,
           });
           updateNodeData(nodeId, { status: "error", error: errorMessage });
-          set({ isRunning: false, currentNodeId: null });
+          set({ isRunning: false, currentNodeIds: [] });
           await logger.endSession();
           return;
         }
@@ -2398,7 +2850,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             status: "error",
             error: "No input image connected",
           });
-          set({ isRunning: false, currentNodeId: null });
+          set({ isRunning: false, currentNodeIds: [] });
           await logger.endSession();
           return;
         }
@@ -2411,7 +2863,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             status: "error",
             error: "Node not configured - open settings first",
           });
-          set({ isRunning: false, currentNodeId: null });
+          set({ isRunning: false, currentNodeIds: [] });
           await logger.endSession();
           return;
         }
@@ -2472,14 +2924,223 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             status: "error",
             error: error instanceof Error ? error.message : "Failed to split image",
           });
-          set({ isRunning: false, currentNodeId: null });
+          set({ isRunning: false, currentNodeIds: [] });
           await logger.endSession();
           return;
         }
+      } else if (node.type === "videoStitch") {
+        const nodeData = node.data as VideoStitchNodeData;
+
+        if (nodeData.encoderSupported === false) {
+          updateNodeData(nodeId, {
+            status: "error",
+            error: "Browser does not support video encoding",
+            progress: 0,
+          });
+          set({ isRunning: false, currentNodeIds: [] });
+          await logger.endSession();
+          return;
+        }
+
+        updateNodeData(nodeId, { status: "loading", progress: 0, error: null });
+
+        try {
+          const inputs = getConnectedInputs(nodeId);
+
+          if (inputs.videos.length < 2) {
+            updateNodeData(nodeId, {
+              status: "error",
+              error: "Need at least 2 video clips to stitch",
+              progress: 0,
+            });
+            set({ isRunning: false, currentNodeIds: [] });
+            await logger.endSession();
+            return;
+          }
+
+          const videoBlobs = await Promise.all(
+            inputs.videos.map((v) => fetch(v).then((r) => r.blob()))
+          );
+
+          let audioData = null;
+          if (inputs.audio.length > 0 && inputs.audio[0]) {
+            const { prepareAudioAsync } = await import('@/hooks/useAudioMixing');
+            const audioUrl = inputs.audio[0];
+            const audioResponse = await fetch(audioUrl);
+            const rawBlob = await audioResponse.blob();
+            // Ensure the blob has the correct MIME type for MediaBunny format detection
+            const audioMime = rawBlob.type || (audioUrl.startsWith('data:') ? audioUrl.split(';')[0].split(':')[1] : 'audio/mpeg');
+            const audioBlob = rawBlob.type ? rawBlob : new Blob([rawBlob], { type: audioMime });
+            audioData = await prepareAudioAsync(audioBlob, 0);
+          }
+
+          const { stitchVideosAsync } = await import('@/hooks/useStitchVideos');
+          const outputBlob = await stitchVideosAsync(
+            videoBlobs,
+            audioData,
+            (progress) => {
+              updateNodeData(nodeId, { progress: progress.progress });
+            }
+          );
+
+          // Revoke old blob URL before replacing
+          const oldStitchData = get().nodes.find(n => n.id === nodeId)?.data as Record<string, unknown> | undefined;
+          revokeBlobUrl(oldStitchData?.outputVideo as string | undefined);
+
+          let outputVideo: string;
+          if (outputBlob.size > 20 * 1024 * 1024) {
+            outputVideo = URL.createObjectURL(outputBlob);
+          } else {
+            const reader = new FileReader();
+            outputVideo = await new Promise<string>((resolve) => {
+              reader.onload = () => resolve(reader.result as string);
+              reader.readAsDataURL(outputBlob);
+            });
+          }
+
+          updateNodeData(nodeId, {
+            outputVideo,
+            status: "complete",
+            progress: 100,
+            error: null,
+          });
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : "Stitch failed";
+          updateNodeData(nodeId, {
+            status: "error",
+            error: errorMessage,
+            progress: 0,
+          });
+        }
+      } else if (node.type === "easeCurve") {
+        const nodeData = node.data as EaseCurveNodeData;
+
+        if (nodeData.encoderSupported === false) {
+          updateNodeData(nodeId, {
+            status: "error",
+            error: "Browser does not support video encoding",
+            progress: 0,
+          });
+          set({ isRunning: false, currentNodeIds: [] });
+          await logger.endSession();
+          return;
+        }
+
+        updateNodeData(nodeId, { status: "loading", progress: 0, error: null });
+
+        try {
+          const inputs = getConnectedInputs(nodeId);
+
+          // Propagate parent easeCurve settings if inherited
+          let activeBezierHandles = nodeData.bezierHandles;
+          let activeEasingPreset = nodeData.easingPreset;
+          if (inputs.easeCurve) {
+            activeBezierHandles = inputs.easeCurve.bezierHandles;
+            activeEasingPreset = inputs.easeCurve.easingPreset;
+            const { edges } = get();
+            const easeCurveSourceId = edges.filter(
+              (e) => e.target === nodeId && e.targetHandle === "easeCurve"
+            )[0]?.source ?? null;
+            updateNodeData(nodeId, {
+              bezierHandles: activeBezierHandles,
+              easingPreset: activeEasingPreset,
+              inheritedFrom: easeCurveSourceId,
+            });
+          }
+
+          if (inputs.videos.length === 0) {
+            updateNodeData(nodeId, {
+              status: "error",
+              error: "Connect a video input to apply ease curve",
+              progress: 0,
+            });
+            set({ isRunning: false, currentNodeIds: [] });
+            await logger.endSession();
+            return;
+          }
+
+          const videoUrl = inputs.videos[0];
+          const videoBlob = await fetch(videoUrl).then((r) => r.blob());
+
+          const videoDuration = await new Promise<number>((resolve) => {
+            const video = document.createElement("video");
+            video.preload = "metadata";
+            video.onloadedmetadata = () => {
+              resolve(video.duration);
+              URL.revokeObjectURL(video.src);
+            };
+            video.onerror = () => {
+              resolve(5);
+              URL.revokeObjectURL(video.src);
+            };
+            video.src = URL.createObjectURL(videoBlob);
+          });
+
+          let easingFunction: string | ((t: number) => number);
+          if (activeEasingPreset) {
+            easingFunction = activeEasingPreset;
+          } else {
+            const { createBezierEasing } = await import('@/lib/easing-functions');
+            easingFunction = createBezierEasing(
+              activeBezierHandles[0],
+              activeBezierHandles[1],
+              activeBezierHandles[2],
+              activeBezierHandles[3]
+            );
+          }
+
+          const { applySpeedCurveAsync } = await import('@/hooks/useApplySpeedCurve');
+          const outputBlob = await applySpeedCurveAsync(
+            videoBlob,
+            videoDuration,
+            nodeData.outputDuration,
+            (progress) => {
+              updateNodeData(nodeId, { progress: progress.progress });
+            },
+            easingFunction
+          );
+
+          if (!outputBlob) {
+            throw new Error("Speed curve processing returned no output");
+          }
+
+          // Revoke old blob URL before replacing
+          const oldEaseData = get().nodes.find(n => n.id === nodeId)?.data as Record<string, unknown> | undefined;
+          revokeBlobUrl(oldEaseData?.outputVideo as string | undefined);
+
+          let outputVideo: string;
+          if (outputBlob.size > 20 * 1024 * 1024) {
+            outputVideo = URL.createObjectURL(outputBlob);
+          } else {
+            const reader = new FileReader();
+            outputVideo = await new Promise<string>((resolve) => {
+              reader.onload = () => resolve(reader.result as string);
+              reader.readAsDataURL(outputBlob);
+            });
+          }
+
+          updateNodeData(nodeId, {
+            outputVideo,
+            status: "complete",
+            progress: 100,
+            error: null,
+          });
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : "Ease curve processing failed";
+          updateNodeData(nodeId, {
+            status: "error",
+            error: errorMessage,
+            progress: 0,
+          });
+        }
+
+        set({ isRunning: false, currentNodeIds: [] });
+        await logger.endSession();
+        return;
       }
 
       logger.info('node.execution', 'Node regeneration completed successfully', { nodeId });
-      set({ isRunning: false, currentNodeId: null });
+      set({ isRunning: false, currentNodeIds: [] });
 
       // Save logs to server
       const session = logger.getCurrentSession();
@@ -2503,7 +3164,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         status: "error",
         error: error instanceof Error ? error.message : "Regeneration failed",
       });
-      set({ isRunning: false, currentNodeId: null });
+      set({ isRunning: false, currentNodeIds: [] });
 
       // Save logs to server (even on error)
       const session = logger.getCurrentSession();
@@ -2627,7 +3288,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       edgeStyle: hydratedWorkflow.edgeStyle || "angular",
       groups: hydratedWorkflow.groups || {},
       isRunning: false,
-      currentNodeId: null,
+      currentNodeIds: [],
       // Restore workflow ID and paths from localStorage if available
       workflowId: workflow.id || null,
       workflowName: workflow.name,
@@ -2657,7 +3318,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       edges: [],
       groups: {},
       isRunning: false,
-      currentNodeId: null,
+      currentNodeIds: [],
       // Reset auto-save state when clearing workflow
       workflowId: null,
       workflowName: null,
@@ -2853,7 +3514,6 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             nodes: nodesWithRefs,
             lastSavedAt: timestamp,
             hasUnsavedChanges: false,
-            isSaving: false,
             // Update imageRefBasePath to reflect new save location
             imageRefBasePath: saveDirectoryPath,
           });
@@ -2861,7 +3521,6 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           set({
             lastSavedAt: timestamp,
             hasUnsavedChanges: false,
-            isSaving: false,
             // Update imageRefBasePath to reflect save location
             imageRefBasePath: useExternalImageStorage ? saveDirectoryPath : null,
           });
@@ -2879,12 +3538,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
         return true;
       } else {
-        set({ isSaving: false });
         useToast.getState().show(`Auto-save failed: ${result.error}`, "error");
         return false;
       }
     } catch (error) {
-      set({ isSaving: false });
       useToast
         .getState()
         .show(
@@ -2892,6 +3549,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           "error"
         );
       return false;
+    } finally {
+      set({ isSaving: false });
     }
   },
 
@@ -3135,3 +3794,28 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     return { applied: result.applied, skipped: result.skipped };
   },
 }));
+
+/**
+ * Stable hook for provider API keys.
+ *
+ * Returns individual primitive values for each provider's API key.
+ * Uses shallow equality comparison to prevent re-renders when the
+ * providerSettings object reference changes but the actual key values
+ * don't change.
+ *
+ * This prevents unnecessary re-fetches of /api/models when multiple
+ * node instances subscribe to provider settings.
+ */
+export function useProviderApiKeys() {
+  return useWorkflowStore(
+    useShallow((state) => ({
+      replicateApiKey: state.providerSettings.providers.replicate?.apiKey ?? null,
+      falApiKey: state.providerSettings.providers.fal?.apiKey ?? null,
+      kieApiKey: state.providerSettings.providers.kie?.apiKey ?? null,
+      wavespeedApiKey: state.providerSettings.providers.wavespeed?.apiKey ?? null,
+      // Provider enabled states (for conditional UI)
+      replicateEnabled: state.providerSettings.providers.replicate?.enabled ?? false,
+      kieEnabled: state.providerSettings.providers.kie?.enabled ?? false,
+    }))
+  );
+}

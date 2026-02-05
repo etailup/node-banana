@@ -8,9 +8,22 @@ import * as path from 'path';
 import type { LogSession } from './logger';
 
 /**
+ * Check if running on Vercel (read-only filesystem)
+ */
+function isVercelProduction(): boolean {
+  return !!process.env.VERCEL;
+}
+
+/**
  * Save session to file (server-side only)
+ * Note: Skipped on Vercel due to read-only filesystem
  */
 export async function saveSession(session: LogSession): Promise<void> {
+  if (isVercelProduction()) {
+    console.log(`[Logger] Skipping file save on Vercel (session: ${session.sessionId})`);
+    return;
+  }
+
   const logsDir = path.join(process.cwd(), 'logs');
   const filename = `session-${session.sessionId}.json`;
   const filepath = path.join(logsDir, filename);
@@ -33,8 +46,13 @@ export async function saveSession(session: LogSession): Promise<void> {
 
 /**
  * Rotate log files (keep only last 10 sessions)
+ * Note: Skipped on Vercel due to read-only filesystem
  */
 export async function rotateLogFiles(): Promise<void> {
+  if (isVercelProduction()) {
+    return;
+  }
+
   const logsDir = path.join(process.cwd(), 'logs');
 
   // Ensure logs directory exists

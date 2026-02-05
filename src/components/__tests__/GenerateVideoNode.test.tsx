@@ -4,6 +4,12 @@ import { GenerateVideoNode } from "@/components/nodes/GenerateVideoNode";
 import { ReactFlowProvider } from "@xyflow/react";
 import { GenerateVideoNodeData, ProviderSettings } from "@/types";
 
+// Mock deduplicatedFetch to pass through to global fetch (avoids caching issues in tests)
+vi.mock("@/utils/deduplicatedFetch", () => ({
+  deduplicatedFetch: (...args: Parameters<typeof fetch>) => fetch(...args),
+  clearFetchCache: vi.fn(),
+}));
+
 // Mock the workflow store
 const mockUpdateNodeData = vi.fn();
 const mockRegenerateNode = vi.fn();
@@ -20,6 +26,14 @@ vi.mock("@/store/workflowStore", () => ({
     // When called without selector (destructuring pattern), return the full state object
     return mockUseWorkflowStore((s: unknown) => s);
   },
+  useProviderApiKeys: () => ({
+    replicateApiKey: null,
+    falApiKey: null,
+    kieApiKey: null,
+    wavespeedApiKey: null,
+    replicateEnabled: false,
+    kieEnabled: false,
+  }),
 }));
 
 // Mock useReactFlow
@@ -72,6 +86,8 @@ const defaultProviderSettings: ProviderSettings = {
     openai: { id: "openai", name: "OpenAI", enabled: false, apiKey: null },
     replicate: { id: "replicate", name: "Replicate", enabled: false, apiKey: null },
     fal: { id: "fal", name: "fal.ai", enabled: true, apiKey: null },
+    kie: { id: "kie", name: "Kie.ai", enabled: false, apiKey: null },
+    wavespeed: { id: "wavespeed", name: "WaveSpeed", enabled: false, apiKey: null },
   },
 };
 
@@ -94,7 +110,7 @@ describe("GenerateVideoNode", () => {
         providerSettings: defaultProviderSettings,
         generationsPath: "/test/generations",
         isRunning: false,
-        currentNodeId: null,
+        currentNodeIds: [],
         groups: {},
         nodes: [],
         recentModels: [],
@@ -255,7 +271,7 @@ describe("GenerateVideoNode", () => {
           },
           generationsPath: "/test/generations",
           isRunning: false,
-          currentNodeId: null,
+          currentNodeIds: [],
           groups: {},
           nodes: [],
           getNodesWithComments: vi.fn(() => []),
@@ -568,7 +584,7 @@ describe("GenerateVideoNode", () => {
           providerSettings: defaultProviderSettings,
           generationsPath: "/test/generations",
           isRunning: true,
-          currentNodeId: null,
+          currentNodeIds: [],
           groups: {},
           nodes: [],
           getNodesWithComments: vi.fn(() => []),

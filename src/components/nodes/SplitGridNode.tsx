@@ -20,10 +20,10 @@ export function SplitGridNode({ id, data, selected }: NodeProps<SplitGridNodeTyp
 
   // Show settings modal on first creation (when not configured)
   useEffect(() => {
-    if (!nodeData.isConfigured && nodeData.childNodeIds.length === 0) {
+    if (!nodeData.isConfigured && (!nodeData.childNodeIds || nodeData.childNodeIds.length === 0)) {
       setShowSettings(true);
     }
-  }, [nodeData.isConfigured, nodeData.childNodeIds.length]);
+  }, [nodeData.isConfigured, nodeData.childNodeIds]);
 
   const handleOpenSettings = useCallback(() => {
     setShowSettings(true);

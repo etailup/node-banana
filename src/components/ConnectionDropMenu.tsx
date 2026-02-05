@@ -199,8 +199,26 @@ const TEXT_SOURCE_OPTIONS: MenuOption[] = [
   },
 ];
 
-// Video can only connect to generateVideo (video-to-video) or output nodes
+// Video can only connect to videoStitch, generateVideo (video-to-video), or output nodes
 const VIDEO_TARGET_OPTIONS: MenuOption[] = [
+  {
+    type: "videoStitch",
+    label: "Video Stitch",
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
+      </svg>
+    ),
+  },
+  {
+    type: "easeCurve",
+    label: "Ease Curve",
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+      </svg>
+    ),
+  },
   {
     type: "generateVideo",
     label: "Generate Video",
@@ -221,7 +239,7 @@ const VIDEO_TARGET_OPTIONS: MenuOption[] = [
   },
 ];
 
-// Only generateVideo nodes produce video output
+// GenerateVideo and VideoStitch nodes produce video output
 const VIDEO_SOURCE_OPTIONS: MenuOption[] = [
   {
     type: "generateVideo",
@@ -232,11 +250,55 @@ const VIDEO_SOURCE_OPTIONS: MenuOption[] = [
       </svg>
     ),
   },
+  {
+    type: "videoStitch",
+    label: "Video Stitch",
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
+      </svg>
+    ),
+  },
+  {
+    type: "easeCurve",
+    label: "Ease Curve",
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+      </svg>
+    ),
+  },
+];
+
+// Audio target options (nodes that accept audio input)
+const AUDIO_TARGET_OPTIONS: MenuOption[] = [
+  {
+    type: "videoStitch",
+    label: "Video Stitch",
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
+      </svg>
+    ),
+  },
+];
+
+// Audio source options (nodes that produce audio output)
+const AUDIO_SOURCE_OPTIONS: MenuOption[] = [
+  {
+    type: "audioInput",
+    label: "Audio Input",
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467l2.31-.66a2.25 2.25 0 001.632-2.163zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 01-.99-3.467l2.31-.66A2.25 2.25 0 009 15.553z" />
+      </svg>
+    ),
+  },
 ];
 
 interface ConnectionDropMenuProps {
   position: { x: number; y: number };
-  handleType: "image" | "text" | "video" | null;
+  handleType: "image" | "text" | "video" | "audio" | "easeCurve" | null;
   connectionType: "source" | "target"; // source = dragging from output, target = dragging from input
   onSelect: (selection: { type: NodeType | MenuAction; isAction: boolean }) => void;
   onClose: () => void;
@@ -259,10 +321,12 @@ export function ConnectionDropMenu({
     if (connectionType === "source") {
       // Dragging from a source handle (output), need nodes with target handles (inputs)
       if (handleType === "video") return VIDEO_TARGET_OPTIONS;
+      if (handleType === "audio") return AUDIO_TARGET_OPTIONS;
       return handleType === "image" ? IMAGE_TARGET_OPTIONS : TEXT_TARGET_OPTIONS;
     } else {
       // Dragging from a target handle (input), need nodes with source handles (outputs)
       if (handleType === "video") return VIDEO_SOURCE_OPTIONS;
+      if (handleType === "audio") return AUDIO_SOURCE_OPTIONS;
       return handleType === "image" ? IMAGE_SOURCE_OPTIONS : TEXT_SOURCE_OPTIONS;
     }
   }, [handleType, connectionType]);

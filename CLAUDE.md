@@ -9,6 +9,8 @@ npm run dev      # Start Next.js dev server at http://localhost:3000
 npm run build    # Build for production
 npm run start    # Start production server
 npm run lint     # Run Next.js linting
+npm run test     # Run all tests with Vitest (watch mode)
+npm run test:run # Run all tests once (CI mode)
 ```
 
 ## Environment Setup
@@ -17,6 +19,7 @@ Create `.env.local` in the root directory:
 ```
 GEMINI_API_KEY=your_gemini_api_key
 OPENAI_API_KEY=your_openai_api_key  # Optional, for OpenAI LLM provider
+KIE_API_KEY=your_kie_api_key        # Optional, for Kie.ai models (Sora, Veo, Kling, etc.)
 ```
 
 ## Architecture Overview
@@ -166,5 +169,42 @@ All routes in `src/app/api/`:
 - `node-banana-workflow-costs` - Cost tracking per workflow
 - `node-banana-nanoBanana-defaults` - Sticky generation settings
 
-#Commits
-- the .planning directory is untracked, do not attempt to commit any changes to the files in this directory.
+## Commits
+
+- The .planning directory is untracked, do not attempt to commit any changes to the files in this directory.
+
+## Deployment & Git Workflow
+
+### Vercel Deployment
+
+Production URL: https://node-banana-nilas-projects-2f16eb79.vercel.app
+
+The app is deployed on Vercel from the `etailup/node-banana` fork. Pushes to `master` trigger automatic deployments.
+
+Environment variables required in Vercel dashboard:
+- `GEMINI_API_KEY`
+- `OPENAI_API_KEY` (optional)
+- `KIE_API_KEY` (optional, for Kie.ai models)
+
+### Fork + Upstream Sync
+
+This repo is a fork that tracks the original upstream:
+
+| Remote | Repository | Purpose |
+|--------|------------|---------|
+| origin | `etailup/node-banana` | Your fork (push here, deploys to Vercel) |
+| upstream | `shrimbly/node-banana` | Original source (pull updates from here) |
+
+**Pull updates from original while keeping your modifications:**
+
+```bash
+git fetch upstream
+git merge upstream/master
+# Resolve conflicts if any
+git push origin master
+```
+
+**Check remotes:**
+```bash
+git remote -v
+```

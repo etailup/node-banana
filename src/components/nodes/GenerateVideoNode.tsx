@@ -5,7 +5,8 @@ import { Handle, Position, NodeProps, Node, useReactFlow } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
 import { useCommentNavigation } from "@/hooks/useCommentNavigation";
 import { ModelParameters } from "./ModelParameters";
-import { useWorkflowStore } from "@/store/workflowStore";
+import { useWorkflowStore, useProviderApiKeys } from "@/store/workflowStore";
+import { deduplicatedFetch } from "@/utils/deduplicatedFetch";
 import { GenerateVideoNodeData, ProviderType, SelectedModel, ModelInputDef } from "@/types";
 import { ProviderModel, ModelCapability } from "@/lib/providers/types";
 import { ModelSearchDialog } from "@/components/modals/ModelSearchDialog";
@@ -14,7 +15,7 @@ import { getVideoDimensions, calculateNodeSizePreservingHeight } from "@/utils/n
 
 // Provider badge component - shows provider icon for all providers
 function ProviderBadge({ provider }: { provider: ProviderType }) {
-  const providerName = provider === "gemini" ? "Gemini" : provider === "replicate" ? "Replicate" : "fal.ai";
+  const providerName = provider === "gemini" ? "Gemini" : provider === "replicate" ? "Replicate" : provider === "kie" ? "Kie.ai" : provider === "wavespeed" ? "WaveSpeed" : "fal.ai";
 
   return (
     <span className="text-neutral-500 shrink-0" title={providerName}>
@@ -27,6 +28,14 @@ function ProviderBadge({ provider }: { provider: ProviderType }) {
           <polygon points="1000,427.6 1000,540.6 603.4,540.6 603.4,1000 477,1000 477,427.6" />
           <polygon points="1000,213.8 1000,327 364.8,327 364.8,1000 238.4,1000 238.4,213.8" />
           <polygon points="1000,0 1000,113.2 126.4,113.2 126.4,1000 0,1000 0,0" />
+        </svg>
+      ) : provider === "kie" ? (
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+        </svg>
+      ) : provider === "wavespeed" ? (
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 12c0-1.1.4-2.1 1-2.9L7 12l-3 2.9C3.4 14.1 3 13.1 3 12zm4.5-7.5C8.7 3.6 10.3 3 12 3s3.3.6 4.5 1.5L12 9 7.5 4.5zM21 12c0 1.1-.4 2.1-1 2.9L17 12l3-2.9c.6.8 1 1.8 1 2.9zm-4.5 7.5C15.3 20.4 13.7 21 12 21s-3.3-.6-4.5-1.5L12 15l4.5 4.5z"/>
         </svg>
       ) : (
         <svg className="w-4 h-4" viewBox="0 0 1855 1855" fill="currentColor">
@@ -46,7 +55,8 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
   const nodeData = data;
   const commentNavigation = useCommentNavigation(id);
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
-  const providerSettings = useWorkflowStore((state) => state.providerSettings);
+  // Use stable selector for API keys to prevent unnecessary re-fetches
+  const { replicateApiKey, falApiKey, kieApiKey, replicateEnabled, kieEnabled } = useProviderApiKeys();
   const generationsPath = useWorkflowStore((state) => state.generationsPath);
   const [externalModels, setExternalModels] = useState<ProviderModel[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
@@ -63,11 +73,15 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
     // fal.ai is always available (works without key but rate limited)
     providers.push({ id: "fal", name: "fal.ai" });
     // Add Replicate if configured
-    if (providerSettings.providers.replicate?.enabled && providerSettings.providers.replicate?.apiKey) {
+    if (replicateEnabled && replicateApiKey) {
       providers.push({ id: "replicate", name: "Replicate" });
     }
+    // Add Kie.ai if configured
+    if (kieEnabled && kieApiKey) {
+      providers.push({ id: "kie", name: "Kie.ai" });
+    }
     return providers;
-  }, [providerSettings]);
+  }, [replicateEnabled, replicateApiKey, kieEnabled, kieApiKey]);
 
   // Fetch models from external providers when provider changes
   const fetchModels = useCallback(async () => {
@@ -76,13 +90,16 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
     try {
       const capabilities = VIDEO_CAPABILITIES.join(",");
       const headers: HeadersInit = {};
-      if (providerSettings.providers.replicate?.apiKey) {
-        headers["X-Replicate-Key"] = providerSettings.providers.replicate.apiKey;
+      if (replicateApiKey) {
+        headers["X-Replicate-Key"] = replicateApiKey;
       }
-      if (providerSettings.providers.fal?.apiKey) {
-        headers["X-Fal-Key"] = providerSettings.providers.fal.apiKey;
+      if (falApiKey) {
+        headers["X-Fal-Key"] = falApiKey;
       }
-      const response = await fetch(`/api/models?provider=${currentProvider}&capabilities=${capabilities}`, { headers });
+      if (kieApiKey) {
+        headers["X-Kie-Key"] = kieApiKey;
+      }
+      const response = await deduplicatedFetch(`/api/models?provider=${currentProvider}&capabilities=${capabilities}`, { headers });
       if (response.ok) {
         const data = await response.json();
         setExternalModels(data.models || []);
@@ -104,7 +121,7 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
     } finally {
       setIsLoadingModels(false);
     }
-  }, [currentProvider, providerSettings]);
+  }, [currentProvider, replicateApiKey, falApiKey, kieApiKey]);
 
   useEffect(() => {
     fetchModels();
