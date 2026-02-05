@@ -95,7 +95,7 @@ function setMockStoreState(overrides: Record<string, unknown> = {}) {
     edges: [],
     nodes: [],
     isRunning: false,
-    currentNodeId: null,
+    currentNodeIds: [],
     groups: {},
     getNodesWithComments: vi.fn(() => []),
     markCommentViewed: vi.fn(),
