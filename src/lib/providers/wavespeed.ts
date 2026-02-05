@@ -285,6 +285,11 @@ const wavespeedProvider: ProviderInterface = {
         };
       }
 
+      // Validate taskId to prevent path traversal in poll URL
+      if (/[^a-zA-Z0-9\-_]/.test(taskId)) {
+        return { success: false, error: `WaveSpeed: Invalid task ID format` };
+      }
+
       // Poll for completion
       const maxWaitTime = 5 * 60 * 1000; // 5 minutes
       const pollInterval = 1000; // 1 second

@@ -414,9 +414,19 @@ function chunk<T>(array: T[], size: number): T[][] {
 }
 
 // Clear all imageRefs from nodes (used when saving to a different directory)
+/** Revoke a blob URL if the value is one, to free the underlying memory. */
+function revokeBlobUrl(url: string | null | undefined): void {
+  if (url && url.startsWith('blob:')) {
+    try { URL.revokeObjectURL(url); } catch { /* ignore */ }
+  }
+}
+
 function clearNodeImageRefs(nodes: WorkflowNode[]): WorkflowNode[] {
   return nodes.map(node => {
     const data = { ...node.data } as Record<string, unknown>;
+
+    // Revoke blob URLs for video outputs before clearing
+    revokeBlobUrl(data.outputVideo as string | undefined);
 
     // Clear all ref fields regardless of node type
     delete data.imageRef;
@@ -1113,24 +1123,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             nodeId: node.id,
             nodeType: node.type,
           });
-          set({ pausedAtNodeId: node.id, isRunning: false, currentNodeIds: [], _abortController: null });
+          set({ pausedAtNodeId: node.id });
           useToast.getState().show("Workflow paused - click Run to continue", "warning");
 
-          // Save logs to server (on pause)
-          const session = logger.getCurrentSession();
-          if (session) {
-            session.endTime = new Date().toISOString();
-            fetch('/api/logs', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ session }),
-            }).catch((err) => {
-              console.error('Failed to save log session:', err);
-            });
-          }
-
-          await logger.endSession();
-          // Signal to stop the entire workflow
+          // Signal to stop the entire workflow — outer loop handles isRunning/session cleanup
           abortController.abort();
           return;
         }
@@ -1272,9 +1268,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: "Missing text input",
               });
-              set({ isRunning: false, currentNodeIds: [] });
-              await logger.endSession();
-              return;
+              throw new Error("Missing text input");
             }
 
             updateNodeData(node.id, {
@@ -1373,9 +1367,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   status: "error",
                   error: errorMessage,
                 });
-                set({ isRunning: false, currentNodeIds: [] });
-                await logger.endSession();
-                return;
+                throw new Error(errorMessage);
               }
 
               const result = await response.json();
@@ -1451,9 +1443,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   status: "error",
                   error: result.error || "Generation failed",
                 });
-                set({ isRunning: false, currentNodeIds: [] });
-                await logger.endSession();
-                return;
+                throw new Error(result.error || "Generation failed");
               }
             } catch (error) {
               let errorMessage = "Generation failed";
@@ -1479,9 +1469,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: errorMessage,
               });
-              set({ isRunning: false, currentNodeIds: [] });
-              await logger.endSession();
-              return;
+              if (error instanceof DOMException && error.name === 'AbortError') throw error;
+              throw new Error(errorMessage);
             }
             break;
           }
@@ -1499,9 +1488,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: "Missing required inputs",
               });
-              set({ isRunning: false, currentNodeIds: [] });
-              await logger.endSession();
-              return;
+              throw new Error("Missing required inputs");
             }
 
             // Get fresh node data from store (not stale data from sorted array)
@@ -1516,9 +1503,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: "No model selected",
               });
-              set({ isRunning: false, currentNodeIds: [] });
-              await logger.endSession();
-              return;
+              throw new Error("No model selected");
             }
 
             updateNodeData(node.id, {
@@ -1608,9 +1593,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   status: "error",
                   error: errorMessage,
                 });
-                set({ isRunning: false, currentNodeIds: [] });
-                await logger.endSession();
-                return;
+                throw new Error(errorMessage);
               }
 
               const result = await response.json();
@@ -1693,9 +1676,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   status: "error",
                   error: result.error || "Video generation failed",
                 });
-                set({ isRunning: false, currentNodeIds: [] });
-                await logger.endSession();
-                return;
+                throw new Error(result.error || "Video generation failed");
               }
             } catch (error) {
               let errorMessage = "Video generation failed";
@@ -1719,9 +1700,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: errorMessage,
               });
-              set({ isRunning: false, currentNodeIds: [] });
-              await logger.endSession();
-              return;
+              if (error instanceof DOMException && error.name === 'AbortError') throw error;
+              throw new Error(errorMessage);
             }
             break;
           }
@@ -1741,9 +1721,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: "Missing text input - connect a prompt node or set internal prompt",
               });
-              set({ isRunning: false, currentNodeIds: [] });
-              await logger.endSession();
-              return;
+              throw new Error("Missing text input");
             }
 
             updateNodeData(node.id, {
@@ -1815,9 +1793,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   status: "error",
                   error: errorMessage,
                 });
-                set({ isRunning: false, currentNodeIds: [] });
-                await logger.endSession();
-                return;
+                throw new Error(errorMessage);
               }
 
               const result = await response.json();
@@ -1837,9 +1813,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                   status: "error",
                   error: result.error || "LLM generation failed",
                 });
-                set({ isRunning: false, currentNodeIds: [] });
-                await logger.endSession();
-                return;
+                throw new Error(result.error || "LLM generation failed");
               }
             } catch (error) {
               logger.error('node.error', 'llmGenerate node execution failed', {
@@ -1849,9 +1823,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: error instanceof Error ? error.message : "LLM generation failed",
               });
-              set({ isRunning: false, currentNodeIds: [] });
-              await logger.endSession();
-              return;
+              if (error instanceof DOMException && error.name === 'AbortError') throw error;
+              throw error instanceof Error ? error : new Error("LLM generation failed");
             }
             break;
           }
@@ -1865,8 +1838,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: "No input image connected",
               });
-              set({ isRunning: false, currentNodeIds: [] });
-              return;
+              throw new Error("No input image connected");
             }
 
             const nodeData = node.data as SplitGridNodeData;
@@ -1876,8 +1848,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: "Node not configured - open settings first",
               });
-              set({ isRunning: false, currentNodeIds: [] });
-              return;
+              throw new Error("Node not configured - open settings first");
             }
 
             updateNodeData(node.id, {
@@ -1925,9 +1896,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 status: "error",
                 error: error instanceof Error ? error.message : "Failed to split image",
               });
-              set({ isRunning: false, currentNodeIds: [] });
-              await logger.endSession();
-              return;
+              if (error instanceof DOMException && error.name === 'AbortError') throw error;
+              throw error instanceof Error ? error : new Error("Failed to split image");
             }
             break;
           }
@@ -2090,6 +2060,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 }
               );
 
+              // Revoke old blob URL before replacing
+              revokeBlobUrl((node.data as Record<string, unknown>).outputVideo as string | undefined);
+
               // Store output - blob URL for large files, data URL for small
               let outputVideo: string;
               if (outputBlob.size > 20 * 1024 * 1024) {
@@ -2212,6 +2185,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
               if (!outputBlob) {
                 throw new Error("Speed curve processing returned no output");
               }
+
+              // Revoke old blob URL before replacing
+              revokeBlobUrl((node.data as Record<string, unknown>).outputVideo as string | undefined);
 
               // Store output - blob URL for large files, data URL for small
               let outputVideo: string;
@@ -3007,6 +2983,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             }
           );
 
+          // Revoke old blob URL before replacing
+          const oldStitchData = get().nodes.find(n => n.id === nodeId)?.data as Record<string, unknown> | undefined;
+          revokeBlobUrl(oldStitchData?.outputVideo as string | undefined);
+
           let outputVideo: string;
           if (outputBlob.size > 20 * 1024 * 1024) {
             outputVideo = URL.createObjectURL(outputBlob);
@@ -3123,6 +3103,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           if (!outputBlob) {
             throw new Error("Speed curve processing returned no output");
           }
+
+          // Revoke old blob URL before replacing
+          const oldEaseData = get().nodes.find(n => n.id === nodeId)?.data as Record<string, unknown> | undefined;
+          revokeBlobUrl(oldEaseData?.outputVideo as string | undefined);
 
           let outputVideo: string;
           if (outputBlob.size > 20 * 1024 * 1024) {

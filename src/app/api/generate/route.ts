@@ -2019,8 +2019,15 @@ async function generateWithWaveSpeed(
   console.log(`[API:${requestId}] WaveSpeed submit response:`, JSON.stringify(submitResult).substring(0, 500));
 
   const taskId = submitResult.data?.id || submitResult.id;
-  // Use the polling URL provided by the API if available
-  const providedPollUrl = submitResult.data?.urls?.get;
+  // Use the polling URL provided by the API if available, with SSRF validation
+  let providedPollUrl: string | undefined = submitResult.data?.urls?.get;
+  if (providedPollUrl) {
+    const pollUrlCheck = validateMediaUrl(providedPollUrl);
+    if (!pollUrlCheck.valid || !providedPollUrl.startsWith('https://api.wavespeed.ai')) {
+      console.warn(`[API:${requestId}] WaveSpeed provided invalid poll URL: ${providedPollUrl} — falling back to constructed URL`);
+      providedPollUrl = undefined;
+    }
+  }
 
   if (!taskId) {
     console.error(`[API:${requestId}] No task ID in WaveSpeed submit response`);
