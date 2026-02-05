@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Handle, Position, NodeProps, Node } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
 import { useCommentNavigation } from "@/hooks/useCommentNavigation";
@@ -38,6 +38,7 @@ export function VideoStitchNode({ id, data, selected }: NodeProps<VideoStitchNod
   }, [edges, id]);
 
   // Sync clipOrder with connected edges (side effect, must be in useEffect)
+  const lastWrittenClipOrderRef = useRef<string[]>([]);
   useEffect(() => {
     const currentEdgeIds = videoEdges.map((e) => e.id);
     const currentOrder = nodeData.clipOrder || [];
@@ -47,10 +48,19 @@ export function VideoStitchNode({ id, data, selected }: NodeProps<VideoStitchNod
     const newEdges = currentEdgeIds.filter((eid) => !currentOrder.includes(eid));
     const newOrder = [...validExisting, ...newEdges];
 
+    // Skip if we just wrote this exact order (prevents extra render cycle)
+    if (
+      newOrder.length === lastWrittenClipOrderRef.current.length &&
+      newOrder.every((eid, idx) => eid === lastWrittenClipOrderRef.current[idx])
+    ) {
+      return;
+    }
+
     if (
       newOrder.length !== currentOrder.length ||
       !newOrder.every((eid, idx) => eid === currentOrder[idx])
     ) {
+      lastWrittenClipOrderRef.current = newOrder;
       updateNodeData(id, { clipOrder: newOrder });
     }
   }, [videoEdges, nodeData.clipOrder, id, updateNodeData]);
@@ -111,15 +121,27 @@ export function VideoStitchNode({ id, data, selected }: NodeProps<VideoStitchNod
     return ordered;
   }, [videoEdges, nodes, nodeData.clipOrder]);
 
+  // Stable key that only changes when clip edges or video data actually change
+  const clipKey = useMemo(
+    () => orderedClips.map((c) => `${c.edgeId}:${c.videoData ? "1" : "0"}`).join(","),
+    [orderedClips]
+  );
+
+  // Ref-based cache so the effect doesn't read stale `thumbnails` state
+  const thumbnailsRef = useRef<Map<string, string>>(new Map());
+
   // Extract thumbnails from connected videos
   useEffect(() => {
+    let cancelled = false;
+
     const extractThumbnails = async () => {
       const newThumbnails = new Map<string, string>();
 
       for (const clip of orderedClips) {
+        if (cancelled) return;
         if (!clip.videoData) continue;
-        if (thumbnails.has(clip.edgeId)) {
-          newThumbnails.set(clip.edgeId, thumbnails.get(clip.edgeId)!);
+        if (thumbnailsRef.current.has(clip.edgeId)) {
+          newThumbnails.set(clip.edgeId, thumbnailsRef.current.get(clip.edgeId)!);
           continue;
         }
 
@@ -134,12 +156,16 @@ export function VideoStitchNode({ id, data, selected }: NodeProps<VideoStitchNod
             video.onerror = () => reject(new Error("Failed to load video"));
           });
 
+          if (cancelled) return;
+
           const seekTime = video.duration * 0.25;
           video.currentTime = seekTime;
 
           await new Promise<void>((resolve) => {
             video.onseeked = () => resolve();
           });
+
+          if (cancelled) return;
 
           const canvas = document.createElement("canvas");
           canvas.width = 160;
@@ -157,11 +183,15 @@ export function VideoStitchNode({ id, data, selected }: NodeProps<VideoStitchNod
         }
       }
 
-      setThumbnails(newThumbnails);
+      if (!cancelled) {
+        thumbnailsRef.current = newThumbnails;
+        setThumbnails(newThumbnails);
+      }
     };
 
     extractThumbnails();
-  }, [orderedClips]);
+    return () => { cancelled = true; };
+  }, [clipKey]); // eslint-disable-line react-hooks/exhaustive-deps — orderedClips accessed via closure, clipKey is the stable dep
 
   // Pointer-based drag reorder (HTML5 drag doesn't work inside React Flow nodes)
   const [draggedClipId, setDraggedClipId] = useState<string | null>(null);
