@@ -24,6 +24,7 @@ import {
   GenerationOutput,
   registerProvider,
 } from "@/lib/providers";
+import { validateMediaUrl } from "@/utils/urlValidation";
 
 const WAVESPEED_API_BASE = "https://api.wavespeed.ai/api/v3";
 const PROVIDER_SETTINGS_KEY = "node-banana-provider-settings";
@@ -211,6 +212,12 @@ const wavespeedProvider: ProviderInterface = {
 
     try {
       const modelId = input.model.id;
+
+      // Validate modelId to prevent path traversal
+      if (/[^a-zA-Z0-9\-_/.]/.test(modelId) || modelId.includes('..')) {
+        return { success: false, error: `Invalid model ID: ${modelId}` };
+      }
+
       const outputType = inferOutputType(input.model.capabilities);
 
       // Build WaveSpeed payload
@@ -346,6 +353,13 @@ const wavespeedProvider: ProviderInterface = {
 
       // Fetch the first output and convert to base64
       const outputUrl = outputUrls[0];
+
+      // Validate URL before fetching
+      const urlCheck = validateMediaUrl(outputUrl);
+      if (!urlCheck.valid) {
+        return { success: false, error: `Invalid output URL: ${urlCheck.error}` };
+      }
+
       const outputResponse = await fetch(outputUrl);
 
       if (!outputResponse.ok) {
@@ -353,6 +367,13 @@ const wavespeedProvider: ProviderInterface = {
           success: false,
           error: `WaveSpeed: Failed to fetch output: ${outputResponse.status}`,
         };
+      }
+
+      // Check file size before downloading body
+      const MAX_MEDIA_SIZE = 500 * 1024 * 1024; // 500MB
+      const contentLength = parseInt(outputResponse.headers.get("content-length") || "0", 10);
+      if (contentLength > MAX_MEDIA_SIZE) {
+        return { success: false, error: `Media too large: ${(contentLength / (1024 * 1024)).toFixed(0)}MB > 500MB limit` };
       }
 
       const outputArrayBuffer = await outputResponse.arrayBuffer();

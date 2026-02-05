@@ -16,6 +16,7 @@ import { GoogleGenAI } from "@google/genai";
 import { GenerateRequest, GenerateResponse, ModelType, SelectedModel, ProviderType } from "@/types";
 import { GenerationInput, GenerationOutput, ProviderModel } from "@/lib/providers/types";
 import { uploadImageForUrl, shouldUseImageUrl, deleteImages } from "@/lib/images";
+import { validateMediaUrl } from "@/utils/urlValidation";
 
 export const maxDuration = 300; // 5 minute timeout (Vercel hobby plan limit)
 export const dynamic = 'force-dynamic'; // Ensure this route is always dynamic
@@ -1502,7 +1503,7 @@ async function pollKieTaskCompletion(
   const startTime = Date.now();
   let lastStatus = "";
 
-  const pollUrl = `https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`;
+  const pollUrl = `https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${encodeURIComponent(taskId)}`;
 
   while (true) {
     if (Date.now() - startTime > maxWaitTime) {
@@ -1796,6 +1797,12 @@ async function generateWithKie(
     isVideo = true;
   }
 
+  // Validate URL before fetching
+  const mediaUrlCheck = validateMediaUrl(mediaUrl);
+  if (!mediaUrlCheck.valid) {
+    return { success: false, error: `Invalid media URL: ${mediaUrlCheck.error}` };
+  }
+
   // Fetch the media and convert to base64
   console.log(`[API:${requestId}] Fetching output from: ${mediaUrl.substring(0, 80)}...`);
   const mediaResponse = await fetch(mediaUrl);
@@ -1805,6 +1812,13 @@ async function generateWithKie(
       success: false,
       error: `Failed to fetch output: ${mediaResponse.status}`,
     };
+  }
+
+  // Check file size before downloading body
+  const MAX_MEDIA_SIZE = 500 * 1024 * 1024; // 500MB
+  const mediaContentLength = parseInt(mediaResponse.headers.get("content-length") || "0", 10);
+  if (mediaContentLength > MAX_MEDIA_SIZE) {
+    return { success: false, error: `Media too large: ${(mediaContentLength / (1024 * 1024)).toFixed(0)}MB > 500MB limit` };
   }
 
   const contentType = mediaResponse.headers.get("content-type") || (isVideo ? "video/mp4" : "image/png");
@@ -1922,6 +1936,12 @@ async function generateWithWaveSpeed(
 
   const WAVESPEED_API_BASE = "https://api.wavespeed.ai/api/v3";
   const modelId = input.model.id;
+
+  // Validate modelId to prevent path traversal
+  if (/[^a-zA-Z0-9\-_/.]/.test(modelId) || modelId.includes('..')) {
+    return { success: false, error: `Invalid model ID: ${modelId}` };
+  }
+
   const hasDynamicInputs = input.dynamicInputs && Object.keys(input.dynamicInputs).length > 0;
   console.log(`[API:${requestId}] Dynamic inputs: ${hasDynamicInputs ? Object.keys(input.dynamicInputs!).join(", ") : "none"}`);
 
@@ -2144,6 +2164,13 @@ async function generateWithWaveSpeed(
 
   // Fetch the first output and convert to base64
   const outputUrl = outputUrls[0];
+
+  // Validate URL before fetching
+  const outputUrlCheck = validateMediaUrl(outputUrl);
+  if (!outputUrlCheck.valid) {
+    return { success: false, error: `Invalid output URL: ${outputUrlCheck.error}` };
+  }
+
   console.log(`[API:${requestId}] Fetching WaveSpeed output from: ${outputUrl.substring(0, 80)}...`);
 
   const outputResponse = await fetch(outputUrl);
@@ -2153,6 +2180,13 @@ async function generateWithWaveSpeed(
       success: false,
       error: `Failed to fetch output: ${outputResponse.status}`,
     };
+  }
+
+  // Check file size before downloading body
+  const MAX_MEDIA_SIZE_WS = 500 * 1024 * 1024; // 500MB
+  const wsContentLength = parseInt(outputResponse.headers.get("content-length") || "0", 10);
+  if (wsContentLength > MAX_MEDIA_SIZE_WS) {
+    return { success: false, error: `Media too large: ${(wsContentLength / (1024 * 1024)).toFixed(0)}MB > 500MB limit` };
   }
 
   const outputArrayBuffer = await outputResponse.arrayBuffer();
