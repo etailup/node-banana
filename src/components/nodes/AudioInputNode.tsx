@@ -45,14 +45,23 @@ export function AudioInputNode({ id, data, selected }: NodeProps<AudioInputNodeT
       const audio = new Audio(nodeData.audioFile);
       audioRef.current = audio;
 
-      audio.addEventListener("ended", () => {
+      const handleEnded = () => {
         setIsPlaying(false);
         setCurrentTime(0);
-      });
-
-      audio.addEventListener("timeupdate", () => {
+      };
+      const handleTimeUpdate = () => {
         setCurrentTime(audio.currentTime);
-      });
+      };
+
+      audio.addEventListener("ended", handleEnded);
+      audio.addEventListener("timeupdate", handleTimeUpdate);
+
+      return () => {
+        audio.removeEventListener("ended", handleEnded);
+        audio.removeEventListener("timeupdate", handleTimeUpdate);
+        audio.pause();
+        audioRef.current = null;
+      };
     }
 
     return () => {

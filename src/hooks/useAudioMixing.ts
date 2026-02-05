@@ -45,35 +45,51 @@ async function decodeWithMediaBunny(
 ): Promise<AudioBuffer[]> {
   onProgress?.({ message: 'Reading audio tracks...', progress: 20 });
 
-  const blobSource = new BlobSource(audioBlob);
-  const input = new Input({ source: blobSource, formats: ALL_FORMATS });
+  let blobSource: BlobSource | undefined;
+  let input: Input | undefined;
+  let sink: AudioBufferSink | undefined;
 
-  const audioTrack = await input.getPrimaryAudioTrack();
-  if (!audioTrack) {
-    throw new Error('No audio tracks found in file');
-  }
+  try {
+    blobSource = new BlobSource(audioBlob);
+    input = new Input({ source: blobSource, formats: ALL_FORMATS });
 
-  const decodable = await audioTrack.canDecode();
-  if (!decodable) {
-    throw new Error('Audio codec not supported by this browser');
-  }
+    const audioTrack = await input.getPrimaryAudioTrack();
+    if (!audioTrack) {
+      throw new Error('No audio tracks found in file');
+    }
 
-  const sink = new AudioBufferSink(audioTrack);
-  const audioDuration = await input.computeDuration();
+    const decodable = await audioTrack.canDecode();
+    if (!decodable) {
+      throw new Error('Audio codec not supported by this browser');
+    }
 
-  onProgress?.({ message: 'Decoding audio...', progress: 30 });
-  const decodedBuffers: AudioBuffer[] = [];
-  for await (const wrappedBuffer of sink.buffers(0, audioDuration)) {
-    if (wrappedBuffer?.buffer) {
-      decodedBuffers.push(wrappedBuffer.buffer);
+    sink = new AudioBufferSink(audioTrack);
+    const audioDuration = await input.computeDuration();
+
+    onProgress?.({ message: 'Decoding audio...', progress: 30 });
+    const decodedBuffers: AudioBuffer[] = [];
+    for await (const wrappedBuffer of sink.buffers(0, audioDuration)) {
+      if (wrappedBuffer?.buffer) {
+        decodedBuffers.push(wrappedBuffer.buffer);
+      }
+    }
+
+    if (decodedBuffers.length === 0) {
+      throw new Error('Failed to decode audio');
+    }
+
+    return decodedBuffers;
+  } finally {
+    if (sink && typeof sink.close === 'function') {
+      try { await sink.close(); } catch (e) { console.warn('Failed to close sink:', e); }
+    }
+    if (input && typeof input.close === 'function') {
+      try { await input.close(); } catch (e) { console.warn('Failed to close input:', e); }
+    }
+    if (blobSource && typeof blobSource.close === 'function') {
+      try { await blobSource.close(); } catch (e) { console.warn('Failed to close blobSource:', e); }
     }
   }
-
-  if (decodedBuffers.length === 0) {
-    throw new Error('Failed to decode audio');
-  }
-
-  return decodedBuffers;
 }
 
 /**

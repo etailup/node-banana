@@ -19,6 +19,9 @@ const responseCache = new Map<string, { status: number; headers: Record<string, 
 // Cache TTL in milliseconds (5 seconds - short enough to get fresh data, long enough to dedupe)
 const CACHE_TTL = 5000;
 
+// Map of cacheKey -> pending cleanup timeout IDs (for clearFetchCache cleanup)
+const pendingTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+
 /**
  * Generate a cache key from URL and headers
  */
@@ -105,9 +108,11 @@ export async function deduplicatedFetch(
     .finally(() => {
       // Clean up in-flight request after a short delay
       // (allows concurrent calls that started just after to still benefit)
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         inFlightRequests.delete(cacheKey);
+        pendingTimeouts.delete(cacheKey);
       }, 50);
+      pendingTimeouts.set(cacheKey, timeoutId);
     });
 
   // Store the in-flight request
@@ -123,4 +128,8 @@ export async function deduplicatedFetch(
 export function clearFetchCache(): void {
   responseCache.clear();
   inFlightRequests.clear();
+  for (const timeoutId of pendingTimeouts.values()) {
+    clearTimeout(timeoutId);
+  }
+  pendingTimeouts.clear();
 }

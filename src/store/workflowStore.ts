@@ -304,17 +304,22 @@ function trackSaveGeneration(
 async function waitForPendingImageSyncs(timeout: number = 60000): Promise<void> {
   if (pendingImageSyncs.size === 0) return;
 
+  let timeoutId: ReturnType<typeof setTimeout>;
   const timeoutPromise = new Promise<void>((resolve) => {
-    setTimeout(() => {
+    timeoutId = setTimeout(() => {
       console.warn(`Pending image syncs timed out after ${timeout}ms, continuing with save`);
       resolve();
     }, timeout);
   });
 
-  await Promise.race([
-    Promise.all(pendingImageSyncs.values()),
-    timeoutPromise,
-  ]);
+  try {
+    await Promise.race([
+      Promise.all(pendingImageSyncs.values()),
+      timeoutPromise,
+    ]);
+  } finally {
+    clearTimeout(timeoutId!);
+  }
 }
 
 // Concurrency settings
