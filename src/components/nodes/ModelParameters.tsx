@@ -6,6 +6,40 @@ import { ModelParameter } from "@/lib/providers/types";
 import { useProviderApiKeys } from "@/store/workflowStore";
 import { deduplicatedFetch } from "@/utils/deduplicatedFetch";
 
+// localStorage cache for model schemas (persists across dev server restarts)
+const SCHEMA_CACHE_KEY = "node-banana-schema-cache";
+const SCHEMA_CACHE_TTL = 48 * 60 * 60 * 1000; // 48 hours
+
+interface SchemaCacheEntry {
+  parameters: ModelParameter[];
+  inputs: ModelInputDef[];
+  timestamp: number;
+}
+
+function getCachedSchema(modelId: string, provider: string): SchemaCacheEntry | null {
+  try {
+    const cache = JSON.parse(localStorage.getItem(SCHEMA_CACHE_KEY) || "{}");
+    const key = `${provider}:${modelId}`;
+    const entry = cache[key];
+    if (entry && Date.now() - entry.timestamp < SCHEMA_CACHE_TTL) {
+      return entry;
+    }
+  } catch {
+    // Ignore cache errors
+  }
+  return null;
+}
+
+function setCachedSchema(modelId: string, provider: string, parameters: ModelParameter[], inputs: ModelInputDef[]) {
+  try {
+    const cache = JSON.parse(localStorage.getItem(SCHEMA_CACHE_KEY) || "{}");
+    cache[`${provider}:${modelId}`] = { parameters, inputs, timestamp: Date.now() };
+    localStorage.setItem(SCHEMA_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // Ignore cache errors
+  }
+}
+
 interface ModelParametersProps {
   modelId: string;
   provider: ProviderType;
@@ -44,6 +78,14 @@ export function ModelParameters({
     }
 
     const fetchSchema = async () => {
+      // Check localStorage cache first
+      const cached = getCachedSchema(modelId, provider);
+      if (cached) {
+        setSchema(cached.parameters);
+        onInputsLoaded?.(cached.inputs);
+        return;
+      }
+
       setIsLoading(true);
       setError(null);
 
@@ -75,11 +117,15 @@ export function ModelParameters({
 
         const data = await response.json();
         const params = data.parameters || [];
+        const inputs = data.inputs || [];
         setSchema(params);
 
+        // Cache the successful result
+        setCachedSchema(modelId, provider, params, inputs);
+
         // Pass inputs to parent for dynamic handle rendering
-        if (data.inputs && onInputsLoaded) {
-          onInputsLoaded(data.inputs);
+        if (onInputsLoaded) {
+          onInputsLoaded(inputs);
         }
       } catch (err) {
         console.error("Failed to fetch model schema:", err);

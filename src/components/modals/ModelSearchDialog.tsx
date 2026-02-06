@@ -8,6 +8,38 @@ import { useReactFlow } from "@xyflow/react";
 import { ProviderType, RecentModel } from "@/types";
 import { ProviderModel, ModelCapability } from "@/lib/providers/types";
 
+// localStorage cache for models (persists across dev server restarts)
+const MODELS_CACHE_KEY = "node-banana-models-cache";
+const MODELS_CACHE_TTL = 48 * 60 * 60 * 1000; // 48 hours
+
+interface ModelsCacheEntry {
+  models: ProviderModel[];
+  timestamp: number;
+}
+
+function getCachedModels(cacheKey: string): ModelsCacheEntry | null {
+  try {
+    const cache = JSON.parse(localStorage.getItem(MODELS_CACHE_KEY) || "{}");
+    const entry = cache[cacheKey];
+    if (entry && Date.now() - entry.timestamp < MODELS_CACHE_TTL) {
+      return entry;
+    }
+  } catch {
+    // Ignore cache errors
+  }
+  return null;
+}
+
+function setCachedModels(cacheKey: string, models: ProviderModel[]) {
+  try {
+    const cache = JSON.parse(localStorage.getItem(MODELS_CACHE_KEY) || "{}");
+    cache[cacheKey] = { models, timestamp: Date.now() };
+    localStorage.setItem(MODELS_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // Ignore cache errors
+  }
+}
+
 // Provider icons — all normalized to w-3.5 h-3.5 with viewBoxes cropped to fill consistently
 const ReplicateIcon = () => (
   <svg className="w-3.5 h-3.5" viewBox="0 0 1000 1000" fill="currentColor">
@@ -139,6 +171,16 @@ export function ModelSearchDialog({
     // Increment version to track this request
     const thisVersion = ++requestVersionRef.current;
 
+    // Build cache key from filters
+    const cacheKey = `${providerFilter}:${capabilityFilter}:${debouncedSearch}`;
+
+    // Check localStorage cache first
+    const cached = getCachedModels(cacheKey);
+    if (cached) {
+      setModels(cached.models);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -187,6 +229,8 @@ export function ModelSearchDialog({
 
       if (data.success && data.models) {
         setModels(data.models);
+        // Cache the successful result
+        setCachedModels(cacheKey, data.models);
       } else {
         setError(data.error || "Failed to fetch models");
         setModels([]);
