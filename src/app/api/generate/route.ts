@@ -817,23 +817,44 @@ async function uploadImageToFal(base64DataUrl: string, apiKey: string | null): P
   const contentType = match[1];
   const binaryData = Buffer.from(match[2], "base64");
 
-  const headers: Record<string, string> = {
-    "Content-Type": contentType,
-  };
-  if (apiKey) headers["Authorization"] = `Key ${apiKey}`;
+  const authHeaders: Record<string, string> = {};
+  if (apiKey) authHeaders["Authorization"] = `Key ${apiKey}`;
 
-  const response = await fetch("https://fal.ai/api/storage/upload", {
-    method: "POST",
-    headers,
+  // Step 1: Initiate upload to get a signed PUT URL
+  const ext = contentType.split("/")[1] || "png";
+  const initiateResponse = await fetch(
+    "https://rest.alpha.fal.ai/storage/upload/initiate?storage_type=fal-cdn-v3",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders,
+      },
+      body: JSON.stringify({
+        content_type: contentType,
+        file_name: `${Date.now()}.${ext}`,
+      }),
+    }
+  );
+
+  if (!initiateResponse.ok) {
+    throw new Error(`Failed to initiate fal CDN upload: ${initiateResponse.status}`);
+  }
+
+  const { upload_url: uploadUrl, file_url: fileUrl } = await initiateResponse.json();
+
+  // Step 2: PUT the binary data to the signed URL
+  const putResponse = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: { "Content-Type": contentType },
     body: binaryData,
   });
 
-  if (!response.ok) {
-    throw new Error(`Failed to upload to fal CDN: ${response.status}`);
+  if (!putResponse.ok) {
+    throw new Error(`Failed to upload to fal CDN: ${putResponse.status}`);
   }
 
-  const { url } = await response.json();
-  return url;
+  return fileUrl;
 }
 
 /**
