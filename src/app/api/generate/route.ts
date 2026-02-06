@@ -2199,9 +2199,11 @@ async function generateWithWaveSpeed(
   const outputArrayBuffer = await outputResponse.arrayBuffer();
   const outputSizeMB = outputArrayBuffer.byteLength / (1024 * 1024);
 
+  const rawContentType = outputResponse.headers.get("content-type");
   const contentType =
-    outputResponse.headers.get("content-type") ||
-    (isVideoModel ? "video/mp4" : "image/png");
+    (rawContentType && rawContentType !== "application/octet-stream")
+      ? rawContentType
+      : (isVideoModel ? "video/mp4" : "image/png");
 
   console.log(`[API:${requestId}] Output: ${contentType}, ${outputSizeMB.toFixed(2)}MB`);
 
@@ -2323,7 +2325,7 @@ export async function POST(request: NextRequest) {
           id: selectedModel!.modelId,
           name: selectedModel!.displayName,
           provider: "replicate",
-          capabilities: ["text-to-image"],
+          capabilities: mediaType === "video" ? ["text-to-video"] : ["text-to-image"],
           description: null,
         },
         prompt: prompt || "",
@@ -2411,7 +2413,7 @@ export async function POST(request: NextRequest) {
           id: selectedModel!.modelId,
           name: selectedModel!.displayName,
           provider: "fal",
-          capabilities: ["text-to-image"],
+          capabilities: mediaType === "video" ? ["text-to-video"] : ["text-to-image"],
           description: null,
         },
         prompt: prompt || "",
@@ -2502,7 +2504,7 @@ export async function POST(request: NextRequest) {
           id: selectedModel!.modelId,
           name: selectedModel!.displayName,
           provider: "kie",
-          capabilities: ["text-to-image"],
+          capabilities: mediaType === "video" ? ["text-to-video"] : ["text-to-image"],
           description: null,
         },
         prompt: prompt || "",
@@ -2593,7 +2595,7 @@ export async function POST(request: NextRequest) {
           id: selectedModel!.modelId,
           name: selectedModel!.displayName,
           provider: "wavespeed",
-          capabilities: ["text-to-image"],
+          capabilities: mediaType === "video" ? ["text-to-video"] : ["text-to-image"],
           description: null,
         },
         prompt: prompt || "",

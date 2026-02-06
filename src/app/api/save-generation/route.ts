@@ -165,7 +165,10 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        const contentType = response.headers.get("content-type") || (isVideo ? "video/mp4" : "image/png");
+        const rawSaveContentType = response.headers.get("content-type");
+        const contentType = (rawSaveContentType && rawSaveContentType !== "application/octet-stream")
+          ? rawSaveContentType
+          : (isVideo ? "video/mp4" : "image/png");
         extension = getExtensionFromMime(contentType);
 
         const arrayBuffer = await response.arrayBuffer();
@@ -196,6 +199,11 @@ export async function POST(request: NextRequest) {
         extension = isVideo ? "mp4" : "png";
         buffer = Buffer.from(content, "base64");
       }
+    }
+
+    // Safety net: if extension resolved to "bin" but we know the media type, use correct extension
+    if (extension === "bin") {
+      extension = isVideo ? "mp4" : "png";
     }
 
     // Compute content hash for deduplication
