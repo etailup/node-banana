@@ -41,7 +41,7 @@ vi.mock("@/lib/images", () => ({
   deleteImages: vi.fn(),
 }));
 
-import { POST } from "../route";
+import { POST, clearFalInputMappingCache } from "../route";
 
 // Store original env
 const originalEnv = { ...process.env };
@@ -1618,11 +1618,45 @@ describe("/api/generate route", () => {
     beforeEach(() => {
       global.fetch = mockFetch;
       mockFetch.mockReset();
+      clearFalInputMappingCache();
     });
 
     afterEach(() => {
       global.fetch = originalFetch;
     });
+
+    // Helper: mock the fal queue flow (submit → poll COMPLETED → fetch result → fetch media)
+    function mockFalQueueSuccess(resultPayload: Record<string, unknown>, mediaContentType: string, mediaSize: number) {
+      // Queue submit
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ request_id: "test-req-id" }),
+      });
+      // Status poll → COMPLETED
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ status: "COMPLETED" }),
+      });
+      // Result fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(resultPayload),
+      });
+      // Media fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": mediaContentType }),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(mediaSize)),
+      });
+    }
+
+    // Helper: mock CDN upload for a base64 image
+    function mockFalCdnUpload(cdnUrl = "https://fal.ai/cdn/uploaded.png") {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ url: cdnUrl }),
+      });
+    }
 
     it("should generate image successfully via fal.ai (images array response)", async () => {
       // Schema fetch (for input mapping when no dynamicInputs)
@@ -1631,20 +1665,12 @@ describe("/api/generate route", () => {
         json: () => Promise.resolve({ models: [] }),
       });
 
-      // fal.run API call
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          images: [{ url: "https://fal.media/output.png" }],
-        }),
-      });
-
-      // Fetch output media
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        headers: new Headers({ "content-type": "image/png" }),
-        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
-      });
+      // Queue flow: submit → poll → result → media
+      mockFalQueueSuccess(
+        { images: [{ url: "https://fal.media/output.png" }] },
+        "image/png",
+        1024
+      );
 
       const request = createMockPostRequest(
         {
@@ -1666,9 +1692,9 @@ describe("/api/generate route", () => {
       expect(data.image).toContain("data:image/png;base64,");
       expect(data.contentType).toBe("image");
 
-      // Verify API key was passed correctly (check fal.run call, which is the 2nd call after schema fetch)
+      // Verify API key was passed correctly (check queue submit call, which is the 2nd call after schema fetch)
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining("fal.run/fal-ai/flux/schnell"),
+        expect.stringContaining("queue.fal.run/fal-ai/flux/schnell"),
         expect.objectContaining({
           headers: expect.objectContaining({
             Authorization: "Key test-fal-key",
@@ -1684,20 +1710,12 @@ describe("/api/generate route", () => {
         json: () => Promise.resolve({ models: [] }),
       });
 
-      // fal.run API call
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          video: { url: "https://fal.media/output.mp4" },
-        }),
-      });
-
-      // Fetch output media
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        headers: new Headers({ "content-type": "video/mp4" }),
-        arrayBuffer: () => Promise.resolve(new ArrayBuffer(2048)),
-      });
+      // Queue flow: submit → poll → result → media
+      mockFalQueueSuccess(
+        { video: { url: "https://fal.media/output.mp4" } },
+        "video/mp4",
+        2048
+      );
 
       const request = createMockPostRequest(
         {
@@ -1729,20 +1747,12 @@ describe("/api/generate route", () => {
         json: () => Promise.resolve({ models: [] }),
       });
 
-      // fal.run API call succeeds without auth
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          images: [{ url: "https://example.com/image.png", content_type: "image/png" }],
-        }),
-      });
-
-      // Image download
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        headers: new Headers({ "content-type": "image/png" }),
-        arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
-      });
+      // Queue flow: submit → poll → result → media
+      mockFalQueueSuccess(
+        { images: [{ url: "https://example.com/image.png" }] },
+        "image/png",
+        8
+      );
 
       const request = createMockPostRequest({
         prompt: "A beautiful landscape",
@@ -1768,7 +1778,7 @@ describe("/api/generate route", () => {
         json: () => Promise.resolve({ models: [] }),
       });
 
-      // fal.run returns 429
+      // Queue submit returns 429
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 429,
@@ -1805,7 +1815,7 @@ describe("/api/generate route", () => {
         json: () => Promise.resolve({ models: [] }),
       });
 
-      // fal.run returns 429 since no auth
+      // Queue submit returns 429 since no auth
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 429,
@@ -1837,20 +1847,12 @@ describe("/api/generate route", () => {
         json: () => Promise.resolve({ models: [] }),
       });
 
-      // fal.run API call with single image object
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          image: { url: "https://fal.media/output.png" },
-        }),
-      });
-
-      // Fetch output media
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        headers: new Headers({ "content-type": "image/png" }),
-        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
-      });
+      // Queue flow: submit → poll → result (image object) → media
+      mockFalQueueSuccess(
+        { image: { url: "https://fal.media/output.png" } },
+        "image/png",
+        1024
+      );
 
       const request = createMockPostRequest(
         {
@@ -1879,20 +1881,12 @@ describe("/api/generate route", () => {
         json: () => Promise.resolve({ models: [] }),
       });
 
-      // fal.run API call with output URL string
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          output: "https://fal.media/output.png",
-        }),
-      });
-
-      // Fetch output media
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        headers: new Headers({ "content-type": "image/png" }),
-        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
-      });
+      // Queue flow: submit → poll → result (output string) → media
+      mockFalQueueSuccess(
+        { output: "https://fal.media/output.png" },
+        "image/png",
+        1024
+      );
 
       const request = createMockPostRequest(
         {
@@ -1921,16 +1915,24 @@ describe("/api/generate route", () => {
         json: () => Promise.resolve({ models: [] }),
       });
 
-      // fal.run API call
+      // Queue flow: submit → poll → result → media (large video)
+      const largeBuffer = new ArrayBuffer(25 * 1024 * 1024); // 25MB
+      // Queue submit
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({
-          video: { url: "https://fal.media/large-video.mp4" },
-        }),
+        json: () => Promise.resolve({ request_id: "test-req-id" }),
       });
-
-      // Fetch output media (large video > 20MB)
-      const largeBuffer = new ArrayBuffer(25 * 1024 * 1024); // 25MB
+      // Status poll → COMPLETED
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ status: "COMPLETED" }),
+      });
+      // Result fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ video: { url: "https://fal.media/large-video.mp4" } }),
+      });
+      // Media fetch (large video > 20MB)
       mockFetch.mockResolvedValueOnce({
         ok: true,
         headers: new Headers({ "content-type": "video/mp4" }),
@@ -1966,20 +1968,15 @@ describe("/api/generate route", () => {
         json: () => Promise.resolve({ models: [] }),
       });
 
-      // fal.run API call
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          images: [{ url: "https://fal.media/output.png" }],
-        }),
-      });
+      // CDN upload for tail_image_url (base64 data URI)
+      mockFalCdnUpload("https://fal.ai/cdn/tail.png");
 
-      // Fetch output media
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        headers: new Headers({ "content-type": "image/png" }),
-        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
-      });
+      // Queue flow: submit → poll → result → media
+      mockFalQueueSuccess(
+        { images: [{ url: "https://fal.media/output.png" }] },
+        "image/png",
+        1024
+      );
 
       const request = createMockPostRequest(
         {
@@ -2005,12 +2002,15 @@ describe("/api/generate route", () => {
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
 
-      // Verify request body only contains non-empty values (2nd call after schema fetch)
-      const falCall = mockFetch.mock.calls[1];
-      const requestBody = JSON.parse(falCall[1].body);
+      // Find the queue submit call (the one to queue.fal.run)
+      const queueSubmitCall = mockFetch.mock.calls.find(
+        (call: [string, ...unknown[]]) => typeof call[0] === "string" && call[0].includes("queue.fal.run") && !call[0].includes("/requests/")
+      );
+      expect(queueSubmitCall).toBeDefined();
+      const requestBody = JSON.parse((queueSubmitCall![1] as { body: string }).body);
       expect(requestBody).toEqual({
         prompt: "Valid prompt",
-        tail_image_url: "data:image/png;base64,tailData",
+        tail_image_url: "https://fal.ai/cdn/tail.png", // Uploaded to CDN
       });
       expect(requestBody).not.toHaveProperty("image_url");
       expect(requestBody).not.toHaveProperty("empty_field");
@@ -2023,20 +2023,15 @@ describe("/api/generate route", () => {
         json: () => Promise.resolve({ models: [] }),
       });
 
-      // fal.run API call
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          images: [{ url: "https://fal.media/output.png" }],
-        }),
-      });
+      // CDN upload for image_url (base64 data URI)
+      mockFalCdnUpload("https://fal.ai/cdn/uploaded.png");
 
-      // Fetch output media
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        headers: new Headers({ "content-type": "image/png" }),
-        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
-      });
+      // Queue flow: submit → poll → result → media
+      mockFalQueueSuccess(
+        { images: [{ url: "https://fal.media/output.png" }] },
+        "image/png",
+        1024
+      );
 
       const request = createMockPostRequest(
         {
@@ -2061,13 +2056,16 @@ describe("/api/generate route", () => {
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
 
-      // Verify dynamicInputs were passed to fal.ai (2nd call after schema fetch)
-      const falCall = mockFetch.mock.calls[1];
-      const requestBody = JSON.parse(falCall[1].body);
+      // Find the queue submit call
+      const queueSubmitCall = mockFetch.mock.calls.find(
+        (call: [string, ...unknown[]]) => typeof call[0] === "string" && call[0].includes("queue.fal.run") && !call[0].includes("/requests/")
+      );
+      expect(queueSubmitCall).toBeDefined();
+      const requestBody = JSON.parse((queueSubmitCall![1] as { body: string }).body);
       expect(requestBody).toEqual(
         expect.objectContaining({
           prompt: "Dynamic prompt from connection",
-          image_url: "data:image/png;base64,testImageData",
+          image_url: "https://fal.ai/cdn/uploaded.png", // Uploaded to CDN
           num_inference_steps: "25",
         })
       );
@@ -2082,20 +2080,12 @@ describe("/api/generate route", () => {
         json: () => Promise.resolve({ models: [] }),
       });
 
-      // fal.run API call
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          images: [{ url: "https://fal.media/output.png" }],
-        }),
-      });
-
-      // Fetch output media
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        headers: new Headers({ "content-type": "image/png" }),
-        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
-      });
+      // Queue flow: submit → poll → result → media
+      mockFalQueueSuccess(
+        { images: [{ url: "https://fal.media/output.png" }] },
+        "image/png",
+        1024
+      );
 
       const request = createMockPostRequest({
         prompt: "Test prompt",
@@ -2112,9 +2102,9 @@ describe("/api/generate route", () => {
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
 
-      // Verify env var key was used (check the fal.run call, which is the 2nd call after schema fetch)
+      // Verify env var key was used (check the queue submit call)
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining("fal.run"),
+        expect.stringContaining("queue.fal.run"),
         expect.objectContaining({
           headers: expect.objectContaining({
             Authorization: "Key env-fal-key",
@@ -2130,20 +2120,12 @@ describe("/api/generate route", () => {
         json: () => Promise.resolve({ models: [] }),
       });
 
-      // fal.run API call
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          images: [{ url: "https://fal.media/output.png" }],
-        }),
-      });
-
-      // Fetch output media
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        headers: new Headers({ "content-type": "image/png" }),
-        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
-      });
+      // Queue flow: submit → poll → result → media
+      mockFalQueueSuccess(
+        { images: [{ url: "https://fal.media/output.png" }] },
+        "image/png",
+        1024
+      );
 
       const request = createMockPostRequest(
         {
@@ -2171,9 +2153,12 @@ describe("/api/generate route", () => {
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
 
-      // Verify parameters were passed to fal.ai (2nd call after schema fetch)
-      const falCall = mockFetch.mock.calls[1];
-      const requestBody = JSON.parse(falCall[1].body);
+      // Find the queue submit call
+      const queueSubmitCall = mockFetch.mock.calls.find(
+        (call: [string, ...unknown[]]) => typeof call[0] === "string" && call[0].includes("queue.fal.run") && !call[0].includes("/requests/")
+      );
+      expect(queueSubmitCall).toBeDefined();
+      const requestBody = JSON.parse((queueSubmitCall![1] as { body: string }).body);
       expect(requestBody).toEqual(
         expect.objectContaining({
           seed: 12345,
@@ -2190,20 +2175,12 @@ describe("/api/generate route", () => {
         json: () => Promise.resolve({ models: [] }),
       });
 
-      // fal.run API call
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          images: [{ url: "https://fal.media/output.png" }],
-        }),
-      });
-
-      // Fetch output media
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        headers: new Headers({ "content-type": "image/png" }),
-        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
-      });
+      // Queue flow: submit → poll → result → media
+      mockFalQueueSuccess(
+        { images: [{ url: "https://fal.media/output.png" }] },
+        "image/png",
+        1024
+      );
 
       const request = createMockPostRequest(
         {
@@ -2231,9 +2208,12 @@ describe("/api/generate route", () => {
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
 
-      // Verify dynamicInputs override parameters (2nd call after schema fetch)
-      const falCall = mockFetch.mock.calls[1];
-      const requestBody = JSON.parse(falCall[1].body);
+      // Find the queue submit call
+      const queueSubmitCall = mockFetch.mock.calls.find(
+        (call: [string, ...unknown[]]) => typeof call[0] === "string" && call[0].includes("queue.fal.run") && !call[0].includes("/requests/")
+      );
+      expect(queueSubmitCall).toBeDefined();
+      const requestBody = JSON.parse((queueSubmitCall![1] as { body: string }).body);
       expect(requestBody).toEqual(
         expect.objectContaining({
           seed: 42,
@@ -2273,20 +2253,15 @@ describe("/api/generate route", () => {
         }),
       });
 
-      // fal.run API call
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          images: [{ url: "https://fal.media/output.png" }],
-        }),
-      });
+      // CDN upload for image_urls (base64 data URI)
+      mockFalCdnUpload("https://fal.ai/cdn/uploaded-single.png");
 
-      // Fetch output media
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        headers: new Headers({ "content-type": "image/png" }),
-        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
-      });
+      // Queue flow: submit → poll → result → media
+      mockFalQueueSuccess(
+        { images: [{ url: "https://fal.media/output.png" }] },
+        "image/png",
+        1024
+      );
 
       const request = createMockPostRequest(
         {
@@ -2307,10 +2282,14 @@ describe("/api/generate route", () => {
       const response = await POST(request);
       expect(response.status).toBe(200);
 
-      // Verify image_urls was wrapped in array because schema says type: "array"
-      const falCall = mockFetch.mock.calls[1];
-      const requestBody = JSON.parse(falCall[1].body);
-      expect(requestBody.image_urls).toEqual(["data:image/png;base64,singleImage"]);
+      // Find the queue submit call
+      const queueSubmitCall = mockFetch.mock.calls.find(
+        (call: [string, ...unknown[]]) => typeof call[0] === "string" && call[0].includes("queue.fal.run") && !call[0].includes("/requests/")
+      );
+      expect(queueSubmitCall).toBeDefined();
+      const requestBody = JSON.parse((queueSubmitCall![1] as { body: string }).body);
+      // image_urls was uploaded to CDN then wrapped in array because schema says type: "array"
+      expect(requestBody.image_urls).toEqual(["https://fal.ai/cdn/uploaded-single.png"]);
       expect(requestBody.prompt).toBe("Edit this image");
     });
 
@@ -2344,20 +2323,15 @@ describe("/api/generate route", () => {
         }),
       });
 
-      // fal.run API call
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          images: [{ url: "https://fal.media/output.png" }],
-        }),
-      });
+      // CDN upload for image_url (base64 data URI)
+      mockFalCdnUpload("https://fal.ai/cdn/single.png");
 
-      // Fetch output media
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        headers: new Headers({ "content-type": "image/png" }),
-        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1024)),
-      });
+      // Queue flow: submit → poll → result → media
+      mockFalQueueSuccess(
+        { images: [{ url: "https://fal.media/output.png" }] },
+        "image/png",
+        1024
+      );
 
       const request = createMockPostRequest(
         {
@@ -2378,10 +2352,14 @@ describe("/api/generate route", () => {
       const response = await POST(request);
       expect(response.status).toBe(200);
 
-      // Verify image_url remains a string (not wrapped in array)
-      const falCall = mockFetch.mock.calls[1];
-      const requestBody = JSON.parse(falCall[1].body);
-      expect(requestBody.image_url).toBe("data:image/png;base64,singleImage");
+      // Find the queue submit call
+      const queueSubmitCall = mockFetch.mock.calls.find(
+        (call: [string, ...unknown[]]) => typeof call[0] === "string" && call[0].includes("queue.fal.run") && !call[0].includes("/requests/")
+      );
+      expect(queueSubmitCall).toBeDefined();
+      const requestBody = JSON.parse((queueSubmitCall![1] as { body: string }).body);
+      // image_url was uploaded to CDN but remains a string (not wrapped in array)
+      expect(requestBody.image_url).toBe("https://fal.ai/cdn/single.png");
       expect(requestBody.prompt).toBe("Test prompt");
     });
 
@@ -2392,7 +2370,7 @@ describe("/api/generate route", () => {
         json: () => Promise.resolve({ models: [] }),
       });
 
-      // fal.run returns error
+      // Queue submit returns error
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 400,
@@ -2428,7 +2406,7 @@ describe("/api/generate route", () => {
         json: () => Promise.resolve({ models: [] }),
       });
 
-      // fal.run returns validation errors
+      // Queue submit returns validation errors
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 422,
@@ -2468,7 +2446,17 @@ describe("/api/generate route", () => {
         json: () => Promise.resolve({ models: [] }),
       });
 
-      // fal.run API call returns empty response
+      // Queue submit
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ request_id: "test-req-id" }),
+      });
+      // Status poll → COMPLETED
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ status: "COMPLETED" }),
+      });
+      // Result fetch returns empty response (no media URL)
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({}),

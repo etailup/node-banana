@@ -58,6 +58,7 @@ describe("ModelParameters", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     mockUseWorkflowStore.mockImplementation((selector) => {
       return selector(defaultStoreState);
     });

@@ -665,10 +665,27 @@ interface FalInputMapping extends InputMapping {
 }
 
 /**
+ * In-memory cache for fal.ai schema mappings to avoid extra API call per generation
+ */
+const falInputMappingCache = new Map<string, { result: FalInputMapping; timestamp: number }>();
+const FAL_MAPPING_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
+/** Clear the fal schema mapping cache (exported for testing) */
+export function clearFalInputMappingCache() {
+  falInputMappingCache.clear();
+}
+
+/**
  * Fetch fal.ai model schema and extract input parameter mappings
  * Uses the Model Search API with OpenAPI expansion (same as /api/models/[modelId])
+ * Results are cached in-memory for 30 minutes per model.
  */
 async function getFalInputMapping(modelId: string, apiKey: string | null): Promise<FalInputMapping> {
+  // Check cache first
+  const cached = falInputMappingCache.get(modelId);
+  if (cached && Date.now() - cached.timestamp < FAL_MAPPING_CACHE_TTL) {
+    return cached.result;
+  }
   const paramMap: Record<string, string> = {};
   const arrayParams = new Set<string>();
   const schemaArrayParams = new Set<string>();
@@ -773,7 +790,43 @@ async function getFalInputMapping(modelId: string, apiKey: string | null): Promi
     // Schema parsing failed - continue with empty mapping
   }
 
-  return { paramMap, arrayParams, schemaArrayParams, parameterTypes };
+  const result = { paramMap, arrayParams, schemaArrayParams, parameterTypes };
+  falInputMappingCache.set(modelId, { result, timestamp: Date.now() });
+  return result;
+}
+
+/**
+ * Upload a base64 data URL image to fal.ai CDN storage.
+ * Returns the CDN URL to use in API requests instead of inline base64.
+ * If the input is already a URL (not base64), returns it as-is.
+ */
+async function uploadImageToFal(base64DataUrl: string, apiKey: string | null): Promise<string> {
+  // Already a URL, not base64
+  if (!base64DataUrl.startsWith("data:")) return base64DataUrl;
+
+  const match = base64DataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) return base64DataUrl;
+
+  const contentType = match[1];
+  const binaryData = Buffer.from(match[2], "base64");
+
+  const headers: Record<string, string> = {
+    "Content-Type": contentType,
+  };
+  if (apiKey) headers["Authorization"] = `Key ${apiKey}`;
+
+  const response = await fetch("https://fal.ai/api/storage/upload", {
+    method: "POST",
+    headers,
+    body: binaryData,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to upload to fal CDN: ${response.status}`);
+  }
+
+  const { url } = await response.json();
+  return url;
 }
 
 /**
@@ -983,13 +1036,9 @@ async function generateWithFal(
 }
 
 /**
- * Generate video using fal.ai Queue API
- * Uses async queue submission + polling to handle long-running video generation
- * that would otherwise timeout with the blocking fal.run endpoint.
- * 
- * NOTE: This function is NOT currently used because fal.ai's queue API has file size
- * limitations that are too restrictive. We use the blocking fal.run endpoint instead
- * with an extended server timeout configured in server.js.
+ * Generate using fal.ai Queue API
+ * Uses async queue submission + polling (1s interval) instead of blocking fal.run.
+ * Images are uploaded to fal CDN before submission to avoid payload size issues.
  */
 async function generateWithFalQueue(
   requestId: string,
@@ -1002,47 +1051,68 @@ async function generateWithFalQueue(
   const hasDynamicInputs = input.dynamicInputs && Object.keys(input.dynamicInputs).length > 0;
   console.log(`[API:${requestId}] Dynamic inputs: ${hasDynamicInputs ? Object.keys(input.dynamicInputs!).join(", ") : "none"}, API key: ${apiKey ? "yes" : "no"}`);
 
-  // Build request body (same logic as generateWithFal)
+  // Fetch schema for type coercion and input mapping (cached, same as generateWithFal)
+  const { paramMap, arrayParams, schemaArrayParams, parameterTypes } = await getFalInputMapping(modelId, apiKey);
+
+  // Build request body, coercing parameter types from schema
   const requestBody: Record<string, unknown> = {
-    ...input.parameters,
+    ...coerceParameterTypes(input.parameters, parameterTypes),
+  };
+
+  // Upload base64 images to fal CDN to avoid sending large payloads inline
+  const uploadImage = async (value: string | string[]): Promise<string | string[]> => {
+    if (Array.isArray(value)) {
+      return Promise.all(value.map(v => typeof v === "string" && v.startsWith("data:") ? uploadImageToFal(v, apiKey) : Promise.resolve(v)));
+    }
+    if (typeof value === "string" && value.startsWith("data:")) {
+      return uploadImageToFal(value, apiKey);
+    }
+    return value;
   };
 
   if (hasDynamicInputs) {
-    const { schemaArrayParams } = await getFalInputMapping(modelId, apiKey);
-
     const filteredInputs: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(input.dynamicInputs!)) {
       if (value !== null && value !== undefined && value !== '') {
-        if (schemaArrayParams.has(key) && !Array.isArray(value)) {
-          filteredInputs[key] = [value];
+        let processedValue: unknown = value;
+        // Upload base64 images to CDN
+        if (typeof value === "string" || Array.isArray(value)) {
+          processedValue = await uploadImage(value);
+        }
+        // Wrap in array if schema expects array but we have a single value
+        if (schemaArrayParams.has(key) && !Array.isArray(processedValue)) {
+          filteredInputs[key] = [processedValue];
         } else {
-          filteredInputs[key] = value;
+          filteredInputs[key] = processedValue;
         }
       }
     }
     Object.assign(requestBody, filteredInputs);
   } else {
-    const { paramMap, arrayParams } = await getFalInputMapping(modelId, apiKey);
-
+    // Fallback: use schema to map generic input names to model-specific parameter names
     if (input.prompt) {
       const promptParam = paramMap.prompt || "prompt";
       requestBody[promptParam] = input.prompt;
     }
 
     if (input.images && input.images.length > 0) {
+      // Upload images to CDN before sending
+      const uploadedImages = await Promise.all(
+        input.images.map(img => uploadImageToFal(img, apiKey))
+      );
       const imageParam = paramMap.image || "image_url";
       if (arrayParams.has("image")) {
-        requestBody[imageParam] = input.images;
+        requestBody[imageParam] = uploadedImages;
       } else {
-        requestBody[imageParam] = input.images[0];
+        requestBody[imageParam] = uploadedImages[0];
       }
     }
 
-    if (input.parameters) {
-      for (const [key, value] of Object.entries(input.parameters)) {
-        const mappedKey = paramMap[key] || key;
-        requestBody[mappedKey] = value;
-      }
+    // Map any parameters that might need renaming (use coerced values)
+    const coercedParams = coerceParameterTypes(input.parameters, parameterTypes);
+    for (const [key, value] of Object.entries(coercedParams)) {
+      const mappedKey = paramMap[key] || key;
+      requestBody[mappedKey] = value;
     }
   }
 
@@ -1114,7 +1184,7 @@ async function generateWithFalQueue(
 
   // Poll for completion
   const maxWaitTime = 10 * 60 * 1000; // 10 minutes for video
-  const pollInterval = 2000; // 2 seconds
+  const pollInterval = 1000; // 1 second (matches Replicate/WaveSpeed)
   const startTime = Date.now();
   let lastStatus = "";
 
@@ -2385,8 +2455,7 @@ export async function POST(request: NextRequest) {
         console.warn(`[API:${requestId}] No FAL API key configured. Proceeding without auth (rate-limited).`);
       }
 
-      // For fal.ai, keep Data URIs as-is since localhost URLs won't work
-      // fal.ai accepts Data URIs directly
+      // Pass images as-is; generateWithFalQueue uploads base64 to CDN internally
       const processedImages: string[] = images ? [...images] : [];
 
       // Process dynamicInputs: filter empty values
@@ -2402,7 +2471,7 @@ export async function POST(request: NextRequest) {
             continue;
           }
 
-          // Keep the value as-is (Data URIs work with fal.ai)
+          // Keep the value as-is; CDN upload happens in generateWithFalQueue
           processedDynamicInputs[key] = value;
         }
       }
@@ -2422,7 +2491,7 @@ export async function POST(request: NextRequest) {
         dynamicInputs: processedDynamicInputs,
       };
 
-      const result = await generateWithFal(requestId, falApiKey, genInput);
+      const result = await generateWithFalQueue(requestId, falApiKey, genInput);
 
       if (!result.success) {
         return NextResponse.json<GenerateResponse>(
