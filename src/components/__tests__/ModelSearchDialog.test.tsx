@@ -109,6 +109,7 @@ const sampleModels: ProviderModel[] = [
 describe("ModelSearchDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     vi.useFakeTimers({ shouldAdvanceTime: true });
 
     // Default mock fetch response

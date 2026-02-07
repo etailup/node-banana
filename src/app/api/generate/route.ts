@@ -7,9 +7,8 @@
  * - For local development, server.requestTimeout must be set in server.js (Node.js default is 5 minutes)
  * 
  * FAL.AI QUEUE API NOTE:
- * The generateWithFalQueue function exists but is NOT used because fal.ai's queue API
- * has file size limitations that are too restrictive for our use case. We use the blocking
- * fal.run endpoint instead, which requires the server timeout to be extended for video generation.
+ * Uses generateWithFalQueue with async queue submission + polling.
+ * Images are uploaded to fal CDN before submission to avoid payload size issues.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
@@ -665,10 +664,27 @@ interface FalInputMapping extends InputMapping {
 }
 
 /**
+ * In-memory cache for fal.ai schema mappings to avoid extra API call per generation
+ */
+const falInputMappingCache = new Map<string, { result: FalInputMapping; timestamp: number }>();
+const FAL_MAPPING_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
+/** Clear the fal schema mapping cache (exported for testing) */
+export function clearFalInputMappingCache() {
+  falInputMappingCache.clear();
+}
+
+/**
  * Fetch fal.ai model schema and extract input parameter mappings
  * Uses the Model Search API with OpenAPI expansion (same as /api/models/[modelId])
+ * Results are cached in-memory for 30 minutes per model.
  */
 async function getFalInputMapping(modelId: string, apiKey: string | null): Promise<FalInputMapping> {
+  // Check cache first
+  const cached = falInputMappingCache.get(modelId);
+  if (cached && Date.now() - cached.timestamp < FAL_MAPPING_CACHE_TTL) {
+    return cached.result;
+  }
   const paramMap: Record<string, string> = {};
   const arrayParams = new Set<string>();
   const schemaArrayParams = new Set<string>();
@@ -773,223 +789,92 @@ async function getFalInputMapping(modelId: string, apiKey: string | null): Promi
     // Schema parsing failed - continue with empty mapping
   }
 
-  return { paramMap, arrayParams, schemaArrayParams, parameterTypes };
+  const result = { paramMap, arrayParams, schemaArrayParams, parameterTypes };
+  falInputMappingCache.set(modelId, { result, timestamp: Date.now() });
+  return result;
 }
 
+const MAX_UPLOAD_SIZE = 20 * 1024 * 1024; // 20 MB
+
 /**
- * Generate image using fal.ai API
+ * Upload a base64 data URL image to fal.ai CDN storage.
+ * Returns the CDN URL to use in API requests instead of inline base64.
+ * If the input is already a URL (not base64), returns it as-is.
  */
-async function generateWithFal(
-  requestId: string,
-  apiKey: string | null,
-  input: GenerationInput
-): Promise<GenerationOutput> {
-  console.log(`[API:${requestId}] fal.ai generation - Model: ${input.model.id}, Images: ${input.images?.length || 0}, Prompt: ${input.prompt.length} chars`);
+async function uploadImageToFal(base64DataUrl: string, apiKey: string | null): Promise<string> {
+  // Already a URL, not base64
+  if (!base64DataUrl.startsWith("data:")) return base64DataUrl;
 
-  const modelId = input.model.id;
-  const hasDynamicInputs = input.dynamicInputs && Object.keys(input.dynamicInputs).length > 0;
-  console.log(`[API:${requestId}] Dynamic inputs: ${hasDynamicInputs ? Object.keys(input.dynamicInputs!).join(", ") : "none"}, API key: ${apiKey ? "yes" : "no"}`);
+  const match = base64DataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) return base64DataUrl;
 
-  // Fetch schema for type coercion and input mapping (only one API call)
-  const { paramMap, arrayParams, schemaArrayParams, parameterTypes } = await getFalInputMapping(modelId, apiKey);
-
-  // Build request body, coercing parameter types from schema
-  // If we have dynamic inputs, they take precedence (they already contain prompt, image_url, etc.)
-  const requestBody: Record<string, unknown> = {
-    ...coerceParameterTypes(input.parameters, parameterTypes),
-  };
-
-  // Add dynamic inputs if provided (these come from schema-mapped connections)
-  // Filter out empty/null/undefined values to avoid sending invalid inputs to fal.ai
-  if (hasDynamicInputs) {
-    const filteredInputs: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(input.dynamicInputs!)) {
-      if (value !== null && value !== undefined && value !== '') {
-        // Wrap in array if schema expects array but we have a single value
-        if (schemaArrayParams.has(key) && !Array.isArray(value)) {
-          filteredInputs[key] = [value];
-        } else {
-          filteredInputs[key] = value;
-        }
-      }
-    }
-    Object.assign(requestBody, filteredInputs);
-  } else {
-    // Fallback: use schema to map generic input names to model-specific parameter names
-
-    // Map prompt input
-    if (input.prompt) {
-      const promptParam = paramMap.prompt || "prompt";
-      requestBody[promptParam] = input.prompt;
-    }
-
-    // Map image input - use array or string format based on schema
-    if (input.images && input.images.length > 0) {
-      const imageParam = paramMap.image || "image_url";
-      if (arrayParams.has("image")) {
-        requestBody[imageParam] = input.images;
-      } else {
-        requestBody[imageParam] = input.images[0];
-      }
-    }
-
-    // Map any parameters that might need renaming (use coerced values)
-    const coercedParams = coerceParameterTypes(input.parameters, parameterTypes);
-    for (const [key, value] of Object.entries(coercedParams)) {
-      const mappedKey = paramMap[key] || key;
-      requestBody[mappedKey] = value;
-    }
+  const estimatedBytes = Math.ceil(match[2].length * 3 / 4);
+  if (estimatedBytes > MAX_UPLOAD_SIZE) {
+    throw new Error(`Image too large to upload (${(estimatedBytes / (1024 * 1024)).toFixed(1)} MB, max ${MAX_UPLOAD_SIZE / (1024 * 1024)} MB)`);
   }
 
-  // Build headers
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (apiKey) {
-    headers["Authorization"] = `Key ${apiKey}`;
+  const contentType = match[1];
+  const binaryData = Buffer.from(match[2], "base64");
+
+  const authHeaders: Record<string, string> = {};
+  if (apiKey) authHeaders["Authorization"] = `Key ${apiKey}`;
+
+  // Step 1: Initiate upload to get a signed PUT URL
+  const ext = contentType.split("/")[1] || "png";
+  const initiateResponse = await fetch(
+    "https://rest.alpha.fal.ai/storage/upload/initiate?storage_type=fal-cdn-v3",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders,
+      },
+      body: JSON.stringify({
+        content_type: contentType,
+        file_name: `${Date.now()}.${ext}`,
+      }),
+    }
+  );
+
+  if (!initiateResponse.ok) {
+    throw new Error(`Failed to initiate fal CDN upload: ${initiateResponse.status}`);
   }
 
-  // POST to fal.run/{modelId}
-  // Use 10 minute timeout to handle long-running video generation
-  console.log(`[API:${requestId}] Calling fal.ai API with inputs: ${Object.keys(requestBody).join(", ")}`);
-  const response = await fetch(`https://fal.run/${modelId}`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(requestBody),
-    signal: AbortSignal.timeout(10 * 60 * 1000), // 10 minute timeout
+  const { upload_url: uploadUrl, file_url: fileUrl } = await initiateResponse.json();
+
+  // Validate both URLs before using them (SSRF protection)
+  if (!uploadUrl || !fileUrl) {
+    throw new Error("fal CDN initiate response missing upload_url or file_url");
+  }
+
+  const uploadUrlCheck = validateMediaUrl(uploadUrl);
+  if (!uploadUrlCheck.valid || !uploadUrl.startsWith('https://')) {
+    throw new Error(`fal CDN upload_url failed validation: ${uploadUrlCheck.error || 'not HTTPS'}`);
+  }
+
+  const fileUrlCheck = validateMediaUrl(fileUrl);
+  if (!fileUrlCheck.valid || !fileUrl.startsWith('https://')) {
+    throw new Error(`fal CDN file_url failed validation: ${fileUrlCheck.error || 'not HTTPS'}`);
+  }
+
+  // Step 2: PUT the binary data to the validated signed URL
+  const putResponse = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: { "Content-Type": contentType },
+    body: binaryData,
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-
-    let errorDetail = errorText || `HTTP ${response.status}`;
-    try {
-      const errorJson = JSON.parse(errorText);
-      // Handle various fal.ai error formats
-      if (typeof errorJson.error === 'object' && errorJson.error?.message) {
-        errorDetail = errorJson.error.message;
-      } else if (errorJson.detail) {
-        // Handle array of validation errors
-        if (Array.isArray(errorJson.detail)) {
-          errorDetail = errorJson.detail.map((d: { msg?: string; loc?: string[] }) =>
-            d.msg || JSON.stringify(d)
-          ).join('; ');
-        } else {
-          errorDetail = errorJson.detail;
-        }
-      } else if (errorJson.message) {
-        errorDetail = errorJson.message;
-      } else if (typeof errorJson.error === 'string') {
-        errorDetail = errorJson.error;
-      }
-    } catch {
-      // Keep original text if not JSON
-    }
-
-    // Handle rate limits
-    if (response.status === 429) {
-      return {
-        success: false,
-        error: `${input.model.name}: Rate limit exceeded. ${apiKey ? "Try again in a moment." : "Add an API key in settings for higher limits."}`,
-      };
-    }
-
-    return {
-      success: false,
-      error: `${input.model.name}: ${errorDetail}`,
-    };
+  if (!putResponse.ok) {
+    throw new Error(`Failed to upload to fal CDN: ${putResponse.status}`);
   }
 
-  const result = await response.json();
-
-  // fal.ai response can have different structures:
-  // - images: array with url field (image models)
-  // - image: object with url field (image models)
-  // - video: object with url field (video models)
-  // - output: string URL (some models)
-  let mediaUrl: string | null = null;
-  let isVideoModel = false;
-
-  // Check for video output first (video models)
-  if (result.video && result.video.url) {
-    mediaUrl = result.video.url;
-    isVideoModel = true;
-  } else if (result.images && Array.isArray(result.images) && result.images.length > 0) {
-    mediaUrl = result.images[0].url;
-  } else if (result.image && result.image.url) {
-    mediaUrl = result.image.url;
-  } else if (result.output && typeof result.output === "string") {
-    // Some models return URL directly in output
-    mediaUrl = result.output;
-  }
-
-  if (!mediaUrl) {
-    console.error(`[API:${requestId}] No media URL found in fal.ai response`);
-    return {
-      success: false,
-      error: "No media URL in response",
-    };
-  }
-
-  // Fetch the media and convert to base64
-  console.log(`[API:${requestId}] Fetching output from: ${mediaUrl.substring(0, 80)}...`);
-  const mediaResponse = await fetch(mediaUrl);
-
-  if (!mediaResponse.ok) {
-    return {
-      success: false,
-      error: `Failed to fetch output: ${mediaResponse.status}`,
-    };
-  }
-
-  // Determine MIME type from response
-  const contentType = mediaResponse.headers.get("content-type") || (isVideoModel ? "video/mp4" : "image/png");
-  const isVideo = contentType.startsWith("video/") || isVideoModel;
-
-  const mediaArrayBuffer = await mediaResponse.arrayBuffer();
-  const mediaSizeBytes = mediaArrayBuffer.byteLength;
-  const mediaSizeMB = mediaSizeBytes / (1024 * 1024);
-
-  console.log(`[API:${requestId}] Output: ${contentType}, ${mediaSizeMB.toFixed(2)}MB`);
-
-  // For very large videos (>20MB), return URL directly instead of base64
-  if (isVideo && mediaSizeMB > 20) {
-    console.log(`[API:${requestId}] SUCCESS - Returning URL for large video`);
-    return {
-      success: true,
-      outputs: [
-        {
-          type: "video",
-          data: mediaUrl, // Return URL directly for very large videos
-          url: mediaUrl,
-        },
-      ],
-    };
-  }
-
-  const mediaBase64 = Buffer.from(mediaArrayBuffer).toString("base64");
-  console.log(`[API:${requestId}] SUCCESS - Returning ${isVideo ? "video" : "image"}`);
-
-  return {
-    success: true,
-    outputs: [
-      {
-        type: isVideo ? "video" : "image",
-        data: `data:${contentType};base64,${mediaBase64}`,
-        url: mediaUrl,
-      },
-    ],
-  };
+  return fileUrl;
 }
 
 /**
- * Generate video using fal.ai Queue API
- * Uses async queue submission + polling to handle long-running video generation
- * that would otherwise timeout with the blocking fal.run endpoint.
- * 
- * NOTE: This function is NOT currently used because fal.ai's queue API has file size
- * limitations that are too restrictive. We use the blocking fal.run endpoint instead
- * with an extended server timeout configured in server.js.
+ * Generate using fal.ai Queue API
+ * Uses async queue submission + polling (1s interval) instead of blocking fal.run.
+ * Images are uploaded to fal CDN before submission to avoid payload size issues.
  */
 async function generateWithFalQueue(
   requestId: string,
@@ -1002,47 +887,68 @@ async function generateWithFalQueue(
   const hasDynamicInputs = input.dynamicInputs && Object.keys(input.dynamicInputs).length > 0;
   console.log(`[API:${requestId}] Dynamic inputs: ${hasDynamicInputs ? Object.keys(input.dynamicInputs!).join(", ") : "none"}, API key: ${apiKey ? "yes" : "no"}`);
 
-  // Build request body (same logic as generateWithFal)
+  // Fetch schema for type coercion and input mapping (cached)
+  const { paramMap, arrayParams, schemaArrayParams, parameterTypes } = await getFalInputMapping(modelId, apiKey);
+
+  // Build request body, coercing parameter types from schema
   const requestBody: Record<string, unknown> = {
-    ...input.parameters,
+    ...coerceParameterTypes(input.parameters, parameterTypes),
+  };
+
+  // Upload base64 images to fal CDN to avoid sending large payloads inline
+  const uploadImage = async (value: string | string[]): Promise<string | string[]> => {
+    if (Array.isArray(value)) {
+      return Promise.all(value.map(v => typeof v === "string" && v.startsWith("data:") ? uploadImageToFal(v, apiKey) : Promise.resolve(v)));
+    }
+    if (typeof value === "string" && value.startsWith("data:")) {
+      return uploadImageToFal(value, apiKey);
+    }
+    return value;
   };
 
   if (hasDynamicInputs) {
-    const { schemaArrayParams } = await getFalInputMapping(modelId, apiKey);
-
     const filteredInputs: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(input.dynamicInputs!)) {
       if (value !== null && value !== undefined && value !== '') {
-        if (schemaArrayParams.has(key) && !Array.isArray(value)) {
-          filteredInputs[key] = [value];
+        let processedValue: unknown = value;
+        // Upload base64 images to CDN
+        if (typeof value === "string" || Array.isArray(value)) {
+          processedValue = await uploadImage(value);
+        }
+        // Wrap in array if schema expects array but we have a single value
+        if (schemaArrayParams.has(key) && !Array.isArray(processedValue)) {
+          filteredInputs[key] = [processedValue];
         } else {
-          filteredInputs[key] = value;
+          filteredInputs[key] = processedValue;
         }
       }
     }
     Object.assign(requestBody, filteredInputs);
   } else {
-    const { paramMap, arrayParams } = await getFalInputMapping(modelId, apiKey);
-
+    // Fallback: use schema to map generic input names to model-specific parameter names
     if (input.prompt) {
       const promptParam = paramMap.prompt || "prompt";
       requestBody[promptParam] = input.prompt;
     }
 
     if (input.images && input.images.length > 0) {
+      // Upload images to CDN before sending
+      const uploadedImages = await Promise.all(
+        input.images.map(img => uploadImageToFal(img, apiKey))
+      );
       const imageParam = paramMap.image || "image_url";
       if (arrayParams.has("image")) {
-        requestBody[imageParam] = input.images;
+        requestBody[imageParam] = uploadedImages;
       } else {
-        requestBody[imageParam] = input.images[0];
+        requestBody[imageParam] = uploadedImages[0];
       }
     }
 
-    if (input.parameters) {
-      for (const [key, value] of Object.entries(input.parameters)) {
-        const mappedKey = paramMap[key] || key;
-        requestBody[mappedKey] = value;
-      }
+    // Map any parameters that might need renaming (use coerced values)
+    const coercedParams = coerceParameterTypes(input.parameters, parameterTypes);
+    for (const [key, value] of Object.entries(coercedParams)) {
+      const mappedKey = paramMap[key] || key;
+      requestBody[mappedKey] = value;
     }
   }
 
@@ -1100,6 +1006,7 @@ async function generateWithFalQueue(
   }
 
   const submitResult = await submitResponse.json();
+  console.log(`[API:${requestId}] Queue submit response:`, JSON.stringify(submitResult).substring(0, 500));
   const falRequestId = submitResult.request_id;
 
   if (!falRequestId) {
@@ -1110,11 +1017,34 @@ async function generateWithFalQueue(
     };
   }
 
-  console.log(`[API:${requestId}] Queue request submitted: ${falRequestId}`);
+  // Use URLs from response if provided, with SSRF validation; fall back to constructed URLs
+  const fallbackStatusUrl = `https://queue.fal.run/${modelId}/requests/${falRequestId}/status`;
+  const fallbackResponseUrl = `https://queue.fal.run/${modelId}/requests/${falRequestId}`;
+  let statusUrl = fallbackStatusUrl;
+  let responseUrl = fallbackResponseUrl;
+
+  if (submitResult.status_url) {
+    const statusCheck = validateMediaUrl(submitResult.status_url);
+    if (statusCheck.valid && submitResult.status_url.startsWith('https://queue.fal.run/')) {
+      statusUrl = submitResult.status_url;
+    } else {
+      console.warn(`[API:${requestId}] fal.ai provided invalid status URL: ${submitResult.status_url} — falling back to constructed URL`);
+    }
+  }
+  if (submitResult.response_url) {
+    const responseCheck = validateMediaUrl(submitResult.response_url);
+    if (responseCheck.valid && submitResult.response_url.startsWith('https://queue.fal.run/')) {
+      responseUrl = submitResult.response_url;
+    } else {
+      console.warn(`[API:${requestId}] fal.ai provided invalid response URL: ${submitResult.response_url} — falling back to constructed URL`);
+    }
+  }
+
+  console.log(`[API:${requestId}] Queue request submitted: ${falRequestId}, status URL: ${statusUrl}`);
 
   // Poll for completion
   const maxWaitTime = 10 * 60 * 1000; // 10 minutes for video
-  const pollInterval = 2000; // 2 seconds
+  const pollInterval = 1000; // 1 second (matches Replicate/WaveSpeed)
   const startTime = Date.now();
   let lastStatus = "";
 
@@ -1130,7 +1060,7 @@ async function generateWithFalQueue(
     await new Promise(resolve => setTimeout(resolve, pollInterval));
 
     const statusResponse = await fetch(
-      `https://queue.fal.run/${modelId}/requests/${falRequestId}/status`,
+      statusUrl,
       { headers: apiKey ? { "Authorization": `Key ${apiKey}` } : {} }
     );
 
@@ -1153,7 +1083,7 @@ async function generateWithFalQueue(
     if (status === "COMPLETED") {
       // Fetch the result
       const resultResponse = await fetch(
-        `https://queue.fal.run/${modelId}/requests/${falRequestId}`,
+        responseUrl,
         { headers: apiKey ? { "Authorization": `Key ${apiKey}` } : {} }
       );
 
@@ -1167,7 +1097,7 @@ async function generateWithFalQueue(
 
       const result = await resultResponse.json();
 
-      // Extract video URL from result (same logic as generateWithFal)
+      // Extract video URL from result
       let mediaUrl: string | null = null;
 
       if (result.video && result.video.url) {
@@ -2389,9 +2319,11 @@ async function generateWithWaveSpeed(
   const outputArrayBuffer = await outputResponse.arrayBuffer();
   const outputSizeMB = outputArrayBuffer.byteLength / (1024 * 1024);
 
+  const rawContentType = outputResponse.headers.get("content-type");
   const contentType =
-    outputResponse.headers.get("content-type") ||
-    (isVideoModel ? "video/mp4" : "image/png");
+    (rawContentType && (rawContentType.startsWith("video/") || rawContentType.startsWith("image/")))
+      ? rawContentType
+      : (isVideoModel ? "video/mp4" : "image/png");
 
   console.log(`[API:${requestId}] Output: ${contentType}, ${outputSizeMB.toFixed(2)}MB`);
 
@@ -2513,7 +2445,7 @@ export async function POST(request: NextRequest) {
           id: selectedModel!.modelId,
           name: selectedModel!.displayName,
           provider: "replicate",
-          capabilities: ["text-to-image"],
+          capabilities: mediaType === "video" ? ["text-to-video"] : ["text-to-image"],
           description: null,
         },
         prompt: prompt || "",
@@ -2573,8 +2505,7 @@ export async function POST(request: NextRequest) {
         console.warn(`[API:${requestId}] No FAL API key configured. Proceeding without auth (rate-limited).`);
       }
 
-      // For fal.ai, keep Data URIs as-is since localhost URLs won't work
-      // fal.ai accepts Data URIs directly
+      // Pass images as-is; generateWithFalQueue uploads base64 to CDN internally
       const processedImages: string[] = images ? [...images] : [];
 
       // Process dynamicInputs: filter empty values
@@ -2590,7 +2521,7 @@ export async function POST(request: NextRequest) {
             continue;
           }
 
-          // Keep the value as-is (Data URIs work with fal.ai)
+          // Keep the value as-is; CDN upload happens in generateWithFalQueue
           processedDynamicInputs[key] = value;
         }
       }
@@ -2601,7 +2532,7 @@ export async function POST(request: NextRequest) {
           id: selectedModel!.modelId,
           name: selectedModel!.displayName,
           provider: "fal",
-          capabilities: ["text-to-image"],
+          capabilities: mediaType === "video" ? ["text-to-video"] : ["text-to-image"],
           description: null,
         },
         prompt: prompt || "",
@@ -2610,7 +2541,7 @@ export async function POST(request: NextRequest) {
         dynamicInputs: processedDynamicInputs,
       };
 
-      const result = await generateWithFal(requestId, falApiKey, genInput);
+      const result = await generateWithFalQueue(requestId, falApiKey, genInput);
 
       if (!result.success) {
         return NextResponse.json<GenerateResponse>(
@@ -2692,7 +2623,7 @@ export async function POST(request: NextRequest) {
           id: selectedModel!.modelId,
           name: selectedModel!.displayName,
           provider: "kie",
-          capabilities: ["text-to-image"],
+          capabilities: mediaType === "video" ? ["text-to-video"] : ["text-to-image"],
           description: null,
         },
         prompt: prompt || "",
@@ -2783,7 +2714,7 @@ export async function POST(request: NextRequest) {
           id: selectedModel!.modelId,
           name: selectedModel!.displayName,
           provider: "wavespeed",
-          capabilities: ["text-to-image"],
+          capabilities: mediaType === "video" ? ["text-to-video"] : ["text-to-image"],
           description: null,
         },
         prompt: prompt || "",

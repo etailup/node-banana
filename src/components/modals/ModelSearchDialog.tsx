@@ -3,10 +3,42 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useWorkflowStore, useProviderApiKeys } from "@/store/workflowStore";
-import { deduplicatedFetch } from "@/utils/deduplicatedFetch";
+import { deduplicatedFetch, clearFetchCache } from "@/utils/deduplicatedFetch";
 import { useReactFlow } from "@xyflow/react";
 import { ProviderType, RecentModel } from "@/types";
 import { ProviderModel, ModelCapability } from "@/lib/providers/types";
+
+// localStorage cache for models (persists across dev server restarts)
+const MODELS_CACHE_KEY = "node-banana-models-cache";
+const MODELS_CACHE_TTL = 48 * 60 * 60 * 1000; // 48 hours
+
+interface ModelsCacheEntry {
+  models: ProviderModel[];
+  timestamp: number;
+}
+
+function getCachedModels(cacheKey: string): ModelsCacheEntry | null {
+  try {
+    const cache = JSON.parse(localStorage.getItem(MODELS_CACHE_KEY) || "{}");
+    const entry = cache[cacheKey];
+    if (entry && Date.now() - entry.timestamp < MODELS_CACHE_TTL) {
+      return entry;
+    }
+  } catch {
+    // Ignore cache errors
+  }
+  return null;
+}
+
+function setCachedModels(cacheKey: string, models: ProviderModel[]) {
+  try {
+    const cache = JSON.parse(localStorage.getItem(MODELS_CACHE_KEY) || "{}");
+    cache[cacheKey] = { models, timestamp: Date.now() };
+    localStorage.setItem(MODELS_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // Ignore cache errors
+  }
+}
 
 // Provider icons — all normalized to w-3.5 h-3.5 with viewBoxes cropped to fill consistently
 const ReplicateIcon = () => (
@@ -104,6 +136,7 @@ export function ModelSearchDialog({
     useState<CapabilityFilter>(initialCapabilityFilter || "all");
   const [models, setModels] = useState<ProviderModel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Refs
@@ -135,9 +168,21 @@ export function ModelSearchDialog({
   }, [initialProvider]);
 
   // Fetch models
-  const fetchModels = useCallback(async () => {
+  const fetchModels = useCallback(async (bypassCache = false) => {
     // Increment version to track this request
     const thisVersion = ++requestVersionRef.current;
+
+    // Build cache key from filters
+    const cacheKey = `${providerFilter}:${capabilityFilter}:${debouncedSearch}`;
+
+    // Check localStorage cache first (skip when bypassing)
+    if (!bypassCache) {
+      const cached = getCachedModels(cacheKey);
+      if (cached) {
+        setModels(cached.models);
+        return;
+      }
+    }
 
     setIsLoading(true);
     setError(null);
@@ -157,6 +202,9 @@ export function ModelSearchDialog({
             ? "text-to-image,image-to-image"
             : "text-to-video,image-to-video";
         params.set("capabilities", capabilities);
+      }
+      if (bypassCache) {
+        params.set("refresh", "true");
       }
 
       // Build headers with API keys
@@ -187,6 +235,8 @@ export function ModelSearchDialog({
 
       if (data.success && data.models) {
         setModels(data.models);
+        // Cache the successful result
+        setCachedModels(cacheKey, data.models);
       } else {
         setError(data.error || "Failed to fetch models");
         setModels([]);
@@ -212,6 +262,23 @@ export function ModelSearchDialog({
       fetchModels();
     }
   }, [isOpen, fetchModels]);
+
+  // Clear all caches and re-fetch models from scratch
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      // Clear localStorage model cache
+      localStorage.removeItem(MODELS_CACHE_KEY);
+      // Clear localStorage schema cache (keep in sync with ModelParameters.tsx)
+      localStorage.removeItem("node-banana-schema-cache");
+      // Clear in-memory deduplicatedFetch cache
+      clearFetchCache();
+      // Re-fetch with cache bypass
+      await fetchModels(true);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [fetchModels]);
 
   // Focus search input when dialog opens
   useEffect(() => {
@@ -569,6 +636,28 @@ export function ModelSearchDialog({
               <option value="image">Image</option>
               <option value="video">Video</option>
             </select>
+
+            {/* Refresh Cache */}
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing || isLoading}
+              title="Refresh models & schemas"
+              className="p-2 rounded text-neutral-400 hover:text-neutral-200 hover:bg-neutral-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg
+                className={`w-4 h-4${isRefreshing ? " animate-spin" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h5M20 20v-5h-5M4 9a8 8 0 0113.292-6.036M20 15a8 8 0 01-13.292 6.036"
+                />
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -620,7 +709,7 @@ export function ModelSearchDialog({
                 {error}
               </p>
               <button
-                onClick={fetchModels}
+                onClick={handleRefresh}
                 className="px-3 py-1.5 text-sm bg-neutral-700 hover:bg-neutral-600 text-neutral-200 rounded transition-colors"
               >
                 Try Again
