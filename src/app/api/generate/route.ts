@@ -7,9 +7,8 @@
  * - For local development, server.requestTimeout must be set in server.js (Node.js default is 5 minutes)
  * 
  * FAL.AI QUEUE API NOTE:
- * The generateWithFalQueue function exists but is NOT used because fal.ai's queue API
- * has file size limitations that are too restrictive for our use case. We use the blocking
- * fal.run endpoint instead, which requires the server timeout to be extended for video generation.
+ * Uses generateWithFalQueue with async queue submission + polling.
+ * Images are uploaded to fal CDN before submission to avoid payload size issues.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
@@ -992,6 +991,7 @@ async function generateWithFalQueue(
   }
 
   const submitResult = await submitResponse.json();
+  console.log(`[API:${requestId}] Queue submit response:`, JSON.stringify(submitResult).substring(0, 500));
   const falRequestId = submitResult.request_id;
 
   if (!falRequestId) {
@@ -1002,7 +1002,10 @@ async function generateWithFalQueue(
     };
   }
 
-  console.log(`[API:${requestId}] Queue request submitted: ${falRequestId}`);
+  // Use URLs from response if provided, otherwise construct them
+  const statusUrl = submitResult.status_url || `https://queue.fal.run/${modelId}/requests/${falRequestId}/status`;
+  const responseUrl = submitResult.response_url || `https://queue.fal.run/${modelId}/requests/${falRequestId}`;
+  console.log(`[API:${requestId}] Queue request submitted: ${falRequestId}, status URL: ${statusUrl}`);
 
   // Poll for completion
   const maxWaitTime = 10 * 60 * 1000; // 10 minutes for video
@@ -1022,7 +1025,7 @@ async function generateWithFalQueue(
     await new Promise(resolve => setTimeout(resolve, pollInterval));
 
     const statusResponse = await fetch(
-      `https://queue.fal.run/${modelId}/requests/${falRequestId}/status`,
+      statusUrl,
       { headers: apiKey ? { "Authorization": `Key ${apiKey}` } : {} }
     );
 
@@ -1045,7 +1048,7 @@ async function generateWithFalQueue(
     if (status === "COMPLETED") {
       // Fetch the result
       const resultResponse = await fetch(
-        `https://queue.fal.run/${modelId}/requests/${falRequestId}`,
+        responseUrl,
         { headers: apiKey ? { "Authorization": `Key ${apiKey}` } : {} }
       );
 
@@ -2283,7 +2286,7 @@ async function generateWithWaveSpeed(
 
   const rawContentType = outputResponse.headers.get("content-type");
   const contentType =
-    (rawContentType && rawContentType !== "application/octet-stream")
+    (rawContentType && (rawContentType.startsWith("video/") || rawContentType.startsWith("image/")))
       ? rawContentType
       : (isVideoModel ? "video/mp4" : "image/png");
 

@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
         }
 
         const rawSaveContentType = response.headers.get("content-type");
-        const contentType = (rawSaveContentType && rawSaveContentType !== "application/octet-stream")
+        const contentType = (rawSaveContentType && (rawSaveContentType.startsWith("video/") || rawSaveContentType.startsWith("image/")))
           ? rawSaveContentType
           : (isVideo ? "video/mp4" : "image/png");
         extension = getExtensionFromMime(contentType);
