@@ -1002,9 +1002,29 @@ async function generateWithFalQueue(
     };
   }
 
-  // Use URLs from response if provided, otherwise construct them
-  const statusUrl = submitResult.status_url || `https://queue.fal.run/${modelId}/requests/${falRequestId}/status`;
-  const responseUrl = submitResult.response_url || `https://queue.fal.run/${modelId}/requests/${falRequestId}`;
+  // Use URLs from response if provided, with SSRF validation; fall back to constructed URLs
+  const fallbackStatusUrl = `https://queue.fal.run/${modelId}/requests/${falRequestId}/status`;
+  const fallbackResponseUrl = `https://queue.fal.run/${modelId}/requests/${falRequestId}`;
+  let statusUrl = fallbackStatusUrl;
+  let responseUrl = fallbackResponseUrl;
+
+  if (submitResult.status_url) {
+    const statusCheck = validateMediaUrl(submitResult.status_url);
+    if (statusCheck.valid && submitResult.status_url.startsWith('https://queue.fal.run/')) {
+      statusUrl = submitResult.status_url;
+    } else {
+      console.warn(`[API:${requestId}] fal.ai provided invalid status URL: ${submitResult.status_url} — falling back to constructed URL`);
+    }
+  }
+  if (submitResult.response_url) {
+    const responseCheck = validateMediaUrl(submitResult.response_url);
+    if (responseCheck.valid && submitResult.response_url.startsWith('https://queue.fal.run/')) {
+      responseUrl = submitResult.response_url;
+    } else {
+      console.warn(`[API:${requestId}] fal.ai provided invalid response URL: ${submitResult.response_url} — falling back to constructed URL`);
+    }
+  }
+
   console.log(`[API:${requestId}] Queue request submitted: ${falRequestId}, status URL: ${statusUrl}`);
 
   // Poll for completion

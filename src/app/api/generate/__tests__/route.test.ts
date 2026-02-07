@@ -1650,11 +1650,18 @@ describe("/api/generate route", () => {
       });
     }
 
-    // Helper: mock CDN upload for a base64 image
+    // Helper: mock two-step CDN upload for a base64 image
+    // Step 1: POST initiate → { upload_url, file_url }
+    // Step 2: PUT binary data → ok
     function mockFalCdnUpload(cdnUrl = "https://fal.ai/cdn/uploaded.png") {
+      // Initiate upload
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({ url: cdnUrl }),
+        json: () => Promise.resolve({ upload_url: "https://fal.ai/cdn/put-target", file_url: cdnUrl }),
+      });
+      // PUT binary data
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
       });
     }
 
