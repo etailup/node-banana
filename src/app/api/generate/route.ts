@@ -842,7 +842,22 @@ async function uploadImageToFal(base64DataUrl: string, apiKey: string | null): P
 
   const { upload_url: uploadUrl, file_url: fileUrl } = await initiateResponse.json();
 
-  // Step 2: PUT the binary data to the signed URL
+  // Validate both URLs before using them (SSRF protection)
+  if (!uploadUrl || !fileUrl) {
+    throw new Error("fal CDN initiate response missing upload_url or file_url");
+  }
+
+  const uploadUrlCheck = validateMediaUrl(uploadUrl);
+  if (!uploadUrlCheck.valid || !uploadUrl.startsWith('https://')) {
+    throw new Error(`fal CDN upload_url failed validation: ${uploadUrlCheck.error || 'not HTTPS'}`);
+  }
+
+  const fileUrlCheck = validateMediaUrl(fileUrl);
+  if (!fileUrlCheck.valid || !fileUrl.startsWith('https://')) {
+    throw new Error(`fal CDN file_url failed validation: ${fileUrlCheck.error || 'not HTTPS'}`);
+  }
+
+  // Step 2: PUT the binary data to the validated signed URL
   const putResponse = await fetch(uploadUrl, {
     method: "PUT",
     headers: { "Content-Type": contentType },
