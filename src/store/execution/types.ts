@@ -1,0 +1,60 @@
+/**
+ * Node Executor Types
+ *
+ * Defines the interface for per-node-type execution functions.
+ * Used by both executeWorkflow and regenerateNode to avoid duplication.
+ */
+
+import type {
+  WorkflowNode,
+  WorkflowEdge,
+  WorkflowNodeData,
+  ProviderSettings,
+} from "@/types";
+import type { ConnectedInputs } from "@/store/utils/connectedInputs";
+
+/**
+ * Context passed to every node executor.
+ *
+ * - `node`: The node being executed (may be stale; use `getFreshNode` for current data).
+ * - `getConnectedInputs`: Returns upstream images/text/etc. for this node.
+ * - `updateNodeData`: Zustand partial-data updater for any node.
+ * - `getFreshNode`: Returns the current node data from the store (not the stale sorted copy).
+ * - `getEdges`: Returns current edges from the store.
+ * - `getNodes`: Returns current nodes from the store.
+ * - `signal`: AbortSignal for cancellable fetch calls (only present in executeWorkflow).
+ * - `providerSettings`: API key settings for providers.
+ * - `addIncurredCost`: Tracks cost for billing.
+ * - `addToGlobalHistory`: Adds image to the global generation history.
+ * - `generationsPath`: Path for auto-saving generations (null if not configured).
+ * - `saveDirectoryPath`: Path for output node file saving (null if not configured).
+ * - `get`: Raw store accessor for edge cases (e.g. trackSaveGeneration).
+ */
+export interface NodeExecutionContext {
+  node: WorkflowNode;
+  getConnectedInputs: (nodeId: string) => ConnectedInputs;
+  updateNodeData: (nodeId: string, data: Partial<WorkflowNodeData>) => void;
+  getFreshNode: (nodeId: string) => WorkflowNode | undefined;
+  getEdges: () => WorkflowEdge[];
+  getNodes: () => WorkflowNode[];
+  signal?: AbortSignal;
+  providerSettings: ProviderSettings;
+  addIncurredCost: (cost: number) => void;
+  addToGlobalHistory: (item: {
+    image: string;
+    timestamp: number;
+    prompt: string;
+    aspectRatio?: string;
+    model?: string;
+  }) => void;
+  generationsPath: string | null;
+  saveDirectoryPath: string | null;
+  get: () => unknown;
+}
+
+/**
+ * A node executor function.
+ * Receives the execution context and performs the node's work.
+ * May throw on error (caller handles error reporting).
+ */
+export type NodeExecutor = (ctx: NodeExecutionContext) => Promise<void>;
