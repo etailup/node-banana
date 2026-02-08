@@ -14,7 +14,6 @@ import {
   WorkflowEdge,
   NodeType,
   NanoBananaNodeData,
-  GenerateVideoNodeData,
   WorkflowNodeData,
   ImageHistoryItem,
   NodeGroup,
@@ -253,66 +252,6 @@ let autoSaveIntervalId: ReturnType<typeof setInterval> | null = null;
 
 // Track pending save-generation syncs to ensure IDs are resolved before workflow save
 const pendingImageSyncs = new Map<string, Promise<void>>();
-
-// Helper to save a generation and sync the history ID
-// Returns immediately but tracks the async operation for later awaiting
-function trackSaveGeneration(
-  genPath: string,
-  content: { image?: string; video?: string },
-  prompt: string | null,
-  tempId: string,
-  nodeId: string,
-  historyType: 'image' | 'video',
-  get: () => WorkflowStore,
-  updateNodeData: (nodeId: string, data: Partial<WorkflowNodeData>) => void
-): void {
-  const syncPromise = fetch("/api/save-generation", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      directoryPath: genPath,
-      image: content.image,
-      video: content.video,
-      prompt,
-      imageId: tempId,
-    }),
-  })
-    .then((res) => res.json())
-    .then((saveResult) => {
-      // Update history with actual saved ID for carousel loading
-      if (saveResult.success && saveResult.imageId && saveResult.imageId !== tempId) {
-        const currentNode = get().nodes.find((n) => n.id === nodeId);
-        if (currentNode) {
-          if (historyType === 'image') {
-            const currentData = currentNode.data as NanoBananaNodeData;
-            const updatedHistory = [...(currentData.imageHistory || [])];
-            const entryIndex = updatedHistory.findIndex((h) => h.id === tempId);
-            if (entryIndex !== -1) {
-              updatedHistory[entryIndex] = { ...updatedHistory[entryIndex], id: saveResult.imageId };
-              updateNodeData(nodeId, { imageHistory: updatedHistory });
-            }
-          } else {
-            const currentData = currentNode.data as GenerateVideoNodeData;
-            const updatedHistory = [...(currentData.videoHistory || [])];
-            const entryIndex = updatedHistory.findIndex((h) => h.id === tempId);
-            if (entryIndex !== -1) {
-              updatedHistory[entryIndex] = { ...updatedHistory[entryIndex], id: saveResult.imageId };
-              updateNodeData(nodeId, { videoHistory: updatedHistory });
-            }
-          }
-        }
-      }
-    })
-    .catch((err) => {
-      console.error(`Failed to save ${historyType === 'video' ? 'video' : ''} generation:`, err);
-    })
-    .finally(() => {
-      // Remove from pending syncs when done (success or failure)
-      pendingImageSyncs.delete(tempId);
-    });
-
-  pendingImageSyncs.set(tempId, syncPromise);
-}
 
 // Wait for all pending image syncs to complete (with timeout to prevent infinite hangs)
 async function waitForPendingImageSyncs(timeout: number = 60000): Promise<void> {
