@@ -58,6 +58,7 @@ import {
   GROUP_COLORS,
   GROUP_COLOR_ORDER,
 } from "./utils/nodeDefaults";
+import { buildGenerateHeaders, buildLlmHeaders } from "./utils/buildApiHeaders";
 
 export type EdgeStyle = "angular" | "curved";
 
@@ -1296,37 +1297,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 dynamicInputs,  // Pass dynamic inputs for schema-mapped connections
               };
 
-              // Build headers with API keys for providers
-              const headers: Record<string, string> = {
-                "Content-Type": "application/json",
-              };
               const provider = nodeData.selectedModel?.provider || "gemini";
-              if (provider === "gemini") {
-                const geminiConfig = providerSettingsState.providers.gemini;
-                if (geminiConfig?.apiKey) {
-                  headers["X-Gemini-API-Key"] = geminiConfig.apiKey;
-                }
-              } else if (provider === "replicate") {
-                const replicateConfig = providerSettingsState.providers.replicate;
-                if (replicateConfig?.apiKey) {
-                  headers["X-Replicate-API-Key"] = replicateConfig.apiKey;
-                }
-              } else if (provider === "fal") {
-                const falConfig = providerSettingsState.providers.fal;
-                if (falConfig?.apiKey) {
-                  headers["X-Fal-API-Key"] = falConfig.apiKey;
-                }
-              } else if (provider === "kie") {
-                const kieConfig = providerSettingsState.providers.kie;
-                if (kieConfig?.apiKey) {
-                  headers["X-Kie-Key"] = kieConfig.apiKey;
-                }
-              } else if (provider === "wavespeed") {
-                const wavespeedConfig = providerSettingsState.providers.wavespeed;
-                if (wavespeedConfig?.apiKey) {
-                  headers["X-WaveSpeed-Key"] = wavespeedConfig.apiKey;
-                }
-              }
+              const headers = buildGenerateHeaders(provider, providerSettingsState);
 
               logger.info('node.execution', `Calling ${provider} API for image generation`, {
                 nodeId: node.id,
@@ -1525,37 +1497,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 mediaType: "video" as const,  // Signal to API to use queue for long-running video generation
               };
 
-              // Build headers with API keys for providers
-              const headers: Record<string, string> = {
-                "Content-Type": "application/json",
-              };
               const provider = nodeData.selectedModel.provider;
-              if (provider === "gemini") {
-                const geminiConfig = providerSettingsState.providers.gemini;
-                if (geminiConfig?.apiKey) {
-                  headers["X-Gemini-API-Key"] = geminiConfig.apiKey;
-                }
-              } else if (provider === "replicate") {
-                const replicateConfig = providerSettingsState.providers.replicate;
-                if (replicateConfig?.apiKey) {
-                  headers["X-Replicate-API-Key"] = replicateConfig.apiKey;
-                }
-              } else if (provider === "fal") {
-                const falConfig = providerSettingsState.providers.fal;
-                if (falConfig?.apiKey) {
-                  headers["X-Fal-API-Key"] = falConfig.apiKey;
-                }
-              } else if (provider === "kie") {
-                const kieConfig = providerSettingsState.providers.kie;
-                if (kieConfig?.apiKey) {
-                  headers["X-Kie-Key"] = kieConfig.apiKey;
-                }
-              } else if (provider === "wavespeed") {
-                const wavespeedConfig = providerSettingsState.providers.wavespeed;
-                if (wavespeedConfig?.apiKey) {
-                  headers["X-WaveSpeed-Key"] = wavespeedConfig.apiKey;
-                }
-              }
+              const headers = buildGenerateHeaders(provider, providerSettingsState);
               logger.info('node.execution', `Calling ${provider} API for video generation`, {
                 nodeId: node.id,
                 provider,
@@ -1735,21 +1678,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
               const nodeData = node.data as LLMGenerateNodeData;
               const providerSettingsState = get().providerSettings;
 
-              // Build headers with API keys for LLM providers
-              const headers: Record<string, string> = {
-                "Content-Type": "application/json",
-              };
-              if (nodeData.provider === "google") {
-                const geminiConfig = providerSettingsState.providers.gemini;
-                if (geminiConfig?.apiKey) {
-                  headers["X-Gemini-API-Key"] = geminiConfig.apiKey;
-                }
-              } else if (nodeData.provider === "openai") {
-                const openaiConfig = providerSettingsState.providers.openai;
-                if (openaiConfig?.apiKey) {
-                  headers["X-OpenAI-API-Key"] = openaiConfig.apiKey;
-                }
-              }
+              const headers = buildLlmHeaders(nodeData.provider, providerSettingsState);
 
               logger.info('api.llm', 'Calling LLM API', {
                 nodeId: node.id,
@@ -2403,36 +2332,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           error: null,
         });
 
-        // Build headers with API keys for providers
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-        };
-        if (provider === "gemini") {
-          const geminiConfig = providerSettingsState.providers.gemini;
-          if (geminiConfig?.apiKey) {
-            headers["X-Gemini-API-Key"] = geminiConfig.apiKey;
-          }
-        } else if (provider === "replicate") {
-          const replicateConfig = providerSettingsState.providers.replicate;
-          if (replicateConfig?.apiKey) {
-            headers["X-Replicate-API-Key"] = replicateConfig.apiKey;
-          }
-        } else if (provider === "fal") {
-          const falConfig = providerSettingsState.providers.fal;
-          if (falConfig?.apiKey) {
-            headers["X-Fal-API-Key"] = falConfig.apiKey;
-          }
-        } else if (provider === "kie") {
-          const kieConfig = providerSettingsState.providers.kie;
-          if (kieConfig?.apiKey) {
-            headers["X-Kie-Key"] = kieConfig.apiKey;
-          }
-        } else if (provider === "wavespeed") {
-          const wavespeedConfig = providerSettingsState.providers.wavespeed;
-          if (wavespeedConfig?.apiKey) {
-            headers["X-WaveSpeed-Key"] = wavespeedConfig.apiKey;
-          }
-        }
+        const headers = buildGenerateHeaders(provider, providerSettingsState);
 
         logger.info('node.execution', `Calling ${provider} API for node regeneration`, {
           nodeId,
@@ -2575,21 +2475,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
         const providerSettingsState = get().providerSettings;
 
-        // Build headers with API keys for LLM providers
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-        };
-        if (nodeData.provider === "google") {
-          const geminiConfig = providerSettingsState.providers.gemini;
-          if (geminiConfig?.apiKey) {
-            headers["X-Gemini-API-Key"] = geminiConfig.apiKey;
-          }
-        } else if (nodeData.provider === "openai") {
-          const openaiConfig = providerSettingsState.providers.openai;
-          if (openaiConfig?.apiKey) {
-            headers["X-OpenAI-API-Key"] = openaiConfig.apiKey;
-          }
-        }
+        const headers = buildLlmHeaders(nodeData.provider, providerSettingsState);
 
         logger.info('api.llm', 'Calling LLM API for node regeneration', {
           nodeId,
@@ -2694,37 +2580,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           error: null,
         });
 
-        // Build headers with API keys for providers
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-        };
         const provider = nodeData.selectedModel.provider;
-        if (provider === "gemini") {
-          const geminiConfig = providerSettingsState.providers.gemini;
-          if (geminiConfig?.apiKey) {
-            headers["X-Gemini-API-Key"] = geminiConfig.apiKey;
-          }
-        } else if (provider === "replicate") {
-          const replicateConfig = providerSettingsState.providers.replicate;
-          if (replicateConfig?.apiKey) {
-            headers["X-Replicate-API-Key"] = replicateConfig.apiKey;
-          }
-        } else if (provider === "fal") {
-          const falConfig = providerSettingsState.providers.fal;
-          if (falConfig?.apiKey) {
-            headers["X-Fal-API-Key"] = falConfig.apiKey;
-          }
-        } else if (provider === "kie") {
-          const kieConfig = providerSettingsState.providers.kie;
-          if (kieConfig?.apiKey) {
-            headers["X-Kie-Key"] = kieConfig.apiKey;
-          }
-        } else if (provider === "wavespeed") {
-          const wavespeedConfig = providerSettingsState.providers.wavespeed;
-          if (wavespeedConfig?.apiKey) {
-            headers["X-WaveSpeed-Key"] = wavespeedConfig.apiKey;
-          }
-        }
+        const headers = buildGenerateHeaders(provider, providerSettingsState);
         logger.info('node.execution', `Calling ${provider} API for video regeneration`, {
           nodeId,
           provider,
