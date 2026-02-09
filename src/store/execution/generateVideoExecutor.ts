@@ -195,7 +195,10 @@ export async function executeGenerateVideo(
   } catch (error) {
     let errorMessage = "Video generation failed";
     if (error instanceof DOMException && error.name === "AbortError") {
-      errorMessage = "Request timed out. Video generation may take longer.";
+      const isUserCancel = signal?.reason === "user-cancelled";
+      errorMessage = isUserCancel
+        ? "Generation cancelled."
+        : "Request timed out. Video generation may take longer.";
     } else if (error instanceof TypeError && error.message.includes("NetworkError")) {
       errorMessage = "Network error. Check your connection and try again.";
     } else if (error instanceof TypeError) {

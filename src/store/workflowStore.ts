@@ -967,7 +967,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     // Abort any in-flight requests
     const controller = get()._abortController;
     if (controller) {
-      controller.abort();
+      controller.abort("user-cancelled");
     }
     set({ isRunning: false, currentNodeIds: [], _abortController: null });
   },

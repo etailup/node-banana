@@ -214,7 +214,10 @@ export async function executeNanoBanana(
     // Convert network/abort errors to user-friendly messages
     let errorMessage = "Generation failed";
     if (error instanceof DOMException && error.name === "AbortError") {
-      errorMessage = "Request timed out. Try reducing image sizes or using a simpler prompt.";
+      const isUserCancel = signal?.reason === "user-cancelled";
+      errorMessage = isUserCancel
+        ? "Generation cancelled."
+        : "Request timed out. Try reducing image sizes or using a simpler prompt.";
     } else if (error instanceof TypeError && error.message.includes("NetworkError")) {
       errorMessage = "Network error. Check your connection and try again.";
     } else if (error instanceof TypeError) {
