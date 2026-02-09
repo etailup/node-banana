@@ -1219,6 +1219,18 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
                 }
               });
 
+              // Also read from connected llmGenerate nodes with variableName
+              const connectedLLMNodes = edges
+                .filter((e) => e.target === node.id && e.targetHandle === "text")
+                .map((e) => nodes.find((n) => n.id === e.source))
+                .filter((n): n is WorkflowNode => n !== undefined && n.type === "llmGenerate");
+              connectedLLMNodes.forEach((llmNode) => {
+                const llmData = llmNode.data as LLMGenerateNodeData;
+                if (llmData.variableName && llmData.outputText) {
+                  variableMap[llmData.variableName] = llmData.outputText;
+                }
+              });
+
               // Find all @variable patterns in template
               const varPattern = /@(\w+)/g;
               const unresolvedVars: string[] = [];
@@ -2340,6 +2352,13 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     if (controller) {
       controller.abort();
     }
+    // Reset any nodes stuck in "loading" state back to idle
+    const { nodes, updateNodeData } = get();
+    nodes.forEach(n => {
+      if ((n.data as Record<string, unknown>).status === "loading") {
+        updateNodeData(n.id, { status: "idle" });
+      }
+    });
     set({ isRunning: false, currentNodeIds: [], _abortController: null });
   },
 
@@ -3206,8 +3225,13 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     const workflow: WorkflowFile = {
       version: 1,
       name: name || `workflow-${new Date().toISOString().slice(0, 10)}`,
-      // Strip selected property - selection is transient UI state and should not be persisted
-      nodes: nodes.map(({ selected, ...rest }) => rest),
+      // Strip transient UI state: selection and loading status should not be persisted
+      nodes: nodes.map(({ selected, ...rest }) => ({
+        ...rest,
+        data: (rest.data as Record<string, unknown>).status === "loading"
+          ? { ...rest.data, status: "idle" }
+          : rest.data,
+      })),
       edges,
       edgeStyle,
       groups: groups && Object.keys(groups).length > 0 ? groups : undefined,
@@ -3300,6 +3324,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           x: isFinite(node.position?.x) ? node.position.x : 0,
           y: isFinite(node.position?.y) ? node.position.y : 0,
         },
+        // Reset stuck loading state — no generation is running on load
+        data: (node.data as Record<string, unknown>).status === "loading"
+          ? { ...node.data, status: "idle" }
+          : node.data,
       })),
       edges: hydratedWorkflow.edges,
       edgeStyle: hydratedWorkflow.edgeStyle || "angular",
@@ -3465,11 +3493,19 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         });
       }
 
+      // Sanitize loading status before save — no running state should be persisted
+      const sanitizedNodes: typeof currentNodes = currentNodes.map(node => {
+        if ((node.data as Record<string, unknown>).status === "loading") {
+          return { ...node, data: { ...node.data, status: "idle" as const } } as typeof node;
+        }
+        return node;
+      });
+
       let workflow: WorkflowFile = {
         version: 1,
         id: workflowId,
         name: workflowName,
-        nodes: currentNodes,
+        nodes: sanitizedNodes,
         edges,
         edgeStyle,
         groups: groups && Object.keys(groups).length > 0 ? groups : undefined,

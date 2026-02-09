@@ -7,7 +7,7 @@ import { BaseNode } from "./BaseNode";
 import { useCommentNavigation } from "@/hooks/useCommentNavigation";
 import { usePromptAutocomplete } from "@/hooks/usePromptAutocomplete";
 import { useWorkflowStore } from "@/store/workflowStore";
-import { PromptConstructorNodeData, PromptNodeData, AvailableVariable } from "@/types";
+import { PromptConstructorNodeData, PromptNodeData, LLMGenerateNodeData, AvailableVariable } from "@/types";
 import { PromptConstructorEditorModal } from "@/components/modals/PromptConstructorEditorModal";
 
 type PromptConstructorNodeType = Node<PromptConstructorNodeData, "promptConstructor">;
@@ -50,6 +50,22 @@ export function PromptConstructorNode({ id, data, selected }: NodeProps<PromptCo
           name: promptData.variableName,
           value: promptData.prompt || "",
           nodeId: promptNode.id,
+        });
+      }
+    });
+
+    // Also read from connected llmGenerate nodes with variableName
+    const connectedLLMNodes = edges
+      .filter((e) => e.target === id && e.targetHandle === "text")
+      .map((e) => nodes.find((n) => n.id === e.source))
+      .filter((n): n is typeof nodes[0] => n !== undefined && n.type === "llmGenerate");
+    connectedLLMNodes.forEach((llmNode) => {
+      const llmData = llmNode.data as LLMGenerateNodeData;
+      if (llmData.variableName) {
+        vars.push({
+          name: llmData.variableName,
+          value: llmData.outputText || "(pending...)",
+          nodeId: llmNode.id,
         });
       }
     });
