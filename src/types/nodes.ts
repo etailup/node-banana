@@ -181,6 +181,7 @@ export interface LLMGenerateNodeData extends BaseNodeData {
   inputImages: string[];
   inputImageRefs?: string[]; // External image references for storage optimization
   outputText: string | null;
+  variableName?: string; // Optional variable name for use in PromptConstructor templates
   provider: LLMProvider;
   model: LLMModelType;
   temperature: number;

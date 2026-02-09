@@ -17,7 +17,7 @@ describe("QuickstartInitialView", () => {
   });
 
   describe("Basic Rendering", () => {
-    it("should render the Node Banana title and logo", () => {
+    it("should render the ContentWiz title and logo", () => {
       render(
         <QuickstartInitialView
           onNewProject={mockOnNewProject}
@@ -27,8 +27,7 @@ describe("QuickstartInitialView", () => {
         />
       );
 
-      expect(screen.getByText("Node Banana")).toBeInTheDocument();
-      expect(screen.getByAltText("")).toBeInTheDocument(); // Logo image
+      expect(screen.getByText("ContentWiz")).toBeInTheDocument();
     });
 
     it("should render the description text", () => {

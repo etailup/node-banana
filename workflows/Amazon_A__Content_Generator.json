@@ -1,0 +1,1469 @@
+{
+  "version": 1,
+  "id": "wf_1770307200000_amazon-aplus-content",
+  "name": "Amazon A+ Content Generator",
+  "nodes": [
+    {
+      "id": "imageInput-cover",
+      "type": "imageInput",
+      "position": {
+        "x": 50,
+        "y": 50
+      },
+      "data": {
+        "image": null,
+        "filename": "Screenshot 2026-02-03 at 10.10.04.png",
+        "dimensions": {
+          "width": 655,
+          "height": 959
+        },
+        "imageRef": "img-ml9mt1kr-m5zpmd"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "measured": {
+        "width": 300,
+        "height": 280
+      }
+    },
+    {
+      "id": "imageInput-ref-1",
+      "type": "imageInput",
+      "position": {
+        "x": 50,
+        "y": 400
+      },
+      "data": {
+        "image": null,
+        "filename": "a+1.jpg",
+        "dimensions": {
+          "width": 970,
+          "height": 600
+        },
+        "imageRef": "img-ml9mt1lj-lmx6jo"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "measured": {
+        "width": 300,
+        "height": 280
+      }
+    },
+    {
+      "id": "imageInput-ref-2",
+      "type": "imageInput",
+      "position": {
+        "x": 50,
+        "y": 730
+      },
+      "data": {
+        "image": null,
+        "filename": "A+2.jpg",
+        "dimensions": {
+          "width": 970,
+          "height": 600
+        },
+        "imageRef": "img-ml9mt1ma-u0pivs"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "measured": {
+        "width": 300,
+        "height": 280
+      }
+    },
+    {
+      "id": "imageInput-ref-3",
+      "type": "imageInput",
+      "position": {
+        "x": 50,
+        "y": 1060
+      },
+      "data": {
+        "image": null,
+        "filename": "A+3.jpg",
+        "dimensions": {
+          "width": 970,
+          "height": 600
+        },
+        "imageRef": "img-ml9mt20k-kwqvdm"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "measured": {
+        "width": 300,
+        "height": 280
+      }
+    },
+    {
+      "id": "imageInput-ref-4",
+      "type": "imageInput",
+      "position": {
+        "x": 50,
+        "y": 1390
+      },
+      "data": {
+        "image": null,
+        "filename": "A+4.jpg",
+        "dimensions": {
+          "width": 970,
+          "height": 600
+        },
+        "imageRef": "img-ml9mt20z-dzizjf"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "measured": {
+        "width": 300,
+        "height": 280
+      }
+    },
+    {
+      "id": "imageInput-ref-5",
+      "type": "imageInput",
+      "position": {
+        "x": 50,
+        "y": 1720
+      },
+      "data": {
+        "image": null,
+        "filename": "A+5.jpg",
+        "dimensions": {
+          "width": 970,
+          "height": 600
+        },
+        "imageRef": "img-ml9mt21c-ojh3z4"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "measured": {
+        "width": 300,
+        "height": 280
+      }
+    },
+    {
+      "id": "prompt-style",
+      "type": "prompt",
+      "position": {
+        "x": 50,
+        "y": -250
+      },
+      "data": {
+        "prompt": "You are analyzing a book cover to create a UNIFIED BACKGROUND STYLE SPECIFICATION that will be used across ALL 5 Amazon A+ marketing banners for this book.\n\nAnalyze the book cover image carefully and output a precise, reusable background specification including:\n\n1. PRIMARY BACKGROUND COLOR: Exact hex code and name (e.g., \"deep navy blue #1a2e40\")\n2. ACCENT COLOR: Exact hex code for highlights (e.g., \"amber gold #d9a86a\")\n3. GRADIENT DIRECTION: How colors blend (e.g., \"radial from center\", \"linear top-to-bottom\")\n4. SUBTLE PATTERN: Any texture or pattern overlay (e.g., \"subtle golden light rays at 10% opacity\", \"faint geometric lines\")\n5. OVERALL MOOD: Premium/minimal/warm/corporate etc.\n6. TEXT COLORS: Primary text color, secondary text color, accent text color with hex codes\n\nFormat your output as a clean specification block that can be directly referenced in image-generation prompts. Be extremely specific with hex codes and percentages. The background is always one colour, with accents or slightly visible designs recalling the cover theme, no gradient.\n\nOutput ONLY the background specification, nothing else."
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "measured": {
+        "width": 320,
+        "height": 220
+      }
+    },
+    {
+      "id": "llm-style",
+      "type": "llmGenerate",
+      "position": {
+        "x": 492.6379483118859,
+        "y": -218.17359120312085
+      },
+      "data": {
+        "inputPrompt": "You are analyzing a book cover to create a UNIFIED BACKGROUND STYLE SPECIFICATION that will be used across ALL 5 Amazon A+ marketing banners for this book.\n\nAnalyze the book cover image carefully and output a precise, reusable background specification including:\n\n1. PRIMARY BACKGROUND COLOR: Exact hex code and name (e.g., \"deep navy blue #1a2e40\")\n2. ACCENT COLOR: Exact hex code for highlights (e.g., \"amber gold #d9a86a\")\n3. GRADIENT DIRECTION: How colors blend (e.g., \"radial from center\", \"linear top-to-bottom\")\n4. SUBTLE PATTERN: Any texture or pattern overlay (e.g., \"subtle golden light rays at 10% opacity\", \"faint geometric lines\")\n5. OVERALL MOOD: Premium/minimal/warm/corporate etc.\n6. TEXT COLORS: Primary text color, secondary text color, accent text color with hex codes\n\nFormat your output as a clean specification block that can be directly referenced in image-generation prompts. Be extremely specific with hex codes and percentages. The background is always one colour, with accents or slightly visible designs recalling the cover theme, no gradient.\n\nOutput ONLY the background specification, nothing else.",
+        "inputImages": [],
+        "outputText": "**BACKGROUND STYLE SPECIFICATION**\n\n1. **PRIMARY BACKGROUND COLOR:** Warm Sand Tan #e9c595\n2. **ACCENT COLOR:** Amber Gold #c4a15a\n3. **GRADIENT DIRECTION:** None (Solid fill)\n4. **SUBTLE PATTERN:** Faint radial light rays emanating from the center at 10% opacity in",
+        "variableName": "style",
+        "provider": "google",
+        "model": "gemini-3-flash-preview",
+        "temperature": 0.3,
+        "maxTokens": 2048,
+        "status": "complete",
+        "error": null,
+        "inputImageRefs": [
+          "img-mlextou9-c26a7t"
+        ]
+      },
+      "style": {
+        "width": 320,
+        "height": 360
+      },
+      "selected": false,
+      "measured": {
+        "width": 320,
+        "height": 360
+      },
+      "dragging": false
+    },
+    {
+      "id": "prompt-system-1",
+      "type": "prompt",
+      "position": {
+        "x": 377.51034326722294,
+        "y": 351.67486653861585
+      },
+      "data": {
+        "prompt": "You are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+1 HERO IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe HERO IMAGE should showcase the book prominently (left side, held in hands or displayed large), with the main headline and compelling description on the right. Include a badge/seal element. Premium dark background matching the book's palette.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients, subtle patterns)\n- Describe LEFT and RIGHT side composition separately\n- Write the EXACT Italian marketing text that should appear (headlines, body copy, badges)\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "variableName": "instructions"
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "dragging": false
+    },
+    {
+      "id": "prompt-system-2",
+      "type": "prompt",
+      "position": {
+        "x": 450,
+        "y": 730
+      },
+      "data": {
+        "prompt": "You are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+2 \"WHY CHOOSE THIS BOOK\" IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe \"WHY CHOOSE\" image should show the book at an angle with dimensions visible, and list 3-4 key benefits with emoji icons and bold headlines on the right. Clean professional layout.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients, subtle patterns)\n- Describe the book positioning (angle, dimension labels like \"22,86 CM\" and \"15,24 CM\")\n- Write 3-4 benefit sections with emoji + bold Italian headline + description text\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "variableName": "instructions"
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "measured": {
+        "width": 320,
+        "height": 220
+      }
+    },
+    {
+      "id": "prompt-system-3",
+      "type": "prompt",
+      "position": {
+        "x": 450,
+        "y": 1060
+      },
+      "data": {
+        "prompt": "You are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+3 DEEP DIVE / TESTIMONIALS IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe DEEP DIVE image should show the book in center with bold headlines on both sides. Include a motivational quote, a call-to-action, and dynamic visual flow elements (arrows, curves). A bonus/audiobook badge near the book.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients, subtle thematic imagery)\n- Describe LEFT, CENTER, and RIGHT composition separately\n- Write the EXACT Italian text: headlines, quote, CTA, badge text\n- Include visual flow elements (arrows pointing from book to text)\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "variableName": "instructions"
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "measured": {
+        "width": 320,
+        "height": 220
+      }
+    },
+    {
+      "id": "prompt-system-4",
+      "type": "prompt",
+      "position": {
+        "x": 450,
+        "y": 1390
+      },
+      "data": {
+        "prompt": "You are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+4 EMOTIONAL CONNECTION IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe EMOTIONAL CONNECTION image uses a split layout: LEFT side shows a relatable person (matching the book's target audience) in a confident pose with warm lighting. RIGHT side has emotional Italian headlines and descriptive text. Book cover visible. Human element adds trust and relatability.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients)\n- Describe the person: appearance, pose, expression, attire (matching the book's audience)\n- Write emotional Italian headlines addressing the reader's pain points\n- Write persuasive body copy adapted to the book's specific topic\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "variableName": "instructions"
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "measured": {
+        "width": 320,
+        "height": 220
+      }
+    },
+    {
+      "id": "prompt-system-5",
+      "type": "prompt",
+      "position": {
+        "x": 448.1181180084924,
+        "y": 1740.700701906584
+      },
+      "data": {
+        "prompt": "You are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+5 BONUS / EBOOK IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe BONUS image should show a tablet/iPad displaying the ebook version of the book. Include a headphone/audio icon for audiobook. Prominently display \"INCLUSO\" / \"BONUS\" badges. Include text about the free ebook PDF and audiobook included with purchase. Modern tech aesthetic blended with the book's color palette.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients, light effects)\n- Describe the tablet device showing the ebook adaptation of the cover\n- Write Italian text: \"CON L'ACQUISTO DEL LIBRO\", \"INCLUSO\", ebook description, motivational closing line\n- Include badge elements (\"INCLUSO BONUS & AUDIOLIBRO\")\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "variableName": "instructions"
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "dragging": false
+    },
+    {
+      "id": "pc-1",
+      "type": "promptConstructor",
+      "position": {
+        "x": 720.2872412522565,
+        "y": 285.30859200327933
+      },
+      "data": {
+        "template": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n@style\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\n@instructions",
+        "outputText": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n1. **PRIMARY BACKGROUND COLOR:** Warm Sand Tan #e9c595\n2. **ACCENT COLOR:** Amber Gold #c4a15a\n3. **GRADIENT DIRECTION:** None (Solid fill)\n4. **SUBTLE PATTERN:** Faint radial light rays emanating from the center at 10% opacity in\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+1 HERO IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe HERO IMAGE should showcase the book prominently (left side, held in hands or displayed large), with the main headline and compelling description on the right. Include a badge/seal element. Premium dark background matching the book's palette.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients, subtle patterns)\n- Describe LEFT and RIGHT side composition separately\n- Write the EXACT Italian marketing text that should appear (headlines, body copy, badges)\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "unresolvedVars": []
+      },
+      "style": {
+        "width": 200,
+        "height": 200
+      },
+      "selected": false,
+      "measured": {
+        "width": 200,
+        "height": 200
+      },
+      "dragging": false
+    },
+    {
+      "id": "pc-2",
+      "type": "promptConstructor",
+      "position": {
+        "x": 650,
+        "y": 730
+      },
+      "data": {
+        "template": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n@style\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\n@instructions",
+        "outputText": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n1. **PRIMARY BACKGROUND COLOR:** Warm Sand Tan #e9c595\n2. **ACCENT COLOR:** Amber Gold #c4a15a\n3. **GRADIENT DIRECTION:** None (Solid fill)\n4. **SUBTLE PATTERN:** Faint radial light rays emanating from the center at 10% opacity in\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+2 \"WHY CHOOSE THIS BOOK\" IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe \"WHY CHOOSE\" image should show the book at an angle with dimensions visible, and list 3-4 key benefits with emoji icons and bold headlines on the right. Clean professional layout.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients, subtle patterns)\n- Describe the book positioning (angle, dimension labels like \"22,86 CM\" and \"15,24 CM\")\n- Write 3-4 benefit sections with emoji + bold Italian headline + description text\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "unresolvedVars": []
+      },
+      "style": {
+        "width": 200,
+        "height": 200
+      },
+      "selected": false,
+      "measured": {
+        "width": 200,
+        "height": 200
+      }
+    },
+    {
+      "id": "pc-3",
+      "type": "promptConstructor",
+      "position": {
+        "x": 650,
+        "y": 1060
+      },
+      "data": {
+        "template": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n@style\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\n@instructions",
+        "outputText": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n1. **PRIMARY BACKGROUND COLOR:** Warm Sand Tan #e9c595\n2. **ACCENT COLOR:** Amber Gold #c4a15a\n3. **GRADIENT DIRECTION:** None (Solid fill)\n4. **SUBTLE PATTERN:** Faint radial light rays emanating from the center at 10% opacity in\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+3 DEEP DIVE / TESTIMONIALS IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe DEEP DIVE image should show the book in center with bold headlines on both sides. Include a motivational quote, a call-to-action, and dynamic visual flow elements (arrows, curves). A bonus/audiobook badge near the book.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients, subtle thematic imagery)\n- Describe LEFT, CENTER, and RIGHT composition separately\n- Write the EXACT Italian text: headlines, quote, CTA, badge text\n- Include visual flow elements (arrows pointing from book to text)\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "unresolvedVars": []
+      },
+      "style": {
+        "width": 200,
+        "height": 200
+      },
+      "selected": false,
+      "measured": {
+        "width": 200,
+        "height": 200
+      }
+    },
+    {
+      "id": "pc-4",
+      "type": "promptConstructor",
+      "position": {
+        "x": 650,
+        "y": 1390
+      },
+      "data": {
+        "template": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n@style\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\n@instructions",
+        "outputText": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n1. **PRIMARY BACKGROUND COLOR:** Warm Sand Tan #e9c595\n2. **ACCENT COLOR:** Amber Gold #c4a15a\n3. **GRADIENT DIRECTION:** None (Solid fill)\n4. **SUBTLE PATTERN:** Faint radial light rays emanating from the center at 10% opacity in\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+4 EMOTIONAL CONNECTION IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe EMOTIONAL CONNECTION image uses a split layout: LEFT side shows a relatable person (matching the book's target audience) in a confident pose with warm lighting. RIGHT side has emotional Italian headlines and descriptive text. Book cover visible. Human element adds trust and relatability.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients)\n- Describe the person: appearance, pose, expression, attire (matching the book's audience)\n- Write emotional Italian headlines addressing the reader's pain points\n- Write persuasive body copy adapted to the book's specific topic\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "unresolvedVars": []
+      },
+      "style": {
+        "width": 200,
+        "height": 200
+      },
+      "selected": false,
+      "measured": {
+        "width": 200,
+        "height": 200
+      }
+    },
+    {
+      "id": "pc-5",
+      "type": "promptConstructor",
+      "position": {
+        "x": 650,
+        "y": 1720
+      },
+      "data": {
+        "template": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n@style\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\n@instructions",
+        "outputText": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n1. **PRIMARY BACKGROUND COLOR:** Warm Sand Tan #e9c595\n2. **ACCENT COLOR:** Amber Gold #c4a15a\n3. **GRADIENT DIRECTION:** None (Solid fill)\n4. **SUBTLE PATTERN:** Faint radial light rays emanating from the center at 10% opacity in\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+5 BONUS / EBOOK IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe BONUS image should show a tablet/iPad displaying the ebook version of the book. Include a headphone/audio icon for audiobook. Prominently display \"INCLUSO\" / \"BONUS\" badges. Include text about the free ebook PDF and audiobook included with purchase. Modern tech aesthetic blended with the book's color palette.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients, light effects)\n- Describe the tablet device showing the ebook adaptation of the cover\n- Write Italian text: \"CON L'ACQUISTO DEL LIBRO\", \"INCLUSO\", ebook description, motivational closing line\n- Include badge elements (\"INCLUSO BONUS & AUDIOLIBRO\")\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "unresolvedVars": []
+      },
+      "style": {
+        "width": 200,
+        "height": 200
+      },
+      "selected": false,
+      "measured": {
+        "width": 200,
+        "height": 200
+      }
+    },
+    {
+      "id": "llm-1",
+      "type": "llmGenerate",
+      "position": {
+        "x": 932.864130667637,
+        "y": 308.36468054499534
+      },
+      "data": {
+        "inputPrompt": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n1. **PRIMARY BACKGROUND COLOR:** Warm Sand Tan #e9c595\n2. **ACCENT COLOR:** Amber Gold #c4a15a\n3. **GRADIENT DIRECTION:** None (Solid fill)\n4. **SUBTLE PATTERN:** Faint radial light rays emanating from the center at 10% opacity in\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+1 HERO IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe HERO IMAGE should showcase the book prominently (left side, held in hands or displayed large), with the main headline and compelling description on the right. Include a badge/seal element. Premium dark background matching the book's palette.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients, subtle patterns)\n- Describe LEFT and RIGHT side composition separately\n- Write the EXACT Italian marketing text that should appear (headlines, body copy, badges)\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "inputImages": [],
+        "outputText": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background features a solid base of Warm Sand Beige #E8C18D on the left, transitioning into a large, premium Midnight Navy #112B3C section on the right. The entire background has a faint radial sunburst texture with thin, distressed light rays at 10% opacity emanating from the center.\n\nOn the LEFT side, a pair of realistic hands holds the physical book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling. The book cover is clearly displayed, showing the bold navy and beige design. In the top-left corner, there is a circular gold seal badge with the text \"INCLUSO BONUS & E-BOOK\".\n\nOn the RIGHT side, positioned over the Midnight Navy background, the text is arranged in a clean hierarchy:\n- Top: \"METODO SCIENTIFICO\" in bold Muted Gold #C9A66B sans-serif.\n- Main Headline: \"PERSUASIONE: DOMINA LA TUA COMUNICAZIONE!\" in large, impactful Pure White #FFFFFF bold sans-serif.\n- Sub-headline: \"Vuoi influenzare e persuadere con successo?\" in Muted Gold #C9A66B medium-weight sans-serif.\n- Body Paragraph: \"È il momento di svoltare. Questo libro è il tuo alleato per padroneggiare le neuroscienze, eliminare l'insicurezza e prendere il controllo delle tue interazioni. Con strategie testate e tecniche scientifiche immediate, scoprirai come sviluppare carisma e creare una mentalità vincente.\" in clean Pure White #FFFFFF sans-serif.\n\nIn the top-right corner, a small red ribbon with \"1st\" is visible. The overall mood is authoritative, premium, and psychological, matching the book's theme of communication and neuroscience. Professional studio lighting, high resolution, sharp focus on typography.",
+        "provider": "google",
+        "model": "gemini-3-flash-preview",
+        "temperature": 0.7,
+        "maxTokens": 4096,
+        "status": "idle",
+        "error": null,
+        "inputImageRefs": [
+          "img-mley3vpx-84o0in",
+          "img-mley3vsg-bxljar"
+        ]
+      },
+      "style": {
+        "width": 320,
+        "height": 360
+      },
+      "selected": false,
+      "measured": {
+        "width": 320,
+        "height": 360
+      },
+      "dragging": false
+    },
+    {
+      "id": "llm-2",
+      "type": "llmGenerate",
+      "position": {
+        "x": 850,
+        "y": 730
+      },
+      "data": {
+        "inputPrompt": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n1. **PRIMARY BACKGROUND COLOR:** Warm Sand Tan #e9c595\n2. **ACCENT COLOR:** Amber Gold #c4a15a\n3. **GRADIENT DIRECTION:** None (Solid fill)\n4. **SUBTLE PATTERN:** Faint radial light rays emanating from the center at 10% opacity in\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+2 \"WHY CHOOSE THIS BOOK\" IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe \"WHY CHOOSE\" image should show the book at an angle with dimensions visible, and list 3-4 key benefits with emoji icons and bold headlines on the right. Clean professional layout.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients, subtle patterns)\n- Describe the book positioning (angle, dimension labels like \"22,86 CM\" and \"15,24 CM\")\n- Write 3-4 benefit sections with emoji + bold Italian headline + description text\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "inputImages": [],
+        "outputText": null,
+        "provider": "google",
+        "model": "gemini-3-flash-preview",
+        "temperature": 0.7,
+        "maxTokens": 4096,
+        "status": "idle",
+        "error": null,
+        "inputImageRefs": [
+          "img-mleyhemb-brqfmn",
+          "img-mleyhep3-poyo0n"
+        ]
+      },
+      "style": {
+        "width": 320,
+        "height": 360
+      },
+      "selected": false,
+      "measured": {
+        "width": 320,
+        "height": 360
+      }
+    },
+    {
+      "id": "llm-3",
+      "type": "llmGenerate",
+      "position": {
+        "x": 850,
+        "y": 1060
+      },
+      "data": {
+        "inputPrompt": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n1. **PRIMARY BACKGROUND COLOR:** Warm Sand Tan #e9c595\n2. **ACCENT COLOR:** Amber Gold #c4a15a\n3. **GRADIENT DIRECTION:** None (Solid fill)\n4. **SUBTLE PATTERN:** Faint radial light rays emanating from the center at 10% opacity in\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+3 DEEP DIVE / TESTIMONIALS IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe DEEP DIVE image should show the book in center with bold headlines on both sides. Include a motivational quote, a call-to-action, and dynamic visual flow elements (arrows, curves). A bonus/audiobook badge near the book.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients, subtle thematic imagery)\n- Describe LEFT, CENTER, and RIGHT composition separately\n- Write the EXACT Italian text: headlines, quote, CTA, badge text\n- Include visual flow elements (arrows pointing from book to text)\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "inputImages": [],
+        "outputText": null,
+        "provider": "google",
+        "model": "gemini-3-flash-preview",
+        "temperature": 0.7,
+        "maxTokens": 4096,
+        "status": "idle",
+        "error": null,
+        "inputImageRefs": [
+          "img-mleyhemb-brqfmn",
+          "img-mleyheql-dudzib"
+        ]
+      },
+      "style": {
+        "width": 320,
+        "height": 360
+      },
+      "selected": false,
+      "measured": {
+        "width": 320,
+        "height": 360
+      }
+    },
+    {
+      "id": "llm-4",
+      "type": "llmGenerate",
+      "position": {
+        "x": 850,
+        "y": 1390
+      },
+      "data": {
+        "inputPrompt": null,
+        "inputImages": [],
+        "outputText": null,
+        "provider": "google",
+        "model": "gemini-3-flash-preview",
+        "temperature": 0.7,
+        "maxTokens": 4096,
+        "status": "idle",
+        "error": null
+      },
+      "style": {
+        "width": 320,
+        "height": 360
+      },
+      "selected": false,
+      "measured": {
+        "width": 320,
+        "height": 360
+      }
+    },
+    {
+      "id": "llm-5",
+      "type": "llmGenerate",
+      "position": {
+        "x": 850,
+        "y": 1720
+      },
+      "data": {
+        "inputPrompt": null,
+        "inputImages": [],
+        "outputText": null,
+        "provider": "google",
+        "model": "gemini-3-flash-preview",
+        "temperature": 0.7,
+        "maxTokens": 4096,
+        "status": "idle",
+        "error": null
+      },
+      "style": {
+        "width": 320,
+        "height": 360
+      },
+      "selected": false,
+      "measured": {
+        "width": 320,
+        "height": 360
+      }
+    },
+    {
+      "id": "nanoBanana-1",
+      "type": "nanoBanana",
+      "position": {
+        "x": 1300,
+        "y": 276.73672955624994
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a premium dark navy blue with subtle golden light gradients and radial rays emanating from behind the book. On the LEFT side, a pair of hands is holding the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling, with the cover design clearly visible. On the RIGHT side, the layout features a sophisticated typographic hierarchy in Italian. Top right includes a small red ribbon badge with \"1st\". Main headline in large, bold golden sans-serif font: \"DOMINA L'ARTE DELLA PERSUASIONE\". Below it, a sub-headline in white: \"Vuoi influenzare le decisioni altrui?\". The main body text in a clean white sans-serif font reads: \"Scopri i segreti delle neuroscienze e della psicologia della comunicazione. In soli 21 giorni, imparerai tecniche scientifiche immediate per aumentare il tuo carisma, superare le obiezioni e ottenere ciò che desideri con naturalezza e integrità.\" In the upper left area of the text block, a circular gold seal/badge says \"METODO SCIENTIFICO\". The color palette strictly follows the book cover: deep navy blue (#1a2e40), amber gold (#d9a86a), and crisp white. High-end, professional, and authoritative mood.",
+        "outputImage": null,
+        "aspectRatio": "16:9",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "imageHistory": [
+          {
+            "id": "professional_amazon_a_marketi_46267a47142e0c140c53793e5478474f",
+            "timestamp": 1770628194496,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background features a solid base of Warm Sand Beige #E8C18D on the left, transitioning into a large, premium Midnight Navy #112B3C section on the right. The entire background has a faint radial sunburst texture with thin, distressed light rays at 10% opacity emanating from the center.\n\nOn the LEFT side, a pair of realistic hands holds the physical book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling. The book cover is clearly displayed, showing the bold navy and beige design. In the top-left corner, there is a circular gold seal badge with the text \"INCLUSO BONUS & E-BOOK\".\n\nOn the RIGHT side, positioned over the Midnight Navy background, the text is arranged in a clean hierarchy:\n- Top: \"METODO SCIENTIFICO\" in bold Muted Gold #C9A66B sans-serif.\n- Main Headline: \"PERSUASIONE: DOMINA LA TUA COMUNICAZIONE!\" in large, impactful Pure White #FFFFFF bold sans-serif.\n- Sub-headline: \"Vuoi influenzare e persuadere con successo?\" in Muted Gold #C9A66B medium-weight sans-serif.\n- Body Paragraph: \"È il momento di svoltare. Questo libro è il tuo alleato per padroneggiare le neuroscienze, eliminare l'insicurezza e prendere il controllo delle tue interazioni. Con strategie testate e tecniche scientifiche immediate, scoprirai come sviluppare carisma e creare una mentalità vincente.\" in clean Pure White #FFFFFF sans-serif.\n\nIn the top-right corner, a small red ribbon with \"1st\" is visible. The overall mood is authoritative, premium, and psychological, matching the book's theme of communication and neuroscience. Professional studio lighting, high resolution, sharp focus on typography.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "professional_amazon_a_marketi_90545bac567cb95d1d41ce43fad640ca",
+            "timestamp": 1770627969687,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background features a horizontal tri-band layout: the top and bottom sections are Warm Sand Beige (#e9bc87) and the center block is Deep Navy Blue (#0f2439). A subtle radial vignette darkens toward the corners, with fine radial sunburst etching lines at 15% opacity emanating from the top and bottom center. \n\nLEFT SIDE COMPOSITION: Two hands holding the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling. The book cover is clearly visible, featuring a bold navy blue center band with white and gold typography. Above the book, a gold circular seal badge reads \"INCLUSO BONUS ESCLUSIVO\".\n\nRIGHT SIDE COMPOSITION: \n- Top right: Gold text \"TECNICHE IMMEDIATE\" next to a red \"1st\" ribbon icon.\n- Main Headline (Bold, Sans-serif, Deep Navy Blue): \"PERSUASIONE ETICA: IL TUO POTERE DI INFLUENZA!\"\n- Sub-headline (Bold, Sans-serif, Deep Navy Blue): \"Vuoi padroneggiare l'arte della comunicazione?\"\n- Body text (Clean Sans-serif, Deep Navy Blue): \"È ora di agire. Questo libro è il tuo alleato per comprendere la psicologia umana, applicare le neuroscienze e ottenere risultati concreti. Con strategie testate e tecniche pratiche, scoprirai come persuadere con integrità, superare le obiezioni e costruire una leadership magnetica.\"\n\nTYPOGRAPHY: Use a premium academic-professional style. Headline is large and authoritative. Key numbers like \"21 GIORNI\" are in Muted Gold (#c9a66b). All text is in Italian. The overall mood is authoritative, premium, and scientific.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "professional_amazon_a_marketi_5a7210b46bbe8a3ef40d12bfc9f94332",
+            "timestamp": 1770309347895,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a premium dark navy blue with subtle golden light gradients and radial rays emanating from behind the book. On the LEFT side, a pair of hands is holding the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling, with the cover design clearly visible. On the RIGHT side, the layout features a sophisticated typographic hierarchy in Italian. Top right includes a small red ribbon badge with \"1st\". Main headline in large, bold golden sans-serif font: \"DOMINA L'ARTE DELLA PERSUASIONE\". Below it, a sub-headline in white: \"Vuoi influenzare le decisioni altrui?\". The main body text in a clean white sans-serif font reads: \"Scopri i segreti delle neuroscienze e della psicologia della comunicazione. In soli 21 giorni, imparerai tecniche scientifiche immediate per aumentare il tuo carisma, superare le obiezioni e ottenere ciò che desideri con naturalezza e integrità.\" In the upper left area of the text block, a circular gold seal/badge says \"METODO SCIENTIFICO\". The color palette strictly follows the book cover: deep navy blue (#1a2e40), amber gold (#d9a86a), and crisp white. High-end, professional, and authoritative mood.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "professional_amazon_a_marketi_8950e5a99d87abf3c02aa9b629bf2211",
+            "timestamp": 1770308916526,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a premium dark navy blue with subtle golden light gradients and professional texture. LEFT SIDE: A pair of hands holding the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling, showcasing the cover clearly. The book cover features a navy blue central band with white text and a gold \"21\", with beige top and bottom sections. A small red ribbon tag with \"1st\" is attached to the top corner of the book. RIGHT SIDE: Large, bold typography. Main headline in gold: \"PERSUASIONE SCIENTIFICA: DOMINA L'ARTE DI INFLUENZARE!\". Below it, a white sub-headline: \"Vuoi imparare a persuadere chiunque in soli 21 giorni?\". Followed by a descriptive paragraph in white: \"È il momento di potenziare la tua comunicazione. Questo libro è la tua guida pratica per applicare le neuroscienze e la psicologia. Con tecniche scientifiche immediate, scoprirai come influenzare positivamente gli altri e ottenere risultati straordinari nella vita e nel lavoro.\" TOP LEFT: A circular gold seal badge with the text \"INCLUSO BONUS ESCLUSIVO\". The overall style is clean, authoritative, and sophisticated, using the navy blue, beige, and gold palette from the book cover. All text is in Italian. High-resolution, studio lighting, marketing photography style.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          }
+        ],
+        "selectedHistoryIndex": 0,
+        "selectedModel": {
+          "provider": "kie",
+          "modelId": "gpt-image/1.5-image-to-image",
+          "displayName": "GPT Image 1.5 Edit"
+        },
+        "inputSchema": [
+          {
+            "name": "prompt",
+            "type": "text",
+            "required": true,
+            "label": "Prompt"
+          },
+          {
+            "name": "input_urls",
+            "type": "image",
+            "required": true,
+            "label": "Image",
+            "isArray": true
+          }
+        ],
+        "parameters": {
+          "aspect_ratio": "3:2",
+          "quality": "high"
+        },
+        "inputImageRefs": [
+          "img-ml9mvuyr-7mbzme",
+          "img-ml9mwh0i-7t5xk3"
+        ],
+        "outputImageRef": "professional_amazon_a_marketi_46267a47142e0c140c53793e5478474f"
+      },
+      "style": {
+        "width": 408,
+        "height": 372
+      },
+      "selected": true,
+      "measured": {
+        "width": 408,
+        "height": 372
+      },
+      "dragging": false
+    },
+    {
+      "id": "nanoBanana-2",
+      "type": "nanoBanana",
+      "position": {
+        "x": 1297.1771770127386,
+        "y": 667.5475433269561
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a sophisticated cream and beige gradient with a subtle paper texture and radial light. On the left, a 3D mockup of the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling; the cover design features a prominent dark navy blue central band with bold white text and cream-colored top and bottom sections. The book is presented at a slight angle with clean white dimension labels reading \"22,86 CM\" vertically and \"15,24 CM\" horizontally. On the right side, the layout features professional Italian marketing text. The main heading at the top right is \"PERCHÉ SCEGLIERE IL NOSTRO LIBRO?\" in bold dark navy blue. Below it, four benefit sections are listed with colored icons and bold headlines: 1) \"📖 METODO SCIENTIFICO: Un percorso basato sulle neuroscienze per influenzare e persuadere eticamente.\"; 2) \"🧠 PSICOLOGIA APPLICATA: Tecniche testate per decodificare il comportamento umano e comunicare meglio.\"; 3) \"🎧 BONUS AUDIO + PDF: Ascolta i contenuti extra e segui gli esercizi pratici con il materiale incluso.\"; 4) \"🔥 RISULTATI IMMEDIATI: Strategie concrete ed efficaci per trasformare la tua comunicazione da subito.\" Typography uses a clean, modern sans-serif font with a clear hierarchy. Color palette: Dark Navy Blue, Cream, and Gold accents. High-end, clean, and authoritative aesthetic.",
+        "outputImage": null,
+        "aspectRatio": "16:9",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "imageHistory": [
+          {
+            "id": "professional_amazon_a_marketi_a85729dbfaff15d533b5c67fe54cca74",
+            "timestamp": 1770309339348,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a sophisticated cream and beige gradient with a subtle paper texture and radial light. On the left, a 3D mockup of the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling; the cover design features a prominent dark navy blue central band with bold white text and cream-colored top and bottom sections. The book is presented at a slight angle with clean white dimension labels reading \"22,86 CM\" vertically and \"15,24 CM\" horizontally. On the right side, the layout features professional Italian marketing text. The main heading at the top right is \"PERCHÉ SCEGLIERE IL NOSTRO LIBRO?\" in bold dark navy blue. Below it, four benefit sections are listed with colored icons and bold headlines: 1) \"📖 METODO SCIENTIFICO: Un percorso basato sulle neuroscienze per influenzare e persuadere eticamente.\"; 2) \"🧠 PSICOLOGIA APPLICATA: Tecniche testate per decodificare il comportamento umano e comunicare meglio.\"; 3) \"🎧 BONUS AUDIO + PDF: Ascolta i contenuti extra e segui gli esercizi pratici con il materiale incluso.\"; 4) \"🔥 RISULTATI IMMEDIATI: Strategie concrete ed efficaci per trasformare la tua comunicazione da subito.\" Typography uses a clean, modern sans-serif font with a clear hierarchy. Color palette: Dark Navy Blue, Cream, and Gold accents. High-end, clean, and authoritative aesthetic.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "professional_amazon_a_marketi_839214187cf4f7ef43b6a665fbf2cda9",
+            "timestamp": 1770308960339,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background features a sophisticated gradient blending deep navy blue in the center with a subtle, textured golden-tan sunburst pattern at the edges, matching the book cover's aesthetic. On the left side, a high-quality 3D book mockup of \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling is displayed at a slight angle; white graphic dimension lines indicate \"22,86 CM\" for height and \"15,24 CM\" for width. At the top center, the title \"PERCHÉ SCEGLIERE IL NOSTRO LIBRO?\" is written in bold, white, uppercase sans-serif typography. On the right side, four benefit sections are neatly aligned vertically, each featuring a golden icon followed by a bold headline and descriptive text in Italian: \n1. 🧠 **NEUROSCIENZE APPLICATE**: Tecniche basate sulla scienza per influenzare il subconscio e comunicare con efficacia.\n2. ⏱️ **METODO IN 21 GIORNI**: Un percorso strutturato passo dopo passo per padroneggiare l'arte della persuasione.\n3. 🎁 **BONUS ESCLUSIVI**: Accedi a schemi pratici e risorse extra per un apprendimento rapido e immediato.\n4. 🚀 **RISULTATI CONCRETI**: Strategie semplici ed efficaci per trasformare la tua comunicazione da subito.\nThe typography uses a clean hierarchy with bold headlines in golden-yellow and body text in crisp white. Professional studio lighting, sharp focus, and a clean, high-end marketing design style.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          }
+        ],
+        "selectedHistoryIndex": 0,
+        "selectedModel": {
+          "provider": "kie",
+          "modelId": "gpt-image/1.5-image-to-image",
+          "displayName": "GPT Image 1.5 Edit"
+        },
+        "inputSchema": [
+          {
+            "name": "prompt",
+            "type": "text",
+            "required": true,
+            "label": "Prompt"
+          },
+          {
+            "name": "input_urls",
+            "type": "image",
+            "required": true,
+            "label": "Image",
+            "isArray": true
+          }
+        ],
+        "parameters": {
+          "aspect_ratio": "3:2",
+          "quality": "high"
+        },
+        "inputImageRefs": [
+          "img-ml9mvuyr-7mbzme",
+          "img-ml9mwh0q-qjxh31"
+        ],
+        "outputImageRef": "professional_amazon_a_marketi_a85729dbfaff15d533b5c67fe54cca74"
+      },
+      "style": {
+        "width": 408,
+        "height": 372
+      },
+      "selected": false,
+      "measured": {
+        "width": 300,
+        "height": 362
+      },
+      "dragging": false,
+      "width": 300,
+      "height": 362,
+      "resizing": false
+    },
+    {
+      "id": "nanoBanana-3",
+      "type": "nanoBanana",
+      "position": {
+        "x": 1300,
+        "y": 1032.7127111231391
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a sophisticated gradient of warm beige and tan with subtle, elegant neural network patterns. \nCENTER-LEFT: A hand holds the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling. The book cover features a navy blue center band and tan top/bottom sections. A gold circular badge on the book says \"BONUS AUDIO LIBRO\". \nTOP LEFT: Large, bold navy blue sans-serif headline: \"POTERE DELLA MENTE: DOMINA L'ARTE DI PERSUADERE!\". \nTOP RIGHT: Large, bold navy blue sans-serif headline: \"LA COMUNICAZIONE È UNA SCIENZA: AGISCI ORA!\". \nRIGHT CENTER: Professional navy blue body text: \"Il segreto per influenzare chiunque? Padroneggiare le neuroscienze. Questa guida pratica trasforma le tue parole in strumenti di successo immediato.\" \nBOTTOM CENTER: Motivational quote in gold italics: \"Non aspettare che gli altri cambino. Impara le tecniche per guidare ogni conversazione.\" \nBOTTOM RIGHT: Call-to-action in bold navy blue: \"Inizia oggi il tuo viaggio verso il carisma assoluto!\" with a gold curved arrow pointing towards it from the book. \nVisual flow elements: Tan and gold curved arrows connecting the book to the various text blocks. Typography is modern, bold, and clean, mirroring the book cover's style. High-quality marketing graphic design, sharp focus, professional lighting. All text is in Italian.",
+        "outputImage": null,
+        "aspectRatio": "16:9",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "imageHistory": [
+          {
+            "id": "professional_amazon_a_marketi_a10ee060a597834384f25278f7fddfc7",
+            "timestamp": 1770309338769,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a sophisticated gradient of warm beige and tan with subtle, elegant neural network patterns. \nCENTER-LEFT: A hand holds the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling. The book cover features a navy blue center band and tan top/bottom sections. A gold circular badge on the book says \"BONUS AUDIO LIBRO\". \nTOP LEFT: Large, bold navy blue sans-serif headline: \"POTERE DELLA MENTE: DOMINA L'ARTE DI PERSUADERE!\". \nTOP RIGHT: Large, bold navy blue sans-serif headline: \"LA COMUNICAZIONE È UNA SCIENZA: AGISCI ORA!\". \nRIGHT CENTER: Professional navy blue body text: \"Il segreto per influenzare chiunque? Padroneggiare le neuroscienze. Questa guida pratica trasforma le tue parole in strumenti di successo immediato.\" \nBOTTOM CENTER: Motivational quote in gold italics: \"Non aspettare che gli altri cambino. Impara le tecniche per guidare ogni conversazione.\" \nBOTTOM RIGHT: Call-to-action in bold navy blue: \"Inizia oggi il tuo viaggio verso il carisma assoluto!\" with a gold curved arrow pointing towards it from the book. \nVisual flow elements: Tan and gold curved arrows connecting the book to the various text blocks. Typography is modern, bold, and clean, mirroring the book cover's style. High-quality marketing graphic design, sharp focus, professional lighting. All text is in Italian.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "professional_amazon_a_marketi_1f1c7b5476b3c8b57badf5d2137cb37e",
+            "timestamp": 1770308994007,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a sophisticated navy blue gradient with subtle, elegant golden neural network patterns. On the bottom left, a hand holds the book titled \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling, featuring its navy, gold, and white cover. A round gold badge on the book says \"INCLUSO BONUS AUDIO\". Top left headline in bold white sans-serif: \"POTERE DI PERSUASIONE: RIPRENDITI IL CONTROLLO!\". In the center, a gold arrow curves from the book toward a block of white text: \"Smetti di subire le decisioni altrui. Diventa il protagonista della tua vita.\". Top right headline in large gold sans-serif: \"COMUNICARE È UNA SCELTA: FAI LA TUA MOSSA!\". Below it, a descriptive paragraph in white: \"Il segreto per il successo? Capire la psicologia umana. Questo libro è una guida scientifica per influenzare gli altri, migliorare il carisma e ottenere ciò che desideri.\". Bottom right CTA in bold white: \"Inizia ora il tuo percorso verso l'eccellenza!\" with a gold arrow pointing to it. High-resolution, clean typography, premium marketing aesthetic. All text is in Italian.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          }
+        ],
+        "selectedHistoryIndex": 0,
+        "selectedModel": {
+          "provider": "kie",
+          "modelId": "gpt-image/1.5-image-to-image",
+          "displayName": "GPT Image 1.5 Edit"
+        },
+        "inputSchema": [
+          {
+            "name": "prompt",
+            "type": "text",
+            "required": true,
+            "label": "Prompt"
+          },
+          {
+            "name": "input_urls",
+            "type": "image",
+            "required": true,
+            "label": "Image",
+            "isArray": true
+          }
+        ],
+        "parameters": {
+          "aspect_ratio": "3:2",
+          "quality": "high"
+        },
+        "inputImageRefs": [
+          "img-ml9mvuyr-7mbzme",
+          "img-ml9mwh89-tgeiv1"
+        ],
+        "outputImageRef": "professional_amazon_a_marketi_a10ee060a597834384f25278f7fddfc7"
+      },
+      "style": {
+        "width": 408,
+        "height": 372
+      },
+      "selected": false,
+      "measured": {
+        "width": 408,
+        "height": 372
+      },
+      "dragging": false
+    },
+    {
+      "id": "nanoBanana-4",
+      "type": "nanoBanana",
+      "position": {
+        "x": 1298.1181180084925,
+        "y": 1443.6336367579675
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The layout features a precise split-screen composition. LEFT SIDE: A high-quality, relatable photo of a confident professional man in business-casual attire (navy blazer over a white shirt), looking directly at the camera with an engaging and persuasive smile. The background is a soft beige gradient with warm lighting. Overlaid on the bottom-left in large, bold navy blue and gold typography is the Italian text: \"TIMIDEZZA O INSICUREZZA? ECCO LA SOLUZIONE!\". RIGHT SIDE: Divided into two horizontal blocks. THE TOP BLOCK has a deep navy blue background with elegant typography; the headline in gold reads \"IL POTERE È NELLE TUE PAROLE!\" followed by white body text: \"La psicologia della comunicazione ti aiuterà a trasformare ogni interazione in un'opportunità e a vivere con più carisma.\" THE BOTTOM BLOCK has a light gold/beige background with navy blue text; the headline reads \"SCOPRI IL SEGRETO PER INFLUENZARE E CONVINCERE\" followed by body text: \"Le tecniche scientifiche di Matt Rawling potenziano le tue relazioni. Questa guida ti insegna a gestire la comunicazione non verbale e a farti ascoltare da chiunque.\" On the far right edge, a professional 3D book mockup of \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling is integrated into the design. The color palette strictly follows the book cover: navy blue, gold, and beige. The style is clean, authoritative, and corporate-modern.",
+        "outputImage": null,
+        "aspectRatio": "16:9",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "imageHistory": [
+          {
+            "id": "professional_amazon_a_marketi_0888f185c5742fa9f6565edfd93c799d",
+            "timestamp": 1770309435667,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The layout features a precise split-screen composition. LEFT SIDE: A high-quality, relatable photo of a confident professional man in business-casual attire (navy blazer over a white shirt), looking directly at the camera with an engaging and persuasive smile. The background is a soft beige gradient with warm lighting. Overlaid on the bottom-left in large, bold navy blue and gold typography is the Italian text: \"TIMIDEZZA O INSICUREZZA? ECCO LA SOLUZIONE!\". RIGHT SIDE: Divided into two horizontal blocks. THE TOP BLOCK has a deep navy blue background with elegant typography; the headline in gold reads \"IL POTERE È NELLE TUE PAROLE!\" followed by white body text: \"La psicologia della comunicazione ti aiuterà a trasformare ogni interazione in un'opportunità e a vivere con più carisma.\" THE BOTTOM BLOCK has a light gold/beige background with navy blue text; the headline reads \"SCOPRI IL SEGRETO PER INFLUENZARE E CONVINCERE\" followed by body text: \"Le tecniche scientifiche di Matt Rawling potenziano le tue relazioni. Questa guida ti insegna a gestire la comunicazione non verbale e a farti ascoltare da chiunque.\" On the far right edge, a professional 3D book mockup of \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling is integrated into the design. The color palette strictly follows the book cover: navy blue, gold, and beige. The style is clean, authoritative, and corporate-modern.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "professional_amazon_a_marketi_ef13342e70e283fddb6046a15462cb7d",
+            "timestamp": 1770309084246,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The design features a split layout. On the LEFT side, a confident and charismatic professional man in his 30s, wearing a smart-casual navy blazer over a light shirt, is shown in a communicative pose with a warm, trustworthy smile, set against a soft creamy beige gradient background. Overlaid on the bottom left is the bold Italian text: \"TIMIDEZZA? INSICUREZZA? MANCATA INFLUENZA? ECCO LA SOLUZIONE!\" in white and gold. The RIGHT side of the banner has a deep navy blue background. At the top right, a large headline in gold sans-serif font reads: \"LA TUA COMUNICAZIONE È IL TUO POTERE!\". Below it, white body text in Italian says: \"Quante opportunità hai perso per non aver saputo dire la cosa giusta? La psicologia della persuasione ti aiuterà a ottenere ciò che desideri con integrità.\" In the middle right, a secondary headline in gold reads: \"SCOPRI IL SEGRETO PER CONVINCERE E ISPIRARE\". Below it, white Italian text reads: \"Le tecniche di neuroscienze applicate alla comunicazione trasformeranno il tuo modo di interagire. Diventa un leader carismatico in soli 21 giorni.\" In the bottom right corner, a realistic 3D mockup of the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling is held by a hand. The overall style is clean, authoritative, and professional, utilizing the book's color palette of navy blue, creamy beige, and golden yellow. High-quality studio lighting, sharp focus, professional marketing composition.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          }
+        ],
+        "selectedHistoryIndex": 0,
+        "selectedModel": {
+          "provider": "kie",
+          "modelId": "gpt-image/1.5-image-to-image",
+          "displayName": "GPT Image 1.5 Edit"
+        },
+        "inputSchema": [
+          {
+            "name": "prompt",
+            "type": "text",
+            "required": true,
+            "label": "Prompt"
+          },
+          {
+            "name": "input_urls",
+            "type": "image",
+            "required": true,
+            "label": "Image",
+            "isArray": true
+          }
+        ],
+        "parameters": {
+          "aspect_ratio": "3:2",
+          "quality": "high"
+        },
+        "inputImageRefs": [
+          "img-ml9oarry-u3s7pp",
+          "img-ml9oarvo-62jeqo"
+        ],
+        "outputImageRef": "professional_amazon_a_marketi_0888f185c5742fa9f6565edfd93c799d"
+      },
+      "style": {
+        "width": 408,
+        "height": 372
+      },
+      "selected": false,
+      "measured": {
+        "width": 408,
+        "height": 372
+      },
+      "dragging": false
+    },
+    {
+      "id": "nanoBanana-5",
+      "type": "nanoBanana",
+      "position": {
+        "x": 1300,
+        "y": 1853.6136213970422
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background features a sophisticated gradient blending deep navy blue with a soft golden-beige glow and subtle radial light rays, echoing the book's cover design. On the right side, a high-end black tablet with a digital stylus displays the ebook version of \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling on its screen. Above the tablet, a minimalist white headphone icon with a digital audio playback progress bar. A prominent circular gold metallic badge at the top center reads \"INCLUSO BONUS & AUDIOLIBRO\". The left side features clean Italian typography: at the top \"CON L'ACQUISTO DEL LIBRO\" in white; followed by a large, bold white \"INCLUSO\"; then \"UN FANTASTICO EBOOK DA SCARICARE PER TE IN PDF CON AUDIOLIBRO\" in a golden-beige accent color. Below this, a motivational line in white: \"La persuasione non è magia, ma una scienza applicata.\" followed by a descriptive paragraph: \"Impara a comunicare con efficacia e padroneggia le tecniche di influenza. Ogni capitolo ti guida verso il successo personale e professionale attraverso metodi scientifici testati.\" The overall aesthetic is modern, authoritative, and professional, utilizing a sharp sans-serif font hierarchy and realistic studio lighting.",
+        "outputImage": null,
+        "aspectRatio": "16:9",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "imageHistory": [
+          {
+            "id": "professional_amazon_a_marketi_09c17a84cf47382ea54cf06a59ff2a5f",
+            "timestamp": 1770309434871,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background features a sophisticated gradient blending deep navy blue with a soft golden-beige glow and subtle radial light rays, echoing the book's cover design. On the right side, a high-end black tablet with a digital stylus displays the ebook version of \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling on its screen. Above the tablet, a minimalist white headphone icon with a digital audio playback progress bar. A prominent circular gold metallic badge at the top center reads \"INCLUSO BONUS & AUDIOLIBRO\". The left side features clean Italian typography: at the top \"CON L'ACQUISTO DEL LIBRO\" in white; followed by a large, bold white \"INCLUSO\"; then \"UN FANTASTICO EBOOK DA SCARICARE PER TE IN PDF CON AUDIOLIBRO\" in a golden-beige accent color. Below this, a motivational line in white: \"La persuasione non è magia, ma una scienza applicata.\" followed by a descriptive paragraph: \"Impara a comunicare con efficacia e padroneggia le tecniche di influenza. Ogni capitolo ti guida verso il successo personale e professionale attraverso metodi scientifici testati.\" The overall aesthetic is modern, authoritative, and professional, utilizing a sharp sans-serif font hierarchy and realistic studio lighting.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "professional_amazon_a_marketi_744a5bed3800b1adf74bd5c2fb3f68cd",
+            "timestamp": 1770309152321,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background features a sophisticated gradient transitioning from deep navy blue to a warm, sun-kissed tan, with subtle neural network patterns and soft light bokeh effects. On the right side, a sleek modern black tablet with a stylus displays the ebook version of the cover \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling. Above the tablet, a minimalist white and gold audio player icon with headphones is visible. \n\nText elements in Italian:\n- Top left: \"CON L'ACQUISTO DEL LIBRO\" in small white sans-serif.\n- Middle left: Huge, bold white typography \"INCLUSO\".\n- Center: A circular metallic gold badge with a star, inscribed with \"INCLUSO BONUS & AUDIOLIBRO\".\n- Below \"INCLUSO\": \"UN FANTASTICO EBOOK DA SCARICARE PER TE IN PDF CON AUDIOLIBRO\" in a mix of gold and white bold caps.\n- Lower left: \"La persuasione non è magia, ma una scienza applicata giorno dopo giorno.\" in bold white serif.\n- Bottom paragraph: \"Impara a comunicare con efficacia e integrità. Non aspettarti miracoli istantanei, ma una crescita costante basata su principi neuroscientifici. Ogni giorno, applica una nuova tecnica: un ascolto attivo, una parola scelta con cura, un'influenza positiva.\" in clean white sans-serif.\n\nThe color palette strictly follows the book cover: navy blue, warm tan, and gold accents. High-end marketing aesthetic, sharp typography hierarchy, professional studio lighting.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          }
+        ],
+        "selectedHistoryIndex": 0,
+        "selectedModel": {
+          "provider": "kie",
+          "modelId": "gpt-image/1.5-image-to-image",
+          "displayName": "GPT Image 1.5 Edit"
+        },
+        "inputSchema": [
+          {
+            "name": "prompt",
+            "type": "text",
+            "required": true,
+            "label": "Prompt"
+          },
+          {
+            "name": "input_urls",
+            "type": "image",
+            "required": true,
+            "label": "Image",
+            "isArray": true
+          }
+        ],
+        "parameters": {
+          "aspect_ratio": "3:2",
+          "quality": "high"
+        },
+        "inputImageRefs": [
+          "img-ml9oarry-u3s7pp",
+          "img-ml9oarw1-8256ag"
+        ],
+        "outputImageRef": "professional_amazon_a_marketi_09c17a84cf47382ea54cf06a59ff2a5f"
+      },
+      "style": {
+        "width": 408,
+        "height": 372
+      },
+      "selected": false,
+      "measured": {
+        "width": 408,
+        "height": 372
+      },
+      "dragging": false
+    },
+    {
+      "id": "output-1",
+      "type": "output",
+      "position": {
+        "x": 1950.2653762170137,
+        "y": 398.5780376351306
+      },
+      "data": {
+        "image": null,
+        "video": null,
+        "contentType": "image"
+      },
+      "style": {
+        "width": 320,
+        "height": 320
+      },
+      "selected": false,
+      "measured": {
+        "width": 320,
+        "height": 320
+      },
+      "dragging": false
+    },
+    {
+      "id": "output-2",
+      "type": "output",
+      "position": {
+        "x": 1700,
+        "y": 730
+      },
+      "data": {
+        "image": null,
+        "video": null,
+        "contentType": "image"
+      },
+      "style": {
+        "width": 320,
+        "height": 320
+      },
+      "selected": false,
+      "measured": {
+        "width": 320,
+        "height": 320
+      }
+    },
+    {
+      "id": "output-3",
+      "type": "output",
+      "position": {
+        "x": 1700,
+        "y": 1060
+      },
+      "data": {
+        "image": null,
+        "video": null,
+        "contentType": "image"
+      },
+      "style": {
+        "width": 320,
+        "height": 320
+      },
+      "selected": false,
+      "measured": {
+        "width": 320,
+        "height": 320
+      }
+    },
+    {
+      "id": "output-4",
+      "type": "output",
+      "position": {
+        "x": 1700,
+        "y": 1390
+      },
+      "data": {
+        "image": null,
+        "video": null,
+        "contentType": "image"
+      },
+      "style": {
+        "width": 320,
+        "height": 320
+      },
+      "selected": false,
+      "measured": {
+        "width": 320,
+        "height": 320
+      }
+    },
+    {
+      "id": "output-5",
+      "type": "output",
+      "position": {
+        "x": 1700,
+        "y": 1720
+      },
+      "data": {
+        "image": null,
+        "video": null,
+        "contentType": "image"
+      },
+      "style": {
+        "width": 320,
+        "height": 320
+      },
+      "selected": false,
+      "measured": {
+        "width": 320,
+        "height": 320
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-cover-llm1",
+      "source": "imageInput-cover",
+      "sourceHandle": "image",
+      "target": "llm-1",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-ref1-llm1",
+      "source": "imageInput-ref-1",
+      "sourceHandle": "image",
+      "target": "llm-1",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-llm1-nb1",
+      "source": "llm-1",
+      "sourceHandle": "text",
+      "target": "nanoBanana-1",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-cover-nb1",
+      "source": "imageInput-cover",
+      "sourceHandle": "image",
+      "target": "nanoBanana-1",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-ref1-nb1",
+      "source": "imageInput-ref-1",
+      "sourceHandle": "image",
+      "target": "nanoBanana-1",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-nb1-out1",
+      "source": "nanoBanana-1",
+      "sourceHandle": "image",
+      "target": "output-1",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-cover-llm2",
+      "source": "imageInput-cover",
+      "sourceHandle": "image",
+      "target": "llm-2",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-ref2-llm2",
+      "source": "imageInput-ref-2",
+      "sourceHandle": "image",
+      "target": "llm-2",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-llm2-nb2",
+      "source": "llm-2",
+      "sourceHandle": "text",
+      "target": "nanoBanana-2",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-cover-nb2",
+      "source": "imageInput-cover",
+      "sourceHandle": "image",
+      "target": "nanoBanana-2",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-ref2-nb2",
+      "source": "imageInput-ref-2",
+      "sourceHandle": "image",
+      "target": "nanoBanana-2",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-nb2-out2",
+      "source": "nanoBanana-2",
+      "sourceHandle": "image",
+      "target": "output-2",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-cover-llm3",
+      "source": "imageInput-cover",
+      "sourceHandle": "image",
+      "target": "llm-3",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-ref3-llm3",
+      "source": "imageInput-ref-3",
+      "sourceHandle": "image",
+      "target": "llm-3",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-llm3-nb3",
+      "source": "llm-3",
+      "sourceHandle": "text",
+      "target": "nanoBanana-3",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-cover-nb3",
+      "source": "imageInput-cover",
+      "sourceHandle": "image",
+      "target": "nanoBanana-3",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-ref3-nb3",
+      "source": "imageInput-ref-3",
+      "sourceHandle": "image",
+      "target": "nanoBanana-3",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-nb3-out3",
+      "source": "nanoBanana-3",
+      "sourceHandle": "image",
+      "target": "output-3",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-cover-llm4",
+      "source": "imageInput-cover",
+      "sourceHandle": "image",
+      "target": "llm-4",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-ref4-llm4",
+      "source": "imageInput-ref-4",
+      "sourceHandle": "image",
+      "target": "llm-4",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-llm4-nb4",
+      "source": "llm-4",
+      "sourceHandle": "text",
+      "target": "nanoBanana-4",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-cover-nb4",
+      "source": "imageInput-cover",
+      "sourceHandle": "image",
+      "target": "nanoBanana-4",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-ref4-nb4",
+      "source": "imageInput-ref-4",
+      "sourceHandle": "image",
+      "target": "nanoBanana-4",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-nb4-out4",
+      "source": "nanoBanana-4",
+      "sourceHandle": "image",
+      "target": "output-4",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-cover-llm5",
+      "source": "imageInput-cover",
+      "sourceHandle": "image",
+      "target": "llm-5",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-ref5-llm5",
+      "source": "imageInput-ref-5",
+      "sourceHandle": "image",
+      "target": "llm-5",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-llm5-nb5",
+      "source": "llm-5",
+      "sourceHandle": "text",
+      "target": "nanoBanana-5",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-cover-nb5",
+      "source": "imageInput-cover",
+      "sourceHandle": "image",
+      "target": "nanoBanana-5",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-ref5-nb5",
+      "source": "imageInput-ref-5",
+      "sourceHandle": "image",
+      "target": "nanoBanana-5",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-nb5-out5",
+      "source": "nanoBanana-5",
+      "sourceHandle": "image",
+      "target": "output-5",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-style-prompt-to-llm-style",
+      "source": "prompt-style",
+      "sourceHandle": "text",
+      "target": "llm-style",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-cover-to-llm-style",
+      "source": "imageInput-cover",
+      "sourceHandle": "image",
+      "target": "llm-style",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-llm-style-to-pc-1",
+      "source": "llm-style",
+      "sourceHandle": "text",
+      "target": "pc-1",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-sys-1-to-pc-1",
+      "source": "prompt-system-1",
+      "sourceHandle": "text",
+      "target": "pc-1",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-pc-1-to-llm-1",
+      "source": "pc-1",
+      "sourceHandle": "text",
+      "target": "llm-1",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-llm-style-to-pc-2",
+      "source": "llm-style",
+      "sourceHandle": "text",
+      "target": "pc-2",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-sys-2-to-pc-2",
+      "source": "prompt-system-2",
+      "sourceHandle": "text",
+      "target": "pc-2",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-pc-2-to-llm-2",
+      "source": "pc-2",
+      "sourceHandle": "text",
+      "target": "llm-2",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-llm-style-to-pc-3",
+      "source": "llm-style",
+      "sourceHandle": "text",
+      "target": "pc-3",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-sys-3-to-pc-3",
+      "source": "prompt-system-3",
+      "sourceHandle": "text",
+      "target": "pc-3",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-pc-3-to-llm-3",
+      "source": "pc-3",
+      "sourceHandle": "text",
+      "target": "llm-3",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-llm-style-to-pc-4",
+      "source": "llm-style",
+      "sourceHandle": "text",
+      "target": "pc-4",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-sys-4-to-pc-4",
+      "source": "prompt-system-4",
+      "sourceHandle": "text",
+      "target": "pc-4",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-pc-4-to-llm-4",
+      "source": "pc-4",
+      "sourceHandle": "text",
+      "target": "llm-4",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-llm-style-to-pc-5",
+      "source": "llm-style",
+      "sourceHandle": "text",
+      "target": "pc-5",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-sys-5-to-pc-5",
+      "source": "prompt-system-5",
+      "sourceHandle": "text",
+      "target": "pc-5",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-pc-5-to-llm-5",
+      "source": "pc-5",
+      "sourceHandle": "text",
+      "target": "llm-5",
+      "targetHandle": "text",
+      "selected": false
+    }
+  ],
+  "edgeStyle": "curved"
+}
