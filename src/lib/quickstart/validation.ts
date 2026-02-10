@@ -297,6 +297,7 @@ function createDefaultNodeData(type: NodeType): WorkflowNodeData {
         clips: [],
         clipOrder: [],
         outputVideo: null,
+        loopCount: 1,
         status: "idle",
         error: null,
         progress: 0,
