@@ -47,6 +47,7 @@ function makeCtx(
     addToGlobalHistory: vi.fn(),
     generationsPath: null,
     saveDirectoryPath: null,
+    trackSaveGeneration: vi.fn(),
     get: vi.fn(),
     ...overrides,
   };
@@ -78,7 +79,7 @@ describe("executeVideoStitch", () => {
     const node = makeStitchNode({ encoderSupported: false });
     const ctx = makeCtx(node);
 
-    await executeVideoStitch(ctx);
+    await expect(executeVideoStitch(ctx)).rejects.toThrow("Browser does not support video encoding");
 
     expect(ctx.updateNodeData).toHaveBeenCalledWith("vs-1", expect.objectContaining({
       status: "error",
@@ -99,7 +100,7 @@ describe("executeVideoStitch", () => {
       }),
     });
 
-    await executeVideoStitch(ctx);
+    await expect(executeVideoStitch(ctx)).rejects.toThrow("Need at least 2 video clips to stitch");
 
     expect(ctx.updateNodeData).toHaveBeenCalledWith("vs-1", expect.objectContaining({
       status: "error",
@@ -109,9 +110,19 @@ describe("executeVideoStitch", () => {
 
   it("should set loading status with 0 progress", async () => {
     const node = makeStitchNode();
-    const ctx = makeCtx(node);
+    const ctx = makeCtx(node, {
+      getConnectedInputs: vi.fn().mockReturnValue({
+        images: [],
+        videos: ["video1", "video2"],
+        audio: [],
+        text: null,
+        dynamicInputs: {},
+        easeCurve: null,
+      }),
+    });
 
-    await executeVideoStitch(ctx);
+    // Will fail at fetch but we only care about the loading call
+    await executeVideoStitch(ctx).catch(() => {});
 
     const calls = (ctx.updateNodeData as ReturnType<typeof vi.fn>).mock.calls;
     const loadingCall = calls.find(
@@ -147,7 +158,7 @@ describe("executeEaseCurve", () => {
     const node = makeEaseNode({ encoderSupported: false });
     const ctx = makeCtx(node);
 
-    await executeEaseCurve(ctx);
+    await expect(executeEaseCurve(ctx)).rejects.toThrow("Browser does not support video encoding");
 
     expect(ctx.updateNodeData).toHaveBeenCalledWith("ec-1", expect.objectContaining({
       status: "error",
@@ -159,7 +170,7 @@ describe("executeEaseCurve", () => {
     const node = makeEaseNode();
     const ctx = makeCtx(node);
 
-    await executeEaseCurve(ctx);
+    await expect(executeEaseCurve(ctx)).rejects.toThrow("Connect a video input to apply ease curve");
 
     expect(ctx.updateNodeData).toHaveBeenCalledWith("ec-1", expect.objectContaining({
       status: "error",
@@ -169,9 +180,19 @@ describe("executeEaseCurve", () => {
 
   it("should set loading status with 0 progress", async () => {
     const node = makeEaseNode();
-    const ctx = makeCtx(node);
+    const ctx = makeCtx(node, {
+      getConnectedInputs: vi.fn().mockReturnValue({
+        images: [],
+        videos: ["video1"],
+        audio: [],
+        text: null,
+        dynamicInputs: {},
+        easeCurve: null,
+      }),
+    });
 
-    await executeEaseCurve(ctx);
+    // Will fail at fetch but we only care about the loading call
+    await executeEaseCurve(ctx).catch(() => {});
 
     const calls = (ctx.updateNodeData as ReturnType<typeof vi.fn>).mock.calls;
     const loadingCall = calls.find(
@@ -190,7 +211,7 @@ describe("executeEaseCurve", () => {
     const ctx = makeCtx(node, {
       getConnectedInputs: vi.fn().mockReturnValue({
         images: [],
-        videos: [],
+        videos: ["video1"],
         audio: [],
         text: null,
         dynamicInputs: {},
@@ -204,7 +225,8 @@ describe("executeEaseCurve", () => {
       ]),
     });
 
-    await executeEaseCurve(ctx);
+    // Will fail at fetch but we only care about the easeCurve propagation
+    await executeEaseCurve(ctx).catch(() => {});
 
     expect(ctx.updateNodeData).toHaveBeenCalledWith("ec-1", expect.objectContaining({
       bezierHandles: [0.42, 0, 0.58, 1],

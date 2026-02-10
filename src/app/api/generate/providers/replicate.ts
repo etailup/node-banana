@@ -5,6 +5,7 @@
  */
 
 import { GenerationInput, GenerationOutput } from "@/lib/providers/types";
+import { validateMediaUrl } from "@/utils/urlValidation";
 import {
   getParameterTypesFromSchema,
   coerceParameterTypes,
@@ -236,6 +237,14 @@ export async function generateWithReplicate(
 
   // Fetch the first output and convert to base64
   const mediaUrl = outputUrls[0];
+
+  // Validate URL before fetching (SSRF protection)
+  const mediaUrlCheck = validateMediaUrl(mediaUrl);
+  if (!mediaUrlCheck.valid) {
+    console.error(`[API:${requestId}] Invalid media URL from Replicate: ${mediaUrl}`);
+    return { success: false, error: `Invalid media URL: ${mediaUrlCheck.error}` };
+  }
+
   console.log(`[API:${requestId}] Fetching output from: ${mediaUrl.substring(0, 80)}...`);
   const mediaResponse = await fetch(mediaUrl);
 
@@ -256,7 +265,7 @@ export async function generateWithReplicate(
 
   console.log(`[API:${requestId}] Output: ${contentType}, ${mediaSizeMB.toFixed(2)}MB`);
 
-  // For very large videos (>20MB), return URL directly instead of base64
+  // For very large videos (>20MB), return URL only (data left empty for consumers)
   if (isVideo && mediaSizeMB > 20) {
     console.log(`[API:${requestId}] SUCCESS - Returning URL for large video`);
     return {
@@ -264,7 +273,7 @@ export async function generateWithReplicate(
       outputs: [
         {
           type: "video",
-          data: mediaUrl, // Return URL directly for very large videos
+          data: "",
           url: mediaUrl,
         },
       ],

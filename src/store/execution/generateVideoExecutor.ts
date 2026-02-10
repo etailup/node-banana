@@ -28,6 +28,7 @@ export async function executeGenerateVideo(
     addIncurredCost,
     generationsPath,
     getNodes,
+    trackSaveGeneration,
   } = ctx;
 
   const { useStoredFallback = false } = options;
@@ -157,7 +158,7 @@ export async function executeGenerateVideo(
           ? { video: videoData }
           : { image: result.image };
 
-        fetch("/api/save-generation", {
+        const savePromise = fetch("/api/save-generation", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -185,6 +186,8 @@ export async function executeGenerateVideo(
           .catch((err) => {
             console.error("Failed to save video generation:", err);
           });
+
+        trackSaveGeneration(videoId, savePromise);
       }
     } else {
       updateNodeData(node.id, {

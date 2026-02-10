@@ -22,7 +22,7 @@ export async function executeVideoStitch(ctx: NodeExecutionContext): Promise<voi
       error: "Browser does not support video encoding",
       progress: 0,
     });
-    return;
+    throw new Error("Browser does not support video encoding");
   }
 
   updateNodeData(node.id, { status: "loading", progress: 0, error: null });
@@ -36,7 +36,7 @@ export async function executeVideoStitch(ctx: NodeExecutionContext): Promise<voi
         error: "Need at least 2 video clips to stitch",
         progress: 0,
       });
-      return;
+      throw new Error("Need at least 2 video clips to stitch");
     }
 
     const videoBlobs = await Promise.all(
@@ -111,6 +111,7 @@ export async function executeVideoStitch(ctx: NodeExecutionContext): Promise<voi
       error: errorMessage,
       progress: 0,
     });
+    throw err instanceof Error ? err : new Error(errorMessage);
   }
 }
 
@@ -127,7 +128,7 @@ export async function executeEaseCurve(ctx: NodeExecutionContext): Promise<void>
       error: "Browser does not support video encoding",
       progress: 0,
     });
-    return;
+    throw new Error("Browser does not support video encoding");
   }
 
   updateNodeData(node.id, { status: "loading", progress: 0, error: null });
@@ -159,7 +160,7 @@ export async function executeEaseCurve(ctx: NodeExecutionContext): Promise<void>
         error: "Connect a video input to apply ease curve",
         progress: 0,
       });
-      return;
+      throw new Error("Connect a video input to apply ease curve");
     }
 
     const videoUrl = inputs.videos[0];
@@ -242,5 +243,6 @@ export async function executeEaseCurve(ctx: NodeExecutionContext): Promise<void>
       error: errorMessage,
       progress: 0,
     });
+    throw err instanceof Error ? err : new Error(errorMessage);
   }
 }

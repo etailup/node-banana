@@ -70,6 +70,7 @@ function makeCtx(
     addToGlobalHistory: vi.fn(),
     generationsPath: null,
     saveDirectoryPath: null,
+    trackSaveGeneration: vi.fn(),
     get: vi.fn().mockReturnValue({
       edges: [],
       nodes: [node],

@@ -811,6 +811,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         addToGlobalHistory: (item) => get().addToGlobalHistory(item),
         generationsPath: get().generationsPath,
         saveDirectoryPath: get().saveDirectoryPath,
+        trackSaveGeneration: (key: string, promise: Promise<void>) => {
+          pendingImageSyncs.set(key, promise);
+          promise.finally(() => pendingImageSyncs.delete(key));
+        },
         get: get as () => unknown,
       };
 
@@ -1014,6 +1018,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         addToGlobalHistory: (item) => get().addToGlobalHistory(item),
         generationsPath: get().generationsPath,
         saveDirectoryPath: get().saveDirectoryPath,
+        trackSaveGeneration: (key: string, promise: Promise<void>) => {
+          pendingImageSyncs.set(key, promise);
+          promise.finally(() => pendingImageSyncs.delete(key));
+        },
         get: get as () => unknown,
       };
 

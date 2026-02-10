@@ -578,12 +578,12 @@ export async function generateWithKie(
 
     console.log(`[API:${requestId}] Veo output: ${contentType}, ${mediaSizeMB.toFixed(2)}MB`);
 
-    // For very large videos (>20MB), return URL directly
+    // For very large videos (>20MB), return URL only (data left empty for consumers)
     if (mediaSizeMB > 20) {
       console.log(`[API:${requestId}] SUCCESS - Returning URL for large Veo video`);
       return {
         success: true,
-        outputs: [{ type: "video", data: mediaUrl, url: mediaUrl }],
+        outputs: [{ type: "video", data: "", url: mediaUrl }],
       };
     }
 
@@ -787,7 +787,7 @@ export async function generateWithKie(
 
   console.log(`[API:${requestId}] Output: ${contentType}, ${mediaSizeMB.toFixed(2)}MB`);
 
-  // For very large videos (>20MB), return URL directly
+  // For very large videos (>20MB), return URL only (data left empty for consumers)
   if (isVideo && mediaSizeMB > 20) {
     console.log(`[API:${requestId}] SUCCESS - Returning URL for large video`);
     return {
@@ -795,7 +795,7 @@ export async function generateWithKie(
       outputs: [
         {
           type: "video",
-          data: mediaUrl,
+          data: "",
           url: mediaUrl,
         },
       ],
@@ -816,8 +816,3 @@ export async function generateWithKie(
     ],
   };
 }
-
-/**
- * WaveSpeed task status from API
- * Values: created → processing → completed/failed
- */

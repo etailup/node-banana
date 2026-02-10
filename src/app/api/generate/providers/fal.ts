@@ -503,7 +503,7 @@ export async function generateWithFalQueue(
 
       console.log(`[API:${requestId}] Output: ${contentType}, ${mediaSizeMB.toFixed(2)}MB`);
 
-      // For very large videos (>20MB), return URL directly instead of base64
+      // For very large videos (>20MB), return URL only (data left empty for consumers)
       if (isVideo && mediaSizeMB > 20) {
         console.log(`[API:${requestId}] SUCCESS - Returning URL for large video`);
         return {
@@ -511,7 +511,7 @@ export async function generateWithFalQueue(
           outputs: [
             {
               type: "video",
-              data: mediaUrl,
+              data: "",
               url: mediaUrl,
             },
           ],

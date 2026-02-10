@@ -29,7 +29,8 @@ import type { ConnectedInputs } from "@/store/utils/connectedInputs";
  * - `addToGlobalHistory`: Adds image to the global generation history.
  * - `generationsPath`: Path for auto-saving generations (null if not configured).
  * - `saveDirectoryPath`: Path for output node file saving (null if not configured).
- * - `get`: Raw store accessor for edge cases (e.g. trackSaveGeneration).
+ * - `trackSaveGeneration`: Registers a save-generation promise in pendingImageSyncs so auto-save waits.
+ * - `get`: Raw store accessor for edge cases.
  */
 export interface NodeExecutionContext {
   node: WorkflowNode;
@@ -44,6 +45,7 @@ export interface NodeExecutionContext {
   addToGlobalHistory: (item: Omit<ImageHistoryItem, "id">) => void;
   generationsPath: string | null;
   saveDirectoryPath: string | null;
+  trackSaveGeneration: (key: string, promise: Promise<void>) => void;
   get: () => unknown;
 }
 

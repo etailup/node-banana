@@ -34,6 +34,7 @@ export async function executeNanoBanana(
     addIncurredCost,
     addToGlobalHistory,
     generationsPath,
+    trackSaveGeneration,
     get,
   } = ctx;
 
@@ -174,7 +175,7 @@ export async function executeNanoBanana(
 
       // Auto-save to generations folder if configured
       if (generationsPath) {
-        fetch("/api/save-generation", {
+        const savePromise = fetch("/api/save-generation", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -202,6 +203,8 @@ export async function executeNanoBanana(
           .catch((err) => {
             console.error("Failed to save generation:", err);
           });
+
+        trackSaveGeneration(imageId, savePromise);
       }
     } else {
       updateNodeData(node.id, {

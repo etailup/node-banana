@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
 
       // Return first output (image or video)
       const output = result.outputs?.[0];
-      if (!output?.data) {
+      if (!output?.data && !output?.url) {
         return NextResponse.json<GenerateResponse>(
           {
             success: false,
@@ -160,12 +160,12 @@ export async function POST(request: NextRequest) {
 
       // Return appropriate fields based on output type
       if (output.type === "video") {
-        // Check if data is a URL (for large videos) or base64
-        const isUrl = output.data.startsWith("http");
+        // Large videos have data="" with url set; normal videos have base64 data
+        const isLargeVideo = !output.data && output.url;
         return NextResponse.json<GenerateResponse>({
           success: true,
-          video: isUrl ? undefined : output.data,
-          videoUrl: isUrl ? output.data : undefined,
+          video: isLargeVideo ? undefined : output.data,
+          videoUrl: isLargeVideo ? output.url : undefined,
           contentType: "video",
         });
       }
@@ -235,7 +235,7 @@ export async function POST(request: NextRequest) {
 
       // Return first output (image or video)
       const output = result.outputs?.[0];
-      if (!output?.data) {
+      if (!output?.data && !output?.url) {
         return NextResponse.json<GenerateResponse>(
           {
             success: false,
@@ -247,12 +247,12 @@ export async function POST(request: NextRequest) {
 
       // Return appropriate fields based on output type
       if (output.type === "video") {
-        // Check if data is a URL (for large videos) or base64
-        const isUrl = output.data.startsWith("http");
+        // Large videos have data="" with url set; normal videos have base64 data
+        const isLargeVideo = !output.data && output.url;
         return NextResponse.json<GenerateResponse>({
           success: true,
-          video: isUrl ? undefined : output.data,
-          videoUrl: isUrl ? output.data : undefined,
+          video: isLargeVideo ? undefined : output.data,
+          videoUrl: isLargeVideo ? output.url : undefined,
           contentType: "video",
         });
       }
@@ -326,7 +326,7 @@ export async function POST(request: NextRequest) {
 
       // Return first output (image or video)
       const output = result.outputs?.[0];
-      if (!output?.data) {
+      if (!output?.data && !output?.url) {
         return NextResponse.json<GenerateResponse>(
           {
             success: false,
@@ -338,12 +338,12 @@ export async function POST(request: NextRequest) {
 
       // Return appropriate fields based on output type
       if (output.type === "video") {
-        // Check if data is a URL (for large videos) or base64
-        const isUrl = output.data.startsWith("http");
+        // Large videos have data="" with url set; normal videos have base64 data
+        const isLargeVideo = !output.data && output.url;
         return NextResponse.json<GenerateResponse>({
           success: true,
-          video: isUrl ? undefined : output.data,
-          videoUrl: isUrl ? output.data : undefined,
+          video: isLargeVideo ? undefined : output.data,
+          videoUrl: isLargeVideo ? output.url : undefined,
           contentType: "video",
         });
       }
@@ -417,7 +417,7 @@ export async function POST(request: NextRequest) {
 
       // Return first output (image or video)
       const output = result.outputs?.[0];
-      if (!output?.data) {
+      if (!output?.data && !output?.url) {
         return NextResponse.json<GenerateResponse>(
           {
             success: false,
@@ -429,11 +429,12 @@ export async function POST(request: NextRequest) {
 
       // Return appropriate fields based on output type
       if (output.type === "video") {
-        const isUrl = output.data.startsWith("http");
+        // Large videos have data="" with url set; normal videos have base64 data
+        const isLargeVideo = !output.data && output.url;
         return NextResponse.json<GenerateResponse>({
           success: true,
-          video: isUrl ? undefined : output.data,
-          videoUrl: isUrl ? output.data : undefined,
+          video: isLargeVideo ? undefined : output.data,
+          videoUrl: isLargeVideo ? output.url : undefined,
           contentType: "video",
         });
       }
