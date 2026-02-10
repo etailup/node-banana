@@ -144,6 +144,7 @@ interface WorkflowStore {
   pausedAtNodeId: string | null;
   maxConcurrentCalls: number;  // Configurable concurrency limit (1-10)
   _abortController: AbortController | null;  // Internal: for cancellation
+  _buildExecutionContext: (node: WorkflowNode, signal?: AbortSignal) => NodeExecutionContext;
   executeWorkflow: (startFromNodeId?: string) => Promise<void>;
   regenerateNode: (nodeId: string) => Promise<void>;
   stopWorkflow: () => void;
@@ -721,8 +722,38 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     return validateWorkflowPure(nodes, edges);
   },
 
+  _buildExecutionContext: (node: WorkflowNode, signal?: AbortSignal): NodeExecutionContext => ({
+    node,
+    getConnectedInputs: get().getConnectedInputs,
+    updateNodeData: get().updateNodeData,
+    getFreshNode: (id: string) => get().nodes.find((n) => n.id === id),
+    getEdges: () => get().edges,
+    getNodes: () => get().nodes,
+    signal,
+    providerSettings: get().providerSettings,
+    addIncurredCost: (cost: number) => get().addIncurredCost(cost),
+    addToGlobalHistory: (item) => get().addToGlobalHistory(item),
+    generationsPath: get().generationsPath,
+    saveDirectoryPath: get().saveDirectoryPath,
+    trackSaveGeneration: (key: string, promise: Promise<void>) => {
+      pendingImageSyncs.set(key, promise);
+      promise.finally(() => pendingImageSyncs.delete(key));
+    },
+    appendOutputGalleryImage: (targetId: string, image: string) => {
+      set((state) => ({
+        nodes: state.nodes.map((n) =>
+          n.id === targetId && n.type === "outputGallery"
+            ? { ...n, data: { ...n.data, images: [image, ...((n.data as OutputGalleryNodeData).images || [])] } as WorkflowNodeData }
+            : n
+        ) as WorkflowNode[],
+        hasUnsavedChanges: true,
+      }));
+    },
+    get: get as () => unknown,
+  }),
+
   executeWorkflow: async (startFromNodeId?: string) => {
-    const { nodes, edges, groups, updateNodeData, getConnectedInputs, isRunning, maxConcurrentCalls } = get();
+    const { nodes, edges, groups, isRunning, maxConcurrentCalls } = get();
 
     if (isRunning) {
       logger.warn('workflow.start', 'Workflow already running, ignoring execution request');
@@ -798,36 +829,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         nodeType: node.type,
       });
 
-      // Build execution context for this node
-      const executionCtx: NodeExecutionContext = {
-        node,
-        getConnectedInputs,
-        updateNodeData,
-        getFreshNode: (id: string) => get().nodes.find((n) => n.id === id),
-        getEdges: () => get().edges,
-        getNodes: () => get().nodes,
-        signal,
-        providerSettings: get().providerSettings,
-        addIncurredCost: (cost: number) => get().addIncurredCost(cost),
-        addToGlobalHistory: (item) => get().addToGlobalHistory(item),
-        generationsPath: get().generationsPath,
-        saveDirectoryPath: get().saveDirectoryPath,
-        trackSaveGeneration: (key: string, promise: Promise<void>) => {
-          pendingImageSyncs.set(key, promise);
-          promise.finally(() => pendingImageSyncs.delete(key));
-        },
-        appendOutputGalleryImage: (targetId: string, image: string) => {
-          set((state) => ({
-            nodes: state.nodes.map((n) =>
-              n.id === targetId && n.type === "outputGallery"
-                ? { ...n, data: { ...n.data, images: [image, ...((n.data as OutputGalleryNodeData).images || [])] } as WorkflowNodeData }
-                : n
-            ) as WorkflowNode[],
-            hasUnsavedChanges: true,
-          }));
-        },
-        get: get as () => unknown,
-      };
+      const executionCtx = get()._buildExecutionContext(node, signal);
 
       switch (node.type) {
           case "imageInput":
@@ -994,7 +996,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   },
 
   regenerateNode: async (nodeId: string) => {
-    const { nodes, updateNodeData, getConnectedInputs, isRunning } = get();
+    const { nodes, updateNodeData, isRunning } = get();
 
     if (isRunning) {
       logger.warn('node.execution', 'Cannot regenerate node, workflow already running', { nodeId });
@@ -1016,35 +1018,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     });
 
     try {
-      // Build execution context for regeneration (with stored fallback)
-      const executionCtx: NodeExecutionContext = {
-        node,
-        getConnectedInputs,
-        updateNodeData,
-        getFreshNode: (id: string) => get().nodes.find((n) => n.id === id),
-        getEdges: () => get().edges,
-        getNodes: () => get().nodes,
-        providerSettings: get().providerSettings,
-        addIncurredCost: (cost: number) => get().addIncurredCost(cost),
-        addToGlobalHistory: (item) => get().addToGlobalHistory(item),
-        generationsPath: get().generationsPath,
-        saveDirectoryPath: get().saveDirectoryPath,
-        trackSaveGeneration: (key: string, promise: Promise<void>) => {
-          pendingImageSyncs.set(key, promise);
-          promise.finally(() => pendingImageSyncs.delete(key));
-        },
-        appendOutputGalleryImage: (targetId: string, image: string) => {
-          set((state) => ({
-            nodes: state.nodes.map((n) =>
-              n.id === targetId && n.type === "outputGallery"
-                ? { ...n, data: { ...n.data, images: [image, ...((n.data as OutputGalleryNodeData).images || [])] } as WorkflowNodeData }
-                : n
-            ) as WorkflowNode[],
-            hasUnsavedChanges: true,
-          }));
-        },
-        get: get as () => unknown,
-      };
+      const executionCtx = get()._buildExecutionContext(node);
 
       const regenOptions = { useStoredFallback: true };
 
