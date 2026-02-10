@@ -494,7 +494,8 @@ export async function generateWithFalQueue(
         };
       }
 
-      const contentType = mediaResponse.headers.get("content-type") || "video/mp4";
+      const isVideoModel = input.model.capabilities.some(c => c.includes("video"));
+      const contentType = mediaResponse.headers.get("content-type") || (isVideoModel ? "video/mp4" : "image/png");
       const isVideo = contentType.startsWith("video/");
 
       const mediaArrayBuffer = await mediaResponse.arrayBuffer();

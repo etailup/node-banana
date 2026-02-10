@@ -14,6 +14,7 @@ import {
   WorkflowEdge,
   NodeType,
   NanoBananaNodeData,
+  OutputGalleryNodeData,
   WorkflowNodeData,
   ImageHistoryItem,
   NodeGroup,
@@ -815,6 +816,16 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           pendingImageSyncs.set(key, promise);
           promise.finally(() => pendingImageSyncs.delete(key));
         },
+        appendOutputGalleryImage: (targetId: string, image: string) => {
+          set((state) => ({
+            nodes: state.nodes.map((n) =>
+              n.id === targetId && n.type === "outputGallery"
+                ? { ...n, data: { ...n.data, images: [image, ...((n.data as OutputGalleryNodeData).images || [])] } as WorkflowNodeData }
+                : n
+            ) as WorkflowNode[],
+            hasUnsavedChanges: true,
+          }));
+        },
         get: get as () => unknown,
       };
 
@@ -1021,6 +1032,16 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         trackSaveGeneration: (key: string, promise: Promise<void>) => {
           pendingImageSyncs.set(key, promise);
           promise.finally(() => pendingImageSyncs.delete(key));
+        },
+        appendOutputGalleryImage: (targetId: string, image: string) => {
+          set((state) => ({
+            nodes: state.nodes.map((n) =>
+              n.id === targetId && n.type === "outputGallery"
+                ? { ...n, data: { ...n.data, images: [image, ...((n.data as OutputGalleryNodeData).images || [])] } as WorkflowNodeData }
+                : n
+            ) as WorkflowNode[],
+            hasUnsavedChanges: true,
+          }));
         },
         get: get as () => unknown,
       };

@@ -156,8 +156,9 @@ export async function generateWithReplicate(
   const prediction = await createResponse.json();
   console.log(`[API:${requestId}] Prediction created: ${prediction.id}`);
 
-  // Poll for completion
-  const maxWaitTime = 5 * 60 * 1000; // 5 minutes
+  // Poll for completion — video models get a longer timeout
+  const isVideoModel = input.model.capabilities.some(c => c.includes("video"));
+  const maxWaitTime = isVideoModel ? 10 * 60 * 1000 : 5 * 60 * 1000;
   const pollInterval = 1000; // 1 second
   const startTime = Date.now();
 
@@ -172,7 +173,7 @@ export async function generateWithReplicate(
     if (Date.now() - startTime > maxWaitTime) {
       return {
         success: false,
-        error: `${input.model.name}: Generation timed out after 5 minutes. Video models may take longer - try again.`,
+        error: `${input.model.name}: Generation timed out after ${maxWaitTime / 60000} minutes.`,
       };
     }
 
@@ -225,8 +226,11 @@ export async function generateWithReplicate(
     };
   }
 
-  // Output can be a single URL string or an array of URLs
-  const outputUrls: string[] = Array.isArray(output) ? output : [output];
+  // Output can be a single URL string or an array — filter to valid strings only
+  const rawOutputs = Array.isArray(output) ? output : [output];
+  const outputUrls: string[] = rawOutputs.filter(
+    (v): v is string => typeof v === "string" && v.length > 0
+  );
 
   if (outputUrls.length === 0) {
     return {

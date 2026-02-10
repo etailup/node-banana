@@ -7,7 +7,6 @@
 
 import type {
   NanoBananaNodeData,
-  OutputGalleryNodeData,
 } from "@/types";
 import { calculateGenerationCost } from "@/utils/costCalculator";
 import { buildGenerateHeaders } from "@/store/utils/buildApiHeaders";
@@ -35,6 +34,7 @@ export async function executeNanoBanana(
     addToGlobalHistory,
     generationsPath,
     trackSaveGeneration,
+    appendOutputGalleryImage,
     get,
   } = ctx;
 
@@ -150,7 +150,7 @@ export async function executeNanoBanana(
         selectedHistoryIndex: 0,
       });
 
-      // Push new image to connected downstream outputGallery nodes
+      // Push new image to connected downstream outputGallery nodes (atomic append)
       const edges = getEdges();
       const nodes = getNodes();
       edges
@@ -158,10 +158,7 @@ export async function executeNanoBanana(
         .forEach((e) => {
           const target = nodes.find((n) => n.id === e.target);
           if (target?.type === "outputGallery") {
-            const gData = target.data as OutputGalleryNodeData;
-            updateNodeData(target.id, {
-              images: [result.image, ...(gData.images || [])],
-            });
+            appendOutputGalleryImage(target.id, result.image);
           }
         });
 

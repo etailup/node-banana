@@ -71,6 +71,7 @@ function makeCtx(
     generationsPath: null,
     saveDirectoryPath: null,
     trackSaveGeneration: vi.fn(),
+    appendOutputGalleryImage: vi.fn(),
     get: vi.fn().mockReturnValue({
       edges: [],
       nodes: [node],
@@ -341,8 +342,6 @@ describe("executeNanoBanana", () => {
 
     await executeNanoBanana(ctx);
 
-    expect(ctx.updateNodeData).toHaveBeenCalledWith("gal-1", {
-      images: ["data:image/png;base64,result", "old.png"],
-    });
+    expect(ctx.appendOutputGalleryImage).toHaveBeenCalledWith("gal-1", "data:image/png;base64,result");
   });
 });
