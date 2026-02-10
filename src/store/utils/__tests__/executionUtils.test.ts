@@ -101,6 +101,22 @@ describe("chunk", () => {
   it("should handle exact multiples", () => {
     expect(chunk([1, 2, 3, 4], 2)).toEqual([[1, 2], [3, 4]]);
   });
+
+  it("should throw on size 0", () => {
+    expect(() => chunk([1, 2], 0)).toThrow("Invalid chunk size: must be a positive integer");
+  });
+
+  it("should throw on negative size", () => {
+    expect(() => chunk([1, 2], -1)).toThrow("Invalid chunk size: must be a positive integer");
+  });
+
+  it("should throw on NaN size", () => {
+    expect(() => chunk([1, 2], NaN)).toThrow("Invalid chunk size: must be a positive integer");
+  });
+
+  it("should throw on Infinity size", () => {
+    expect(() => chunk([1, 2], Infinity)).toThrow("Invalid chunk size: must be a positive integer");
+  });
 });
 
 describe("revokeBlobUrl", () => {

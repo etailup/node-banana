@@ -45,6 +45,15 @@ export async function executeGenerateVideo(
   if (useStoredFallback) {
     images = connectedImages.length > 0 ? connectedImages : nodeData.inputImages;
     text = connectedText ?? nodeData.inputPrompt;
+    // Validate fallback inputs the same way as the regular path
+    const hasPrompt = text || dynamicInputs.prompt || dynamicInputs.negative_prompt;
+    if (!hasPrompt && images.length === 0) {
+      updateNodeData(node.id, {
+        status: "error",
+        error: "Missing required inputs",
+      });
+      throw new Error("Missing required inputs");
+    }
   } else {
     images = connectedImages;
     text = connectedText;
@@ -57,14 +66,6 @@ export async function executeGenerateVideo(
       });
       throw new Error("Missing required inputs");
     }
-  }
-
-  if (useStoredFallback && !text) {
-    updateNodeData(node.id, {
-      status: "error",
-      error: "Missing text input",
-    });
-    throw new Error("Missing text input");
   }
 
   if (!nodeData.selectedModel?.modelId) {

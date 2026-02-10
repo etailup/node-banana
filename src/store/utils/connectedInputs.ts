@@ -70,7 +70,7 @@ function getSourceOutput(sourceNode: WorkflowNode): { type: "image" | "text" | "
     return { type: "text", value: (sourceNode.data as PromptNodeData).prompt };
   } else if (sourceNode.type === "promptConstructor") {
     const pcData = sourceNode.data as PromptConstructorNodeData;
-    return { type: "text", value: pcData.outputText || pcData.template || null };
+    return { type: "text", value: pcData.outputText ?? pcData.template ?? null };
   } else if (sourceNode.type === "llmGenerate") {
     return { type: "text", value: (sourceNode.data as LLMGenerateNodeData).outputText };
   }

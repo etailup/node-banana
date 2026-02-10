@@ -139,7 +139,7 @@ export async function executeNanoBanana(
         aspectRatio: nodeData.aspectRatio,
         model: nodeData.model,
       };
-      const updatedHistory = [newHistoryItem, ...(nodeData.imageHistory || [])];
+      const updatedHistory = [newHistoryItem, ...(nodeData.imageHistory || [])].slice(0, 50);
 
       updateNodeData(node.id, {
         outputImage: result.image,

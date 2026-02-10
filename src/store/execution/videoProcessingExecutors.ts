@@ -90,8 +90,10 @@ export async function executeVideoStitch(ctx: NodeExecutionContext): Promise<voi
       outputVideo = URL.createObjectURL(outputBlob);
     } else {
       const reader = new FileReader();
-      outputVideo = await new Promise<string>((resolve) => {
+      outputVideo = await new Promise<string>((resolve, reject) => {
         reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error("FileReader error while reading stitched video"));
+        reader.onabort = () => reject(new Error("FileReader aborted while reading stitched video"));
         reader.readAsDataURL(outputBlob);
       });
     }
@@ -218,8 +220,10 @@ export async function executeEaseCurve(ctx: NodeExecutionContext): Promise<void>
       outputVideo = URL.createObjectURL(outputBlob);
     } else {
       const reader = new FileReader();
-      outputVideo = await new Promise<string>((resolve) => {
+      outputVideo = await new Promise<string>((resolve, reject) => {
         reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error("FileReader error while reading ease curve video"));
+        reader.onabort = () => reject(new Error("FileReader aborted while reading ease curve video"));
         reader.readAsDataURL(outputBlob);
       });
     }

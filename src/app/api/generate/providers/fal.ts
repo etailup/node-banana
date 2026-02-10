@@ -143,13 +143,14 @@ async function getFalInputMapping(modelId: string, apiKey: string | null): Promi
         }
       }
     }
-  } catch {
-    // Schema parsing failed - continue with empty mapping
-  }
 
-  const result = { paramMap, arrayParams, schemaArrayParams, parameterTypes };
-  falInputMappingCache.set(modelId, { result, timestamp: Date.now() });
-  return result;
+    const result = { paramMap, arrayParams, schemaArrayParams, parameterTypes };
+    falInputMappingCache.set(modelId, { result, timestamp: Date.now() });
+    return result;
+  } catch {
+    // Schema parsing failed - return defaults without caching so next call retries
+    return { paramMap, arrayParams, schemaArrayParams, parameterTypes };
+  }
 }
 
 export const MAX_UPLOAD_SIZE = 20 * 1024 * 1024; // 20 MB
@@ -248,10 +249,8 @@ export async function generateWithFalQueue(
   // Fetch schema for type coercion and input mapping (cached)
   const { paramMap, arrayParams, schemaArrayParams, parameterTypes } = await getFalInputMapping(modelId, apiKey);
 
-  // Build request body, coercing parameter types from schema
-  const requestBody: Record<string, unknown> = {
-    ...coerceParameterTypes(input.parameters, parameterTypes),
-  };
+  // Build request body - parameters are applied per-path below to avoid double-spreading
+  const requestBody: Record<string, unknown> = {};
 
   // Upload base64 images to fal CDN to avoid sending large payloads inline
   const uploadImage = async (value: string | string[]): Promise<string | string[]> => {
@@ -265,6 +264,8 @@ export async function generateWithFalQueue(
   };
 
   if (hasDynamicInputs) {
+    // Apply coerced parameters first, then dynamic inputs override
+    Object.assign(requestBody, coerceParameterTypes(input.parameters, parameterTypes));
     const filteredInputs: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(input.dynamicInputs!)) {
       if (value !== null && value !== undefined && value !== '') {
@@ -474,6 +475,12 @@ export async function generateWithFalQueue(
           success: false,
           error: "No media URL in response",
         };
+      }
+
+      // Validate URL before fetching (SSRF protection)
+      const mediaUrlCheck = validateMediaUrl(mediaUrl);
+      if (!mediaUrlCheck.valid) {
+        return { success: false, error: `Invalid media URL: ${mediaUrlCheck.error}` };
       }
 
       // Fetch the media and convert to base64

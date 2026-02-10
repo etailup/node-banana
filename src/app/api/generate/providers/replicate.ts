@@ -27,6 +27,13 @@ export async function generateWithReplicate(
   const modelId = input.model.id;
   const [owner, name] = modelId.split("/");
 
+  if (!owner || !name) {
+    return {
+      success: false,
+      error: `Invalid Replicate model ID "${modelId}": expected "owner/name" format`,
+    };
+  }
+
   // First, get the model to find the latest version
   const modelResponse = await fetch(
     `${REPLICATE_API_BASE}/models/${owner}/${name}`,
@@ -61,13 +68,13 @@ export async function generateWithReplicate(
   const schema = modelData.latest_version?.openapi_schema as Record<string, unknown> | undefined;
   const parameterTypes = getParameterTypesFromSchema(schema);
 
-  // Build input for the prediction, coercing parameter types from schema
-  const predictionInput: Record<string, unknown> = {
-    ...coerceParameterTypes(input.parameters, parameterTypes),
-  };
+  // Build input for the prediction - parameters are applied per-path below to avoid double-spreading
+  const predictionInput: Record<string, unknown> = {};
 
   // Add dynamic inputs if provided (these come from schema-mapped connections)
   if (hasDynamicInputs) {
+    // Apply coerced parameters first, then dynamic inputs override
+    Object.assign(predictionInput, coerceParameterTypes(input.parameters, parameterTypes));
     const { schemaArrayParams } = getInputMappingFromSchema(schema);
 
     // Apply array wrapping based on schema type

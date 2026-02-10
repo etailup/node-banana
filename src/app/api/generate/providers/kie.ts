@@ -8,6 +8,9 @@
 import { GenerationInput, GenerationOutput } from "@/lib/providers/types";
 import { validateMediaUrl } from "@/utils/urlValidation";
 
+const MAX_MEDIA_SIZE = 500 * 1024 * 1024; // 500MB
+const MAX_UPLOAD_SIZE = 20 * 1024 * 1024; // 20MB
+
 /**
  * Get default required parameters for a Kie model
  * Many Kie models require specific parameters to be present even if not user-specified
@@ -204,6 +207,10 @@ export async function uploadImageToKie(
 
   // Convert base64 to binary to detect actual type
   const binaryData = Buffer.from(imageData, "base64");
+
+  if (binaryData.length > MAX_UPLOAD_SIZE) {
+    throw new Error(`[API:${requestId}] Image too large to upload (${(binaryData.length / (1024 * 1024)).toFixed(1)}MB, max ${MAX_UPLOAD_SIZE / (1024 * 1024)}MB)`);
+  }
 
   // Detect actual image type from magic bytes (don't trust the declared MIME type)
   const detected = detectImageType(binaryData);
@@ -557,7 +564,6 @@ export async function generateWithKie(
       return { success: false, error: `Failed to fetch output: ${mediaResponse.status}` };
     }
 
-    const MAX_MEDIA_SIZE = 500 * 1024 * 1024;
     const mediaContentLength = parseInt(mediaResponse.headers.get("content-length") || "0", 10);
     if (mediaContentLength > MAX_MEDIA_SIZE) {
       return { success: false, error: `Media too large: ${(mediaContentLength / (1024 * 1024)).toFixed(0)}MB > 500MB limit` };
@@ -565,6 +571,9 @@ export async function generateWithKie(
 
     const contentType = mediaResponse.headers.get("content-type") || "video/mp4";
     const mediaArrayBuffer = await mediaResponse.arrayBuffer();
+    if (mediaArrayBuffer.byteLength > MAX_MEDIA_SIZE) {
+      return { success: false, error: `Media too large: ${(mediaArrayBuffer.byteLength / (1024 * 1024)).toFixed(0)}MB > 500MB limit` };
+    }
     const mediaSizeMB = mediaArrayBuffer.byteLength / (1024 * 1024);
 
     console.log(`[API:${requestId}] Veo output: ${contentType}, ${mediaSizeMB.toFixed(2)}MB`);
@@ -759,7 +768,6 @@ export async function generateWithKie(
   }
 
   // Check file size before downloading body
-  const MAX_MEDIA_SIZE = 500 * 1024 * 1024; // 500MB
   const mediaContentLength = parseInt(mediaResponse.headers.get("content-length") || "0", 10);
   if (mediaContentLength > MAX_MEDIA_SIZE) {
     return { success: false, error: `Media too large: ${(mediaContentLength / (1024 * 1024)).toFixed(0)}MB > 500MB limit` };
@@ -771,6 +779,9 @@ export async function generateWithKie(
   }
 
   const mediaArrayBuffer = await mediaResponse.arrayBuffer();
+  if (mediaArrayBuffer.byteLength > MAX_MEDIA_SIZE) {
+    return { success: false, error: `Media too large: ${(mediaArrayBuffer.byteLength / (1024 * 1024)).toFixed(0)}MB > 500MB limit` };
+  }
   const mediaSizeBytes = mediaArrayBuffer.byteLength;
   const mediaSizeMB = mediaSizeBytes / (1024 * 1024);
 

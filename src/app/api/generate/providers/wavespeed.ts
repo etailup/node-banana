@@ -91,10 +91,10 @@ export async function generateWithWaveSpeed(
   const isVideoModel = input.model.capabilities.includes("text-to-video") ||
                        input.model.capabilities.includes("image-to-video");
 
-  // Build WaveSpeed payload
+  // Build WaveSpeed payload — spread parameters first so explicit prompt wins
   const payload: Record<string, unknown> = {
-    prompt: input.prompt,
     ...input.parameters,
+    prompt: input.prompt,
   };
 
   // Apply dynamic inputs (schema-mapped connections)
@@ -334,11 +334,14 @@ export async function generateWithWaveSpeed(
   // Check file size before downloading body
   const MAX_MEDIA_SIZE_WS = 500 * 1024 * 1024; // 500MB
   const wsContentLength = parseInt(outputResponse.headers.get("content-length") || "0", 10);
-  if (wsContentLength > MAX_MEDIA_SIZE_WS) {
+  if (!isNaN(wsContentLength) && wsContentLength > MAX_MEDIA_SIZE_WS) {
     return { success: false, error: `Media too large: ${(wsContentLength / (1024 * 1024)).toFixed(0)}MB > 500MB limit` };
   }
 
   const outputArrayBuffer = await outputResponse.arrayBuffer();
+  if (outputArrayBuffer.byteLength > MAX_MEDIA_SIZE_WS) {
+    return { success: false, error: `Media too large: ${(outputArrayBuffer.byteLength / (1024 * 1024)).toFixed(0)}MB > 500MB limit` };
+  }
   const outputSizeMB = outputArrayBuffer.byteLength / (1024 * 1024);
 
   const rawContentType = outputResponse.headers.get("content-type");

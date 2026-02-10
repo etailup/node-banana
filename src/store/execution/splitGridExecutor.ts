@@ -60,7 +60,15 @@ export async function executeSplitGrid(ctx: NodeExecutionContext): Promise<void>
             });
             resolve();
           };
-          img.onerror = () => resolve();
+          img.onerror = () => {
+            console.warn(`[splitGrid] Failed to load split image ${index} for node ${childSet.imageInput}`);
+            updateNodeData(childSet.imageInput, {
+              image: null,
+              filename: null,
+              dimensions: { width: 0, height: 0 },
+            });
+            resolve();
+          };
           img.src = splitImages[index];
         });
       }

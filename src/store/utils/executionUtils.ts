@@ -79,7 +79,8 @@ export function groupNodesByLevel(
     const nextLevel: string[] = [];
     for (const nodeId of currentLevel) {
       for (const child of adjList.get(nodeId) || []) {
-        const newDegree = (inDegree.get(child) || 1) - 1;
+        if (!inDegree.has(child)) continue; // skip orphan edge targets
+        const newDegree = inDegree.get(child)! - 1;
         inDegree.set(child, newDegree);
         if (newDegree === 0) {
           nextLevel.push(child);
@@ -98,6 +99,9 @@ export function groupNodesByLevel(
  * Chunk an array into smaller arrays of specified size
  */
 export function chunk<T>(array: T[], size: number): T[][] {
+  if (!Number.isFinite(size) || size < 1) {
+    throw new Error("Invalid chunk size: must be a positive integer");
+  }
   const chunks: T[][] = [];
   for (let i = 0; i < array.length; i += size) {
     chunks.push(array.slice(i, i + size));
