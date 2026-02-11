@@ -35,7 +35,9 @@ function getBaseUrl(): string {
 }
 
 function getMaxConcurrency(): number {
-  return parseInt(process.env.HEADLESS_MAX_CONCURRENT || "5", 10);
+  const parsed = parseInt(process.env.HEADLESS_MAX_CONCURRENT || "5", 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 5;
+  return parsed;
 }
 
 // Supported node types for headless execution
@@ -333,8 +335,16 @@ export async function executeWorkflow(
 
   // Run execution asynchronously (don't await — return jobId immediately)
   runExecution(jobId, resolved, levels, totalNodes, concurrency, baseUrl, upload, callbackUrl || null).catch(
-    (err) => {
+    async (err) => {
       console.error(`[Engine:${jobId}] Fatal error:`, err);
+      try {
+        await updateJobStatus(jobId, "failed", {
+          completed_at: new Date().toISOString(),
+          errors: [{ message: `Fatal engine error: ${err instanceof Error ? err.message : String(err)}`, timestamp: new Date().toISOString() }],
+        });
+      } catch (updateErr) {
+        console.error(`[Engine:${jobId}] Failed to update job status after fatal error:`, updateErr);
+      }
     },
   );
 

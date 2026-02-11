@@ -41,9 +41,13 @@ export async function fetchWithRetry(
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
+      const timeoutSignal = AbortSignal.timeout(timeoutMs);
+      const signal = init?.signal
+        ? AbortSignal.any([init.signal, timeoutSignal])
+        : timeoutSignal;
       lastResponse = await fetch(url, {
         ...init,
-        signal: AbortSignal.timeout(timeoutMs),
+        signal,
       });
 
       if (lastResponse.ok) {
@@ -54,6 +58,7 @@ export async function fetchWithRetry(
       if (retryServerErrors && lastResponse.status >= 500) {
         lastError = `HTTP ${lastResponse.status}`;
         console.warn(`${prefix} Fetch attempt ${attempt}/${maxRetries} got ${lastError}`);
+        await lastResponse.body?.cancel();
       } else {
         // Non-retryable HTTP error
         return { response: lastResponse };

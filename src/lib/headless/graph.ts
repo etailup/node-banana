@@ -289,6 +289,9 @@ export function extractVariableNames(workflow: WorkflowFileJSON): string[] {
 // ---------------------------------------------------------------------------
 
 export function chunk<T>(array: T[], size: number): T[][] {
+  if (!Number.isFinite(size) || size <= 0) {
+    throw new RangeError(`chunk size must be > 0, got ${size}`);
+  }
   const chunks: T[][] = [];
   for (let i = 0; i < array.length; i += size) {
     chunks.push(array.slice(i, i + size));

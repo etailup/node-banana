@@ -16,6 +16,7 @@ import { GenerateRequest, GenerateResponse, ModelType, SelectedModel, ProviderTy
 import { GenerationInput, GenerationOutput, ProviderModel } from "@/lib/providers/types";
 import { uploadImageForUrl, shouldUseImageUrl, deleteImages } from "@/lib/images";
 import { validateMediaUrl } from "@/utils/urlValidation";
+import { fetchWithRetry } from "@/utils/fetchWithRetry";
 
 export const maxDuration = 300; // 5 minute timeout (Vercel hobby plan limit)
 export const dynamic = 'force-dynamic'; // Ensure this route is always dynamic
@@ -1453,13 +1454,22 @@ async function pollKieTaskCompletion(
 
     await new Promise(resolve => setTimeout(resolve, pollInterval));
 
-    const response = await fetch(pollUrl, {
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-      },
-    });
+    const { response, error: pollFetchError } = await fetchWithRetry(
+      pollUrl,
+      { headers: { "Authorization": `Bearer ${apiKey}` } },
+      { maxRetries: 2, timeoutMs: 30000, backoffMs: 1000, logPrefix: `[API:${requestId}]` },
+    );
+
+    if (!response) {
+      console.warn(`[API:${requestId}] Kie poll fetch failed (will retry): ${pollFetchError}`);
+      continue; // retry on next poll cycle
+    }
 
     if (!response.ok) {
+      if (response.status >= 500) {
+        console.warn(`[API:${requestId}] Kie poll got ${response.status}, retrying...`);
+        continue;
+      }
       return { success: false, error: `Failed to poll status: ${response.status}` };
     }
 
@@ -1923,14 +1933,18 @@ async function generateWithKie(
     return { success: false, error: `Invalid media URL: ${mediaUrlCheck.error}` };
   }
 
-  // Fetch the media and convert to base64
+  // Fetch the media and convert to base64 (with retry + timeout)
   console.log(`[API:${requestId}] Fetching output from: ${mediaUrl.substring(0, 80)}...`);
-  const mediaResponse = await fetch(mediaUrl);
+  const { response: mediaResponse, error: fetchError } = await fetchWithRetry(
+    mediaUrl,
+    undefined,
+    { logPrefix: `[API:${requestId}]`, timeoutMs: 60000 },
+  );
 
-  if (!mediaResponse.ok) {
+  if (!mediaResponse || !mediaResponse.ok) {
     return {
       success: false,
-      error: `Failed to fetch output: ${mediaResponse.status}`,
+      error: `Failed to fetch output${mediaResponse ? `: ${mediaResponse.status}` : `: ${fetchError || 'after retries'}`}`,
     };
   }
 
@@ -2618,6 +2632,12 @@ export async function POST(request: NextRequest) {
       }
 
       // Build generation input
+      // Map top-level aspectRatio to aspect_ratio in parameters so it overrides model defaults
+      const kieParameters = { ...parameters };
+      if (aspectRatio && !kieParameters?.aspect_ratio) {
+        kieParameters.aspect_ratio = aspectRatio;
+      }
+
       const genInput: GenerationInput = {
         model: {
           id: selectedModel!.modelId,
@@ -2628,7 +2648,7 @@ export async function POST(request: NextRequest) {
         },
         prompt: prompt || "",
         images: processedImages,
-        parameters,
+        parameters: kieParameters,
         dynamicInputs: processedDynamicInputs,
       };
 

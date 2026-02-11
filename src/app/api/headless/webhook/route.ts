@@ -17,8 +17,8 @@ export const dynamic = "force-dynamic";
 function validateHmac(body: string, signature: string | null): boolean {
   const secret = process.env.HEADLESS_WEBHOOK_SECRET;
   if (!secret) {
-    // No secret configured — skip validation (development mode)
-    return true;
+    console.error("[Webhook] HEADLESS_WEBHOOK_SECRET is not set — rejecting request");
+    return false;
   }
 
   if (!signature) return false;

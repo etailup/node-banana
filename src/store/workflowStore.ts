@@ -2352,14 +2352,17 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     if (controller) {
       controller.abort();
     }
-    // Reset any nodes stuck in "loading" state back to idle
-    const { nodes, updateNodeData } = get();
-    nodes.forEach(n => {
-      if ((n.data as Record<string, unknown>).status === "loading") {
-        updateNodeData(n.id, { status: "idle" });
-      }
-    });
-    set({ isRunning: false, currentNodeIds: [], _abortController: null });
+    // Reset any nodes stuck in "loading" state back to idle (single set() to avoid marking unsaved)
+    set((state) => ({
+      isRunning: false,
+      currentNodeIds: [],
+      _abortController: null,
+      nodes: state.nodes.map(n =>
+        (n.data as Record<string, unknown>).status === "loading"
+          ? { ...n, data: { ...n.data, status: "idle" } } as typeof n
+          : n
+      ),
+    }));
   },
 
   setMaxConcurrentCalls: (value: number) => {
