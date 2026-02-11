@@ -43,12 +43,17 @@ function getMaxConcurrency(): number {
 // Supported node types for headless execution
 const SUPPORTED_TYPES = new Set([
   "imageInput",
+  "audioInput",
+  "annotation",
   "prompt",
   "promptConstructor",
   "nanoBanana",
+  "generateVideo",
   "llmGenerate",
   "splitGrid",
   "output",
+  "outputGallery",
+  "imageCompare",
 ]);
 
 // ---------------------------------------------------------------------------
@@ -174,6 +179,45 @@ async function executeNode(
     }
 
     // ------------------------------------------------------------------
+    // audioInput: load audio from URL or embedded base64
+    // ------------------------------------------------------------------
+    case "audioInput": {
+      const audioUrl = node.data.audioUrl as string | undefined;
+      const audioFile = node.data.audioFile as string | undefined;
+
+      if (audioUrl && !audioUrl.startsWith("{{")) {
+        // Fetch audio from URL (same pattern as imageInput)
+        const response = await fetch(audioUrl, { signal: AbortSignal.timeout(30000) });
+        if (response.ok) {
+          const buffer = await response.arrayBuffer();
+          const contentType = response.headers.get("content-type") || "audio/mpeg";
+          const base64 = Buffer.from(buffer).toString("base64");
+          result.outputText = `data:${contentType};base64,${base64}`;
+        } else {
+          result.error = `Failed to fetch audio from ${audioUrl}: HTTP ${response.status}`;
+        }
+      } else if (audioFile) {
+        result.outputText = audioFile;
+      }
+      // audioInput is a data source — no error if empty (may not be connected)
+      break;
+    }
+
+    // ------------------------------------------------------------------
+    // annotation: pass through connected image (annotations are pre-baked)
+    // ------------------------------------------------------------------
+    case "annotation": {
+      const inputs = getConnectedInputs(node.id, allNodes, allEdges, nodeOutputs);
+      const image = inputs.images[0] || null;
+      if (image) {
+        // If outputImage already exists (pre-baked annotations), use it; otherwise pass through
+        const existingOutput = (node.data.outputImage as string) || null;
+        result.outputImage = existingOutput || image;
+      }
+      break;
+    }
+
+    // ------------------------------------------------------------------
     // prompt: static text (already resolved by resolveVariables)
     // ------------------------------------------------------------------
     case "prompt": {
@@ -269,6 +313,56 @@ async function executeNode(
     }
 
     // ------------------------------------------------------------------
+    // generateVideo: call /api/generate with mediaType: "video"
+    // ------------------------------------------------------------------
+    case "generateVideo": {
+      const inputs = getConnectedInputs(node.id, allNodes, allEdges, nodeOutputs);
+      const promptText = inputs.text || (node.data.inputPrompt as string);
+
+      const selectedModel = node.data.selectedModel as
+        | { modelId: string; provider: string; pricing?: unknown }
+        | undefined;
+
+      if (!selectedModel?.modelId) {
+        result.error = "No model selected for generateVideo node";
+        break;
+      }
+
+      const requestPayload = {
+        images: inputs.images,
+        prompt: promptText,
+        selectedModel,
+        parameters: node.data.parameters,
+        mediaType: "video" as const,
+      };
+
+      const response = await fetch(`${baseUrl}/api/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestPayload),
+        signal: AbortSignal.timeout(600000), // 10 min for video generation
+      });
+
+      if (!response.ok) {
+        const errText = await response.text().catch(() => "");
+        result.error = `Generate Video API failed: HTTP ${response.status} - ${errText.substring(0, 200)}`;
+        break;
+      }
+
+      const genResult = await response.json();
+      const videoData = genResult.video || genResult.videoUrl;
+      if (genResult.success && videoData) {
+        result.outputVideo = videoData;
+      } else if (genResult.success && genResult.image) {
+        // Some models return image preview
+        result.outputVideo = genResult.image;
+      } else {
+        result.error = genResult.error || "Generate Video API returned no video";
+      }
+      break;
+    }
+
+    // ------------------------------------------------------------------
     // llmGenerate: call /api/llm
     // ------------------------------------------------------------------
     case "llmGenerate": {
@@ -352,14 +446,49 @@ async function executeNode(
     }
 
     // ------------------------------------------------------------------
-    // output: collect final image from upstream
+    // output: collect final image or video from upstream
     // ------------------------------------------------------------------
     case "output": {
       const inputs = getConnectedInputs(node.id, allNodes, allEdges, nodeOutputs);
-      if (inputs.images.length > 0) {
-        result.outputImage = inputs.images[0];
+      if (inputs.videos.length > 0) {
+        result.outputVideo = inputs.videos[0];
+      } else if (inputs.images.length > 0) {
+        // Check if image data is actually video content
+        const content = inputs.images[0];
+        const isVideo = content.startsWith("data:video/") ||
+          content.includes(".mp4") || content.includes(".webm");
+        if (isVideo) {
+          result.outputVideo = content;
+        } else {
+          result.outputImage = content;
+        }
       } else {
-        result.error = "No image connected to output node";
+        result.error = "No image or video connected to output node";
+      }
+      break;
+    }
+
+    // ------------------------------------------------------------------
+    // outputGallery: collect all connected images (upload each to R2)
+    // ------------------------------------------------------------------
+    case "outputGallery": {
+      const inputs = getConnectedInputs(node.id, allNodes, allEdges, nodeOutputs);
+      if (inputs.images.length > 0) {
+        // Store first image as the main output; all images are handled
+        // in runExecution where outputGallery gets special treatment
+        result.outputImage = inputs.images[0];
+      }
+      break;
+    }
+
+    // ------------------------------------------------------------------
+    // imageCompare: collect two images (display-only, no uploadable output)
+    // ------------------------------------------------------------------
+    case "imageCompare": {
+      const inputs = getConnectedInputs(node.id, allNodes, allEdges, nodeOutputs);
+      // imageCompare is display-only; just mark it as executed
+      if (inputs.images.length >= 2) {
+        result.outputImage = inputs.images[0]; // Store for graph completeness
       }
       break;
     }
@@ -498,18 +627,30 @@ async function runExecution(
             const res = settledResult.value;
 
             // Store output for downstream consumption
-            if (res.outputImage || res.outputText) {
+            if (res.outputImage || res.outputText || res.outputVideo) {
               nodeOutputs.set(res.nodeId, {
                 image: res.outputImage,
                 text: res.outputText,
+                video: res.outputVideo,
               });
             }
 
             // Output nodes: upload to R2 and record
-            if (res.nodeType === "output" && res.outputImage) {
+            if (res.nodeType === "output" && (res.outputImage || res.outputVideo)) {
               try {
-                const imageUrl = await upload(jobId, res.nodeId, res.outputImage);
-                outputs[res.nodeId] = { nodeId: res.nodeId, imageUrl };
+                if (res.outputImage) {
+                  const imageUrl = await upload(jobId, res.nodeId, res.outputImage);
+                  outputs[res.nodeId] = { nodeId: res.nodeId, imageUrl };
+                } else if (res.outputVideo) {
+                  // Video may be a URL (from Kie/Fal) or base64
+                  const isUrl = res.outputVideo.startsWith("http");
+                  if (isUrl) {
+                    outputs[res.nodeId] = { nodeId: res.nodeId, imageUrl: res.outputVideo };
+                  } else {
+                    const videoUrl = await upload(jobId, res.nodeId, res.outputVideo);
+                    outputs[res.nodeId] = { nodeId: res.nodeId, imageUrl: videoUrl };
+                  }
+                }
               } catch (uploadErr) {
                 const msg = uploadErr instanceof Error ? uploadErr.message : String(uploadErr);
                 errors.push({
@@ -517,6 +658,26 @@ async function runExecution(
                   message: `R2 upload failed: ${msg}`,
                   timestamp: new Date().toISOString(),
                 });
+              }
+            }
+
+            // OutputGallery nodes: upload each connected image
+            if (res.nodeType === "outputGallery") {
+              const galleryInputs = getConnectedInputs(
+                res.nodeId, workflow.nodes, workflow.edges, nodeOutputs,
+              );
+              for (let i = 0; i < galleryInputs.images.length; i++) {
+                try {
+                  const imageUrl = await upload(jobId, `${res.nodeId}-${i}`, galleryInputs.images[i]);
+                  outputs[`${res.nodeId}-${i}`] = { nodeId: res.nodeId, imageUrl };
+                } catch (uploadErr) {
+                  const msg = uploadErr instanceof Error ? uploadErr.message : String(uploadErr);
+                  errors.push({
+                    nodeId: res.nodeId,
+                    message: `R2 upload failed for gallery image ${i}: ${msg}`,
+                    timestamp: new Date().toISOString(),
+                  });
+                }
               }
             }
 

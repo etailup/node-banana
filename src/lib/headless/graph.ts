@@ -88,6 +88,7 @@ export function getConnectedInputs(
   nodeOutputs: NodeOutputMap,
 ): ResolvedNodeInputs {
   const images: string[] = [];
+  const videos: string[] = [];
   let text: string | null = null;
 
   const incomingEdges = edges.filter((e) => e.target === nodeId);
@@ -101,23 +102,31 @@ export function getConnectedInputs(
 
     // Determine what the source node produces
     let outputImage: string | undefined;
+    let outputVideo: string | undefined;
     let outputText: string | undefined;
 
     if (runtimeOutput) {
       outputImage = runtimeOutput.image;
+      outputVideo = runtimeOutput.video;
       outputText = runtimeOutput.text;
     } else {
       // Fall back to node data (for imageInput/prompt nodes that have static data)
       outputImage = extractStaticImage(sourceNode);
+      outputVideo = extractStaticVideo(sourceNode);
       outputText = extractStaticText(sourceNode);
     }
 
     // Route to appropriate input based on handle type
     const handleId = edge.targetHandle;
     const isTextTarget = handleId === "text" || handleId?.startsWith("text-");
+    const isVideoTarget = handleId === "video";
 
     if (isTextTarget && outputText) {
       text = outputText;
+    } else if (isVideoTarget && outputVideo) {
+      videos.push(outputVideo);
+    } else if (outputVideo && !isTextTarget) {
+      videos.push(outputVideo);
     } else if (outputImage) {
       images.push(outputImage);
     } else if (outputText && !isTextTarget) {
@@ -126,7 +135,7 @@ export function getConnectedInputs(
     }
   }
 
-  return { images, text };
+  return { images, videos, text };
 }
 
 /** Extract static image from node data (for pre-resolved imageInput nodes). */
@@ -139,6 +148,17 @@ function extractStaticImage(node: WorkflowNodeJSON): string | undefined {
       return (d.outputImage as string) || undefined;
     case "nanoBanana":
       return (d.outputImage as string) || undefined;
+    default:
+      return undefined;
+  }
+}
+
+/** Extract static video from node data (for pre-resolved video nodes). */
+function extractStaticVideo(node: WorkflowNodeJSON): string | undefined {
+  const d = node.data;
+  switch (node.type) {
+    case "generateVideo":
+      return (d.outputVideo as string) || undefined;
     default:
       return undefined;
   }
