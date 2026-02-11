@@ -180,6 +180,7 @@ export interface LevelGroup {
 /** Resolved node inputs for execution (server-side equivalent of getConnectedInputs). */
 export interface ResolvedNodeInputs {
   images: string[];
+  videos: string[];
   text: string | null;
 }
 
@@ -188,6 +189,7 @@ export interface NodeExecutionResult {
   nodeId: string;
   nodeType: string;
   outputImage?: string;   // base64
+  outputVideo?: string;   // base64 or URL
   outputText?: string;
   error?: string;
 }
