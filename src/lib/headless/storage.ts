@@ -212,11 +212,16 @@ export async function updateJobStatus(
     callback_delivered?: boolean;
   },
 ): Promise<void> {
-  const { error } = await getSupabase()
+  const { data, error } = await getSupabase()
     .from("headless_jobs")
     .update({ status, ...extra })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id")
+    .single();
 
+  if (error?.code === "PGRST116") {
+    throw new Error(`Job not found: ${id}`);
+  }
   if (error) throw new Error(`Failed to update job: ${error.message}`);
 }
 

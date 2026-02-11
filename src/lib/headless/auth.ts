@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 
 /**
  * Validate the API key from the request headers.
@@ -20,7 +21,11 @@ export function validateApiKey(request: NextRequest): NextResponse | null {
   }
 
   const provided = request.headers.get("X-API-Key");
-  if (!provided || provided !== apiKey) {
+  if (
+    !provided ||
+    provided.length !== apiKey.length ||
+    !timingSafeEqual(Buffer.from(provided), Buffer.from(apiKey))
+  ) {
     return NextResponse.json(
       { error: "Invalid or missing API key" },
       { status: 401 },

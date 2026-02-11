@@ -206,9 +206,8 @@ describe("executeWorkflow", () => {
     const generateCall = mockFetch.mock.calls.find(
       (call) => typeof call[0] === "string" && call[0].includes("/api/generate"),
     );
-    if (generateCall) {
-      const body = JSON.parse(generateCall[1].body);
-      expect(body.prompt).toBe("A custom description");
-    }
+    expect(generateCall).toBeDefined();
+    const body = JSON.parse(generateCall![1].body);
+    expect(body.prompt).toBe("A custom description");
   });
 });

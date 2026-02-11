@@ -43,11 +43,14 @@ export async function deliverCallback(
   });
 
   if (response?.ok) {
-    await updateJobStatus(jobId, payload.status, { callback_delivered: true });
+    try {
+      await updateJobStatus(jobId, payload.status, { callback_delivered: true });
+    } catch (err) {
+      console.error(`[Callback:${jobId}] Delivered but failed to update DB:`, err);
+    }
     console.log(`[Callback:${jobId}] Delivered to ${callbackUrl}`);
   } else {
-    console.error(
-      `[Callback:${jobId}] Failed to deliver to ${callbackUrl}: ${error || `HTTP ${response?.status}`}`,
-    );
+    const reason = `Failed to deliver to ${callbackUrl}: ${error || `HTTP ${response?.status}`}`;
+    console.error(`[Callback:${jobId}] ${reason}`);
   }
 }

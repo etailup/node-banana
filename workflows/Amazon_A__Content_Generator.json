@@ -167,7 +167,7 @@
         "y": -250
       },
       "data": {
-        "prompt": "You are analyzing a book cover to create a UNIFIED BACKGROUND STYLE SPECIFICATION that will be used across ALL 5 Amazon A+ marketing banners for this book.\n\nAnalyze the book cover image carefully and output a precise, reusable background specification including:\n\n1. PRIMARY BACKGROUND COLOR: Exact hex code and name (e.g., \"deep navy blue #1a2e40\")\n2. ACCENT COLOR: Exact hex code for highlights (e.g., \"amber gold #d9a86a\")\n3. GRADIENT DIRECTION: How colors blend (e.g., \"radial from center\", \"linear top-to-bottom\")\n4. SUBTLE PATTERN: Any texture or pattern overlay (e.g., \"subtle golden light rays at 10% opacity\", \"faint geometric lines\")\n5. OVERALL MOOD: Premium/minimal/warm/corporate etc.\n6. TEXT COLORS: Primary text color, secondary text color, accent text color with hex codes\n\nFormat your output as a clean specification block that can be directly referenced in image-generation prompts. Be extremely specific with hex codes and percentages. The background is always one colour, with accents or slightly visible designs recalling the cover theme, no gradient.\n\nOutput ONLY the background specification, nothing else."
+        "prompt": "You are analyzing a book cover to create a UNIFIED BACKGROUND STYLE SPECIFICATION that will be used across ALL 5 Amazon A+ marketing banners for this book.\n\nAnalyze the book cover image carefully and output a precise, reusable background specification including:\n\n1. PRIMARY BACKGROUND COLOR: Exact hex code and name (e.g., \"deep navy blue #1a2e40\")\n2. NO GRADIENT\n3. SUBTLE PATTERN: Any texture or pattern overlay\n4. OVERALL MOOD: Premium/minimal/warm/corporate etc.\n5. TEXT COLORS: Primary text color, secondary text color, accent text color with hex codes\n\nFormat your output as a clean specification block that can be directly referenced in image-generation prompts. Be extremely specific with hex codes and percentages. The background is always one colour, with accents or slightly visible designs recalling the cover theme, no gradient.\n\nOutput ONLY the background specification, nothing else."
       },
       "style": {
         "width": 320,
@@ -187,9 +187,9 @@
         "y": -218.17359120312085
       },
       "data": {
-        "inputPrompt": "You are analyzing a book cover to create a UNIFIED BACKGROUND STYLE SPECIFICATION that will be used across ALL 5 Amazon A+ marketing banners for this book.\n\nAnalyze the book cover image carefully and output a precise, reusable background specification including:\n\n1. PRIMARY BACKGROUND COLOR: Exact hex code and name (e.g., \"deep navy blue #1a2e40\")\n2. ACCENT COLOR: Exact hex code for highlights (e.g., \"amber gold #d9a86a\")\n3. GRADIENT DIRECTION: How colors blend (e.g., \"radial from center\", \"linear top-to-bottom\")\n4. SUBTLE PATTERN: Any texture or pattern overlay (e.g., \"subtle golden light rays at 10% opacity\", \"faint geometric lines\")\n5. OVERALL MOOD: Premium/minimal/warm/corporate etc.\n6. TEXT COLORS: Primary text color, secondary text color, accent text color with hex codes\n\nFormat your output as a clean specification block that can be directly referenced in image-generation prompts. Be extremely specific with hex codes and percentages. The background is always one colour, with accents or slightly visible designs recalling the cover theme, no gradient.\n\nOutput ONLY the background specification, nothing else.",
+        "inputPrompt": "You are analyzing a book cover to create a UNIFIED BACKGROUND STYLE SPECIFICATION that will be used across ALL 5 Amazon A+ marketing banners for this book.\n\nAnalyze the book cover image carefully and output a precise, reusable background specification including:\n\n1. PRIMARY BACKGROUND COLOR: Exact hex code and name (e.g., \"deep navy blue #1a2e40\")\n2. NO GRADIENT\n3. SUBTLE PATTERN: Any texture or pattern overlay\n4. OVERALL MOOD: Premium/minimal/warm/corporate etc.\n5. TEXT COLORS: Primary text color, secondary text color, accent text color with hex codes\n\nFormat your output as a clean specification block that can be directly referenced in image-generation prompts. Be extremely specific with hex codes and percentages. The background is always one colour, with accents or slightly visible designs recalling the cover theme, no gradient.\n\nOutput ONLY the background specification, nothing else.",
         "inputImages": [],
-        "outputText": "**BACKGROUND STYLE SPECIFICATION**\n\n1. **PRIMARY BACKGROUND COLOR:** Warm Sand Tan #e9c595\n2. **ACCENT COLOR:** Amber Gold #c4a15a\n3. **GRADIENT DIRECTION:** None (Solid fill)\n4. **SUBTLE PATTERN:** Faint radial light rays emanating from the center at 10% opacity in",
+        "outputText": "**BACKGROUND STYLE SPECIFICATION**\n\n*   **PRIMARY BACKGROUND COLOR:** Warm Sand Beige #E8C18C\n*   **NO GRADIENT:** Solid flat color base.\n*   **SUBTLE PATTERN:** Fine paper grain texture (5% opacity) with faint, thin radial line accents in a slightly darker tan (#D4AD78) emanating from the center to mimic the cover's sunburst motif.\n*   **OVERALL MOOD:** Authoritative, psychological, and premium academic.\n*   **TEXT COLORS:**\n    *   **Primary Text Color:** Deep Navy Blue #142F44\n    *   **Secondary Text Color:** Pure White #FFFFFF\n    *   **Accent Text Color:** Muted Gold #C5A059",
         "variableName": "style",
         "provider": "google",
         "model": "gemini-3-flash-preview",
@@ -213,14 +213,66 @@
       "dragging": false
     },
     {
+      "id": "prompt-title-extract",
+      "type": "prompt",
+      "position": {
+        "x": 50,
+        "y": -550
+      },
+      "data": {
+        "prompt": "Analyze the book cover image carefully and extract the EXACT text visible on it.\n\nOutput in this precise format:\n\nTITLE: [exact title text as it appears on the cover]\nSUBTITLE: [exact subtitle text, if any - write 'none' if absent]\nAUTHOR: [exact author name as it appears on the cover]\n\nBe extremely precise - copy the text EXACTLY as it appears, preserving capitalization, punctuation, and any special formatting. Do not translate, rephrase, or modify anything.\n\nOutput ONLY the extracted text in the format above, nothing else."
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "measured": {
+        "width": 320,
+        "height": 220
+      }
+    },
+    {
+      "id": "llm-title",
+      "type": "llmGenerate",
+      "position": {
+        "x": 493,
+        "y": -550
+      },
+      "data": {
+        "inputPrompt": "Analyze the book cover image carefully and extract the EXACT text visible on it.\n\nOutput in this precise format:\n\nTITLE: [exact title text as it appears on the cover]\nSUBTITLE: [exact subtitle text, if any - write 'none' if absent]\nAUTHOR: [exact author name as it appears on the cover]\n\nBe extremely precise - copy the text EXACTLY as it appears, preserving capitalization, punctuation, and any special formatting. Do not translate, rephrase, or modify anything.\n\nOutput ONLY the extracted text in the format above, nothing else.",
+        "inputImages": [],
+        "outputText": "TITLE: PERSUASIONE ISTANTANEA IN 21 GIORNI\nSUBTITLE",
+        "variableName": "title",
+        "provider": "google",
+        "model": "gemini-3-flash-preview",
+        "temperature": 0.1,
+        "maxTokens": 512,
+        "status": "complete",
+        "error": null,
+        "inputImageRefs": [
+          "img-mlf029kl-rwoa7p"
+        ]
+      },
+      "style": {
+        "width": 320,
+        "height": 360
+      },
+      "selected": false,
+      "measured": {
+        "width": 320,
+        "height": 360
+      }
+    },
+    {
       "id": "prompt-system-1",
       "type": "prompt",
       "position": {
-        "x": 377.51034326722294,
-        "y": 351.67486653861585
+        "x": 392.7486325206524,
+        "y": 164.09346981784424
       },
       "data": {
-        "prompt": "You are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+1 HERO IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe HERO IMAGE should showcase the book prominently (left side, held in hands or displayed large), with the main headline and compelling description on the right. Include a badge/seal element. Premium dark background matching the book's palette.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients, subtle patterns)\n- Describe LEFT and RIGHT side composition separately\n- Write the EXACT Italian marketing text that should appear (headlines, body copy, badges)\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "prompt": "You are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nCRITICAL RULE: The book cover must be reproduced EXACTLY as provided - do NOT change, modify, alter, or reimagine ANY detail of the book cover (title, text, colors, layout, imagery, fonts, proportions). The cover must appear as a pixel-perfect faithful reproduction of the original. Never regenerate or reinterpret the cover design.\n\nYour task: Generate ONE image-generation prompt for the A+1 HERO IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n- Shows the book cover EXACTLY as it is, without any modifications whatsoever\n\nThe HERO IMAGE should showcase the book prominently (left side, held in hands or displayed large), with the main headline and compelling description on the right. Include a badge/seal element. Premium dark background matching the book's palette.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- IMPORTANT: Instruct to keep the book cover image exactly as provided, with zero alterations to any element of the cover\n- Describe the background precisely (colors, gradients, subtle patterns)\n- Describe LEFT and RIGHT side composition separately\n- Write the EXACT Italian marketing text that should appear (headlines, body copy, badges)\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
         "variableName": "instructions"
       },
       "style": {
@@ -242,7 +294,7 @@
         "y": 730
       },
       "data": {
-        "prompt": "You are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+2 \"WHY CHOOSE THIS BOOK\" IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe \"WHY CHOOSE\" image should show the book at an angle with dimensions visible, and list 3-4 key benefits with emoji icons and bold headlines on the right. Clean professional layout.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients, subtle patterns)\n- Describe the book positioning (angle, dimension labels like \"22,86 CM\" and \"15,24 CM\")\n- Write 3-4 benefit sections with emoji + bold Italian headline + description text\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "prompt": "You are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nCRITICAL RULE: The book cover must be reproduced EXACTLY as provided - do NOT change, modify, alter, or reimagine ANY detail of the book cover (title, text, colors, layout, imagery, fonts, proportions). The cover must appear as a pixel-perfect faithful reproduction of the original. Never regenerate or reinterpret the cover design.\n\nYour task: Generate ONE image-generation prompt for the A+2 \"WHY CHOOSE THIS BOOK\" IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n- Shows the book cover EXACTLY as it is, without any modifications whatsoever\n\nThe \"WHY CHOOSE\" image should show the book at an angle with dimensions visible, and list 3-4 key benefits with emoji icons and bold headlines on the right. Clean professional layout.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- IMPORTANT: Instruct to keep the book cover image exactly as provided, with zero alterations to any element of the cover\n- Describe the background precisely (colors, gradients, subtle patterns)\n- Describe the book positioning (angle, dimension labels like \"22,86 CM\" and \"15,24 CM\")\n- Write 3-4 benefit sections with emoji + bold Italian headline + description text\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
         "variableName": "instructions"
       },
       "style": {
@@ -263,7 +315,7 @@
         "y": 1060
       },
       "data": {
-        "prompt": "You are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+3 DEEP DIVE / TESTIMONIALS IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe DEEP DIVE image should show the book in center with bold headlines on both sides. Include a motivational quote, a call-to-action, and dynamic visual flow elements (arrows, curves). A bonus/audiobook badge near the book.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients, subtle thematic imagery)\n- Describe LEFT, CENTER, and RIGHT composition separately\n- Write the EXACT Italian text: headlines, quote, CTA, badge text\n- Include visual flow elements (arrows pointing from book to text)\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "prompt": "You are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nCRITICAL RULE: The book cover must be reproduced EXACTLY as provided - do NOT change, modify, alter, or reimagine ANY detail of the book cover (title, text, colors, layout, imagery, fonts, proportions). The cover must appear as a pixel-perfect faithful reproduction of the original. Never regenerate or reinterpret the cover design.\n\nYour task: Generate ONE image-generation prompt for the A+3 DEEP DIVE / TESTIMONIALS IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n- Shows the book cover EXACTLY as it is, without any modifications whatsoever\n\nThe DEEP DIVE image should show the book in center with bold headlines on both sides. Include a motivational quote, a call-to-action, and dynamic visual flow elements (arrows, curves). A bonus/audiobook badge near the book.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- IMPORTANT: Instruct to keep the book cover image exactly as provided, with zero alterations to any element of the cover\n- Describe the background precisely (colors, gradients, subtle thematic imagery)\n- Describe LEFT, CENTER, and RIGHT composition separately\n- Write the EXACT Italian text: headlines, quote, CTA, badge text\n- Include visual flow elements (arrows pointing from book to text)\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
         "variableName": "instructions"
       },
       "style": {
@@ -284,7 +336,7 @@
         "y": 1390
       },
       "data": {
-        "prompt": "You are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+4 EMOTIONAL CONNECTION IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe EMOTIONAL CONNECTION image uses a split layout: LEFT side shows a relatable person (matching the book's target audience) in a confident pose with warm lighting. RIGHT side has emotional Italian headlines and descriptive text. Book cover visible. Human element adds trust and relatability.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients)\n- Describe the person: appearance, pose, expression, attire (matching the book's audience)\n- Write emotional Italian headlines addressing the reader's pain points\n- Write persuasive body copy adapted to the book's specific topic\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "prompt": "You are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nCRITICAL RULE: The book cover must be reproduced EXACTLY as provided - do NOT change, modify, alter, or reimagine ANY detail of the book cover (title, text, colors, layout, imagery, fonts, proportions). The cover must appear as a pixel-perfect faithful reproduction of the original. Never regenerate or reinterpret the cover design.\n\nYour task: Generate ONE image-generation prompt for the A+4 EMOTIONAL CONNECTION IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n- Shows the book cover EXACTLY as it is, without any modifications whatsoever\n\nThe EMOTIONAL CONNECTION image uses a split layout: LEFT side shows a relatable person (matching the book's target audience) in a confident pose with warm lighting. RIGHT side has emotional Italian headlines and descriptive text. Book cover visible. Human element adds trust and relatability.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- IMPORTANT: Instruct to keep the book cover image exactly as provided, with zero alterations to any element of the cover\n- Describe the background precisely (colors, gradients)\n- Describe the person: appearance, pose, expression, attire (matching the book's audience)\n- Write emotional Italian headlines addressing the reader's pain points\n- Write persuasive body copy adapted to the book's specific topic\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
         "variableName": "instructions"
       },
       "style": {
@@ -305,7 +357,7 @@
         "y": 1740.700701906584
       },
       "data": {
-        "prompt": "You are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+5 BONUS / EBOOK IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe BONUS image should show a tablet/iPad displaying the ebook version of the book. Include a headphone/audio icon for audiobook. Prominently display \"INCLUSO\" / \"BONUS\" badges. Include text about the free ebook PDF and audiobook included with purchase. Modern tech aesthetic blended with the book's color palette.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients, light effects)\n- Describe the tablet device showing the ebook adaptation of the cover\n- Write Italian text: \"CON L'ACQUISTO DEL LIBRO\", \"INCLUSO\", ebook description, motivational closing line\n- Include badge elements (\"INCLUSO BONUS & AUDIOLIBRO\")\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "prompt": "You are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nCRITICAL RULE: The book cover must be reproduced EXACTLY as provided - do NOT change, modify, alter, or reimagine ANY detail of the book cover (title, text, colors, layout, imagery, fonts, proportions). The cover must appear as a pixel-perfect faithful reproduction of the original. Never regenerate or reinterpret the cover design.\n\nYour task: Generate ONE image-generation prompt for the A+5 BONUS / EBOOK IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n- Shows the book cover EXACTLY as it is, without any modifications whatsoever\n\nThe BONUS image should show a tablet/iPad displaying the ebook version of the book. Include a headphone/audio icon for audiobook. Prominently display \"INCLUSO\" / \"BONUS\" badges. Include text about the free ebook PDF and audiobook included with purchase. Modern tech aesthetic blended with the book's color palette.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- IMPORTANT: Instruct to keep the book cover image exactly as provided, with zero alterations to any element of the cover\n- Describe the background precisely (colors, gradients, light effects)\n- Describe the tablet device showing the ebook adaptation of the cover\n- Write Italian text: \"CON L'ACQUISTO DEL LIBRO\", \"INCLUSO\", ebook description, motivational closing line\n- Include badge elements (\"INCLUSO BONUS & AUDIOLIBRO\")\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
         "variableName": "instructions"
       },
       "style": {
@@ -323,24 +375,27 @@
       "id": "pc-1",
       "type": "promptConstructor",
       "position": {
-        "x": 720.2872412522565,
-        "y": 285.30859200327933
+        "x": 505.448967141666,
+        "y": 407.18657166062815
       },
       "data": {
-        "template": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n@style\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\n@instructions",
-        "outputText": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n1. **PRIMARY BACKGROUND COLOR:** Warm Sand Tan #e9c595\n2. **ACCENT COLOR:** Amber Gold #c4a15a\n3. **GRADIENT DIRECTION:** None (Solid fill)\n4. **SUBTLE PATTERN:** Faint radial light rays emanating from the center at 10% opacity in\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+1 HERO IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe HERO IMAGE should showcase the book prominently (left side, held in hands or displayed large), with the main headline and compelling description on the right. Include a badge/seal element. Premium dark background matching the book's palette.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients, subtle patterns)\n- Describe LEFT and RIGHT side composition separately\n- Write the EXACT Italian marketing text that should appear (headlines, body copy, badges)\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "template": "BOOK INFORMATION (use these EXACT title, subtitle and author in the prompt):\n@title\n\nBACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n@style\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\n@instructions",
+        "outputText": "BOOK INFORMATION (use these EXACT title, subtitle and author in the prompt):\nTITLE: PERSUASIONE ISTANTANEA IN 21 GIORNI\nSUBTITLE\n\nBACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n*   **PRIMARY BACKGROUND COLOR:** Warm Sand Beige #E8C18C\n*   **NO GRADIENT:** Solid flat color base.\n*   **SUBTLE PATTERN:** Fine paper grain texture (5% opacity) with faint, thin radial line accents in a slightly darker tan (#D4AD78) emanating from the center to mimic the cover's sunburst motif.\n*   **OVERALL MOOD:** Authoritative, psychological, and premium academic.\n*   **TEXT COLORS:**\n    *   **Primary Text Color:** Deep Navy Blue #142F44\n    *   **Secondary Text Color:** Pure White #FFFFFF\n    *   **Accent Text Color:** Muted Gold #C5A059\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nCRITICAL RULE: The book cover must be reproduced EXACTLY as provided - do NOT change, modify, alter, or reimagine ANY detail of the book cover (title, text, colors, layout, imagery, fonts, proportions). The cover must appear as a pixel-perfect faithful reproduction of the original. Never regenerate or reinterpret the cover design.\n\nYour task: Generate ONE image-generation prompt for the A+1 HERO IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n- Shows the book cover EXACTLY as it is, without any modifications whatsoever\n\nThe HERO IMAGE should showcase the book prominently (left side, held in hands or displayed large), with the main headline and compelling description on the right. Include a badge/seal element. Premium dark background matching the book's palette.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- IMPORTANT: Instruct to keep the book cover image exactly as provided, with zero alterations to any element of the cover\n- Describe the background precisely (colors, gradients, subtle patterns)\n- Describe LEFT and RIGHT side composition separately\n- Write the EXACT Italian marketing text that should appear (headlines, body copy, badges)\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
         "unresolvedVars": []
       },
       "style": {
         "width": 200,
         "height": 200
       },
-      "selected": false,
+      "selected": true,
       "measured": {
         "width": 200,
-        "height": 200
+        "height": 201
       },
-      "dragging": false
+      "dragging": false,
+      "width": 200,
+      "height": 201,
+      "resizing": false
     },
     {
       "id": "pc-2",
@@ -350,8 +405,8 @@
         "y": 730
       },
       "data": {
-        "template": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n@style\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\n@instructions",
-        "outputText": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n1. **PRIMARY BACKGROUND COLOR:** Warm Sand Tan #e9c595\n2. **ACCENT COLOR:** Amber Gold #c4a15a\n3. **GRADIENT DIRECTION:** None (Solid fill)\n4. **SUBTLE PATTERN:** Faint radial light rays emanating from the center at 10% opacity in\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+2 \"WHY CHOOSE THIS BOOK\" IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe \"WHY CHOOSE\" image should show the book at an angle with dimensions visible, and list 3-4 key benefits with emoji icons and bold headlines on the right. Clean professional layout.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients, subtle patterns)\n- Describe the book positioning (angle, dimension labels like \"22,86 CM\" and \"15,24 CM\")\n- Write 3-4 benefit sections with emoji + bold Italian headline + description text\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "template": "BOOK INFORMATION (use these EXACT title, subtitle and author in the prompt):\n@title\n\nBACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n@style\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\n@instructions",
+        "outputText": "BOOK INFORMATION (use these EXACT title, subtitle and author in the prompt):\nTITLE: PERSUASIONE ISTANTANEA IN 21 GIORNI\nSUBTITLE\n\nBACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n*   **PRIMARY BACKGROUND COLOR:** Warm Sand Beige #E8C18C\n*   **NO GRADIENT:** Solid flat color base.\n*   **SUBTLE PATTERN:** Fine paper grain texture (5% opacity) with faint, thin radial line accents in a slightly darker tan (#D4AD78) emanating from the center to mimic the cover's sunburst motif.\n*   **OVERALL MOOD:** Authoritative, psychological, and premium academic.\n*   **TEXT COLORS:**\n    *   **Primary Text Color:** Deep Navy Blue #142F44\n    *   **Secondary Text Color:** Pure White #FFFFFF\n    *   **Accent Text Color:** Muted Gold #C5A059\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nCRITICAL RULE: The book cover must be reproduced EXACTLY as provided - do NOT change, modify, alter, or reimagine ANY detail of the book cover (title, text, colors, layout, imagery, fonts, proportions). The cover must appear as a pixel-perfect faithful reproduction of the original. Never regenerate or reinterpret the cover design.\n\nYour task: Generate ONE image-generation prompt for the A+2 \"WHY CHOOSE THIS BOOK\" IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n- Shows the book cover EXACTLY as it is, without any modifications whatsoever\n\nThe \"WHY CHOOSE\" image should show the book at an angle with dimensions visible, and list 3-4 key benefits with emoji icons and bold headlines on the right. Clean professional layout.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- IMPORTANT: Instruct to keep the book cover image exactly as provided, with zero alterations to any element of the cover\n- Describe the background precisely (colors, gradients, subtle patterns)\n- Describe the book positioning (angle, dimension labels like \"22,86 CM\" and \"15,24 CM\")\n- Write 3-4 benefit sections with emoji + bold Italian headline + description text\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
         "unresolvedVars": []
       },
       "style": {
@@ -372,8 +427,8 @@
         "y": 1060
       },
       "data": {
-        "template": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n@style\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\n@instructions",
-        "outputText": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n1. **PRIMARY BACKGROUND COLOR:** Warm Sand Tan #e9c595\n2. **ACCENT COLOR:** Amber Gold #c4a15a\n3. **GRADIENT DIRECTION:** None (Solid fill)\n4. **SUBTLE PATTERN:** Faint radial light rays emanating from the center at 10% opacity in\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+3 DEEP DIVE / TESTIMONIALS IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe DEEP DIVE image should show the book in center with bold headlines on both sides. Include a motivational quote, a call-to-action, and dynamic visual flow elements (arrows, curves). A bonus/audiobook badge near the book.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients, subtle thematic imagery)\n- Describe LEFT, CENTER, and RIGHT composition separately\n- Write the EXACT Italian text: headlines, quote, CTA, badge text\n- Include visual flow elements (arrows pointing from book to text)\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "template": "BOOK INFORMATION (use these EXACT title, subtitle and author in the prompt):\n@title\n\nBACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n@style\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\n@instructions",
+        "outputText": "BOOK INFORMATION (use these EXACT title, subtitle and author in the prompt):\nTITLE: PERSUASIONE ISTANTANEA IN 21 GIORNI\nSUBTITLE\n\nBACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n*   **PRIMARY BACKGROUND COLOR:** Warm Sand Beige #E8C18C\n*   **NO GRADIENT:** Solid flat color base.\n*   **SUBTLE PATTERN:** Fine paper grain texture (5% opacity) with faint, thin radial line accents in a slightly darker tan (#D4AD78) emanating from the center to mimic the cover's sunburst motif.\n*   **OVERALL MOOD:** Authoritative, psychological, and premium academic.\n*   **TEXT COLORS:**\n    *   **Primary Text Color:** Deep Navy Blue #142F44\n    *   **Secondary Text Color:** Pure White #FFFFFF\n    *   **Accent Text Color:** Muted Gold #C5A059\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nCRITICAL RULE: The book cover must be reproduced EXACTLY as provided - do NOT change, modify, alter, or reimagine ANY detail of the book cover (title, text, colors, layout, imagery, fonts, proportions). The cover must appear as a pixel-perfect faithful reproduction of the original. Never regenerate or reinterpret the cover design.\n\nYour task: Generate ONE image-generation prompt for the A+3 DEEP DIVE / TESTIMONIALS IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n- Shows the book cover EXACTLY as it is, without any modifications whatsoever\n\nThe DEEP DIVE image should show the book in center with bold headlines on both sides. Include a motivational quote, a call-to-action, and dynamic visual flow elements (arrows, curves). A bonus/audiobook badge near the book.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- IMPORTANT: Instruct to keep the book cover image exactly as provided, with zero alterations to any element of the cover\n- Describe the background precisely (colors, gradients, subtle thematic imagery)\n- Describe LEFT, CENTER, and RIGHT composition separately\n- Write the EXACT Italian text: headlines, quote, CTA, badge text\n- Include visual flow elements (arrows pointing from book to text)\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
         "unresolvedVars": []
       },
       "style": {
@@ -394,8 +449,8 @@
         "y": 1390
       },
       "data": {
-        "template": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n@style\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\n@instructions",
-        "outputText": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n1. **PRIMARY BACKGROUND COLOR:** Warm Sand Tan #e9c595\n2. **ACCENT COLOR:** Amber Gold #c4a15a\n3. **GRADIENT DIRECTION:** None (Solid fill)\n4. **SUBTLE PATTERN:** Faint radial light rays emanating from the center at 10% opacity in\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+4 EMOTIONAL CONNECTION IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe EMOTIONAL CONNECTION image uses a split layout: LEFT side shows a relatable person (matching the book's target audience) in a confident pose with warm lighting. RIGHT side has emotional Italian headlines and descriptive text. Book cover visible. Human element adds trust and relatability.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients)\n- Describe the person: appearance, pose, expression, attire (matching the book's audience)\n- Write emotional Italian headlines addressing the reader's pain points\n- Write persuasive body copy adapted to the book's specific topic\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "template": "BOOK INFORMATION (use these EXACT title, subtitle and author in the prompt):\n@title\n\nBACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n@style\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\n@instructions",
+        "outputText": "BOOK INFORMATION (use these EXACT title, subtitle and author in the prompt):\nTITLE: PERSUASIONE ISTANTANEA IN 21 GIORNI\nSUBTITLE\n\nBACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n*   **PRIMARY BACKGROUND COLOR:** Warm Sand Beige #E8C18C\n*   **NO GRADIENT:** Solid flat color base.\n*   **SUBTLE PATTERN:** Fine paper grain texture (5% opacity) with faint, thin radial line accents in a slightly darker tan (#D4AD78) emanating from the center to mimic the cover's sunburst motif.\n*   **OVERALL MOOD:** Authoritative, psychological, and premium academic.\n*   **TEXT COLORS:**\n    *   **Primary Text Color:** Deep Navy Blue #142F44\n    *   **Secondary Text Color:** Pure White #FFFFFF\n    *   **Accent Text Color:** Muted Gold #C5A059\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nCRITICAL RULE: The book cover must be reproduced EXACTLY as provided - do NOT change, modify, alter, or reimagine ANY detail of the book cover (title, text, colors, layout, imagery, fonts, proportions). The cover must appear as a pixel-perfect faithful reproduction of the original. Never regenerate or reinterpret the cover design.\n\nYour task: Generate ONE image-generation prompt for the A+4 EMOTIONAL CONNECTION IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n- Shows the book cover EXACTLY as it is, without any modifications whatsoever\n\nThe EMOTIONAL CONNECTION image uses a split layout: LEFT side shows a relatable person (matching the book's target audience) in a confident pose with warm lighting. RIGHT side has emotional Italian headlines and descriptive text. Book cover visible. Human element adds trust and relatability.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- IMPORTANT: Instruct to keep the book cover image exactly as provided, with zero alterations to any element of the cover\n- Describe the background precisely (colors, gradients)\n- Describe the person: appearance, pose, expression, attire (matching the book's audience)\n- Write emotional Italian headlines addressing the reader's pain points\n- Write persuasive body copy adapted to the book's specific topic\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
         "unresolvedVars": []
       },
       "style": {
@@ -416,8 +471,8 @@
         "y": 1720
       },
       "data": {
-        "template": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n@style\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\n@instructions",
-        "outputText": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n1. **PRIMARY BACKGROUND COLOR:** Warm Sand Tan #e9c595\n2. **ACCENT COLOR:** Amber Gold #c4a15a\n3. **GRADIENT DIRECTION:** None (Solid fill)\n4. **SUBTLE PATTERN:** Faint radial light rays emanating from the center at 10% opacity in\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+5 BONUS / EBOOK IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe BONUS image should show a tablet/iPad displaying the ebook version of the book. Include a headphone/audio icon for audiobook. Prominently display \"INCLUSO\" / \"BONUS\" badges. Include text about the free ebook PDF and audiobook included with purchase. Modern tech aesthetic blended with the book's color palette.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients, light effects)\n- Describe the tablet device showing the ebook adaptation of the cover\n- Write Italian text: \"CON L'ACQUISTO DEL LIBRO\", \"INCLUSO\", ebook description, motivational closing line\n- Include badge elements (\"INCLUSO BONUS & AUDIOLIBRO\")\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "template": "BOOK INFORMATION (use these EXACT title, subtitle and author in the prompt):\n@title\n\nBACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n@style\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\n@instructions",
+        "outputText": "BOOK INFORMATION (use these EXACT title, subtitle and author in the prompt):\nTITLE: PERSUASIONE ISTANTANEA IN 21 GIORNI\nSUBTITLE\n\nBACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n*   **PRIMARY BACKGROUND COLOR:** Warm Sand Beige #E8C18C\n*   **NO GRADIENT:** Solid flat color base.\n*   **SUBTLE PATTERN:** Fine paper grain texture (5% opacity) with faint, thin radial line accents in a slightly darker tan (#D4AD78) emanating from the center to mimic the cover's sunburst motif.\n*   **OVERALL MOOD:** Authoritative, psychological, and premium academic.\n*   **TEXT COLORS:**\n    *   **Primary Text Color:** Deep Navy Blue #142F44\n    *   **Secondary Text Color:** Pure White #FFFFFF\n    *   **Accent Text Color:** Muted Gold #C5A059\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nCRITICAL RULE: The book cover must be reproduced EXACTLY as provided - do NOT change, modify, alter, or reimagine ANY detail of the book cover (title, text, colors, layout, imagery, fonts, proportions). The cover must appear as a pixel-perfect faithful reproduction of the original. Never regenerate or reinterpret the cover design.\n\nYour task: Generate ONE image-generation prompt for the A+5 BONUS / EBOOK IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n- Shows the book cover EXACTLY as it is, without any modifications whatsoever\n\nThe BONUS image should show a tablet/iPad displaying the ebook version of the book. Include a headphone/audio icon for audiobook. Prominently display \"INCLUSO\" / \"BONUS\" badges. Include text about the free ebook PDF and audiobook included with purchase. Modern tech aesthetic blended with the book's color palette.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- IMPORTANT: Instruct to keep the book cover image exactly as provided, with zero alterations to any element of the cover\n- Describe the background precisely (colors, gradients, light effects)\n- Describe the tablet device showing the ebook adaptation of the cover\n- Write Italian text: \"CON L'ACQUISTO DEL LIBRO\", \"INCLUSO\", ebook description, motivational closing line\n- Include badge elements (\"INCLUSO BONUS & AUDIOLIBRO\")\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
         "unresolvedVars": []
       },
       "style": {
@@ -438,14 +493,14 @@
         "y": 308.36468054499534
       },
       "data": {
-        "inputPrompt": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n1. **PRIMARY BACKGROUND COLOR:** Warm Sand Tan #e9c595\n2. **ACCENT COLOR:** Amber Gold #c4a15a\n3. **GRADIENT DIRECTION:** None (Solid fill)\n4. **SUBTLE PATTERN:** Faint radial light rays emanating from the center at 10% opacity in\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+1 HERO IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe HERO IMAGE should showcase the book prominently (left side, held in hands or displayed large), with the main headline and compelling description on the right. Include a badge/seal element. Premium dark background matching the book's palette.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients, subtle patterns)\n- Describe LEFT and RIGHT side composition separately\n- Write the EXACT Italian marketing text that should appear (headlines, body copy, badges)\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "inputPrompt": "BOOK INFORMATION (use these EXACT title, subtitle and author in the prompt):\nTITLE: PERSUASIONE ISTANTANEA IN 21 GIORNI\nSUBTITLE\n\nBACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n*   **PRIMARY BACKGROUND COLOR:** Warm Sand Beige #E8C18C\n*   **NO GRADIENT:** Solid flat color base.\n*   **SUBTLE PATTERN:** Fine paper grain texture (5% opacity) with faint, thin radial line accents in a slightly darker tan (#D4AD78) emanating from the center to mimic the cover's sunburst motif.\n*   **OVERALL MOOD:** Authoritative, psychological, and premium academic.\n*   **TEXT COLORS:**\n    *   **Primary Text Color:** Deep Navy Blue #142F44\n    *   **Secondary Text Color:** Pure White #FFFFFF\n    *   **Accent Text Color:** Muted Gold #C5A059\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nCRITICAL RULE: The book cover must be reproduced EXACTLY as provided - do NOT change, modify, alter, or reimagine ANY detail of the book cover (title, text, colors, layout, imagery, fonts, proportions). The cover must appear as a pixel-perfect faithful reproduction of the original. Never regenerate or reinterpret the cover design.\n\nYour task: Generate ONE image-generation prompt for the A+1 HERO IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n- Shows the book cover EXACTLY as it is, without any modifications whatsoever\n\nThe HERO IMAGE should showcase the book prominently (left side, held in hands or displayed large), with the main headline and compelling description on the right. Include a badge/seal element. Premium dark background matching the book's palette.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- IMPORTANT: Instruct to keep the book cover image exactly as provided, with zero alterations to any element of the cover\n- Describe the background precisely (colors, gradients, subtle patterns)\n- Describe LEFT and RIGHT side composition separately\n- Write the EXACT Italian marketing text that should appear (headlines, body copy, badges)\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
         "inputImages": [],
-        "outputText": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background features a solid base of Warm Sand Beige #E8C18D on the left, transitioning into a large, premium Midnight Navy #112B3C section on the right. The entire background has a faint radial sunburst texture with thin, distressed light rays at 10% opacity emanating from the center.\n\nOn the LEFT side, a pair of realistic hands holds the physical book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling. The book cover is clearly displayed, showing the bold navy and beige design. In the top-left corner, there is a circular gold seal badge with the text \"INCLUSO BONUS & E-BOOK\".\n\nOn the RIGHT side, positioned over the Midnight Navy background, the text is arranged in a clean hierarchy:\n- Top: \"METODO SCIENTIFICO\" in bold Muted Gold #C9A66B sans-serif.\n- Main Headline: \"PERSUASIONE: DOMINA LA TUA COMUNICAZIONE!\" in large, impactful Pure White #FFFFFF bold sans-serif.\n- Sub-headline: \"Vuoi influenzare e persuadere con successo?\" in Muted Gold #C9A66B medium-weight sans-serif.\n- Body Paragraph: \"È il momento di svoltare. Questo libro è il tuo alleato per padroneggiare le neuroscienze, eliminare l'insicurezza e prendere il controllo delle tue interazioni. Con strategie testate e tecniche scientifiche immediate, scoprirai come sviluppare carisma e creare una mentalità vincente.\" in clean Pure White #FFFFFF sans-serif.\n\nIn the top-right corner, a small red ribbon with \"1st\" is visible. The overall mood is authoritative, premium, and psychological, matching the book's theme of communication and neuroscience. Professional studio lighting, high resolution, sharp focus on typography.",
+        "outputText": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a solid flat Warm Sand Beige (#E8C18C) with a subtle fine paper grain texture and faint, thin radial line accents in a slightly darker tan (#D4AD78) emanating from the center. \n\nLEFT SIDE COMPOSITION: A pair of hands holds the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling. The book cover must be reproduced EXACTLY as provided: a deep navy blue central band with the words \"ISTANTANEA\" in large white block letters and \"IN 21 GIORNI\" (with \"21\" in muted gold), a beige top section with the title \"PERSUASIONE\" in navy, and a beige bottom section with the author name \"MATT RAWLING\" in navy. No modifications to the cover design are permitted. In the top left corner, include a gold circular seal badge with the white text \"INCLUSO BONUS AUDIO\".\n\nRIGHT SIDE COMPOSITION: High-end typography layout in Italian. \n- At the top, the text \"METODO COMPLETO\" in Muted Gold #C5A059.\n- Main Headline: \"PADRONEGGIA L'ARTE DELLA PERSUASIONE\" in large, bold Deep Navy Blue #142F44.\n- Sub-headline: \"Vuoi influenzare gli altri con integrità e successo?\" in Deep Navy Blue #142F44.\n- Body Copy: \"Scopri le tecniche basate sulle neuroscienze per comunicare in modo efficace. Questo libro è la tua guida pratica per sviluppare carisma, leadership e controllo totale in soli 21 giorni. Con strategie scientifiche testate, trasformerai ogni conversazione in un'opportunità di successo.\" in Deep Navy Blue #142F44.\n- In the top right corner, a small red ribbon badge with white text \"N. 1\".\n\nThe overall mood is authoritative, psychological, and premium academic, utilizing a color palette of Deep Navy Blue (#142F44), Pure White (#FFFFFF), and Muted Gold (#C5A059) for all text elements.",
         "provider": "google",
         "model": "gemini-3-flash-preview",
         "temperature": 0.7,
         "maxTokens": 4096,
-        "status": "idle",
+        "status": "complete",
         "error": null,
         "inputImageRefs": [
           "img-mley3vpx-84o0in",
@@ -471,14 +526,14 @@
         "y": 730
       },
       "data": {
-        "inputPrompt": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n1. **PRIMARY BACKGROUND COLOR:** Warm Sand Tan #e9c595\n2. **ACCENT COLOR:** Amber Gold #c4a15a\n3. **GRADIENT DIRECTION:** None (Solid fill)\n4. **SUBTLE PATTERN:** Faint radial light rays emanating from the center at 10% opacity in\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+2 \"WHY CHOOSE THIS BOOK\" IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe \"WHY CHOOSE\" image should show the book at an angle with dimensions visible, and list 3-4 key benefits with emoji icons and bold headlines on the right. Clean professional layout.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients, subtle patterns)\n- Describe the book positioning (angle, dimension labels like \"22,86 CM\" and \"15,24 CM\")\n- Write 3-4 benefit sections with emoji + bold Italian headline + description text\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "inputPrompt": "BOOK INFORMATION (use these EXACT title, subtitle and author in the prompt):\nTITLE: PERSUASIONE ISTANTANEA IN 21 GIORNI\nSUBTITLE\n\nBACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n*   **PRIMARY BACKGROUND COLOR:** Warm Sand Beige #E8C18C\n*   **NO GRADIENT:** Solid flat color base.\n*   **SUBTLE PATTERN:** Fine paper grain texture (5% opacity) with faint, thin radial line accents in a slightly darker tan (#D4AD78) emanating from the center to mimic the cover's sunburst motif.\n*   **OVERALL MOOD:** Authoritative, psychological, and premium academic.\n*   **TEXT COLORS:**\n    *   **Primary Text Color:** Deep Navy Blue #142F44\n    *   **Secondary Text Color:** Pure White #FFFFFF\n    *   **Accent Text Color:** Muted Gold #C5A059\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nCRITICAL RULE: The book cover must be reproduced EXACTLY as provided - do NOT change, modify, alter, or reimagine ANY detail of the book cover (title, text, colors, layout, imagery, fonts, proportions). The cover must appear as a pixel-perfect faithful reproduction of the original. Never regenerate or reinterpret the cover design.\n\nYour task: Generate ONE image-generation prompt for the A+2 \"WHY CHOOSE THIS BOOK\" IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n- Shows the book cover EXACTLY as it is, without any modifications whatsoever\n\nThe \"WHY CHOOSE\" image should show the book at an angle with dimensions visible, and list 3-4 key benefits with emoji icons and bold headlines on the right. Clean professional layout.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- IMPORTANT: Instruct to keep the book cover image exactly as provided, with zero alterations to any element of the cover\n- Describe the background precisely (colors, gradients, subtle patterns)\n- Describe the book positioning (angle, dimension labels like \"22,86 CM\" and \"15,24 CM\")\n- Write 3-4 benefit sections with emoji + bold Italian headline + description text\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
         "inputImages": [],
-        "outputText": null,
+        "outputText": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a solid flat Warm Sand Beige (#E8C18C) with a subtle fine paper grain texture (5% opacity) and faint, thin radial line accents in a slightly darker tan (#D4AD78) emanating from the center. On the left side, a 3D book mockup shows the cover of \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling. The book cover must be a pixel-perfect, exact reproduction of the original: a navy blue central band with the title in white and gold, sand-colored top and bottom sections with navy blue text. White dimension lines surround the book with labels \"22,86 CM\" for height and \"15,24 CM\" for width. On the right side, the layout features a main header \"PERCHÉ SCEGLIERE IL NOSTRO LIBRO?\" in bold Deep Navy Blue (#142F44). Below it, four benefit sections are listed, each with a specific emoji, a bold headline in Muted Gold (#C5A059), and description text in Deep Navy Blue (#142F44): 1. 📖 **21 GIORNI DI TRAINING** - Un percorso strutturato per padroneggiare l'arte della persuasione in sole tre settimane. 2. 🧠 **BASI SCIENTIFICHE** - Tecniche basate su neuroscienze e psicologia per influenzare in modo etico ed efficace. 3. 🛠️ **ESERCIZI PRATICI** - Strategie immediate e strumenti concreti da applicare subito in ogni contesto. 4. ✨ **RISULTATI IMMEDIATI** - Sviluppa carisma e capacità comunicative superiori per ottenere il massimo. Typography is clean, professional, and follows a clear hierarchy. The overall mood is authoritative, psychological, and premium academic. All text is in Italian. No modifications to the book cover design.",
         "provider": "google",
         "model": "gemini-3-flash-preview",
         "temperature": 0.7,
         "maxTokens": 4096,
-        "status": "idle",
+        "status": "complete",
         "error": null,
         "inputImageRefs": [
           "img-mleyhemb-brqfmn",
@@ -503,14 +558,14 @@
         "y": 1060
       },
       "data": {
-        "inputPrompt": "BACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n1. **PRIMARY BACKGROUND COLOR:** Warm Sand Tan #e9c595\n2. **ACCENT COLOR:** Amber Gold #c4a15a\n3. **GRADIENT DIRECTION:** None (Solid fill)\n4. **SUBTLE PATTERN:** Faint radial light rays emanating from the center at 10% opacity in\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nYour task: Generate ONE image-generation prompt for the A+3 DEEP DIVE / TESTIMONIALS IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n\nThe DEEP DIVE image should show the book in center with bold headlines on both sides. Include a motivational quote, a call-to-action, and dynamic visual flow elements (arrows, curves). A bonus/audiobook badge near the book.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- Describe the background precisely (colors, gradients, subtle thematic imagery)\n- Describe LEFT, CENTER, and RIGHT composition separately\n- Write the EXACT Italian text: headlines, quote, CTA, badge text\n- Include visual flow elements (arrows pointing from book to text)\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
+        "inputPrompt": "BOOK INFORMATION (use these EXACT title, subtitle and author in the prompt):\nTITLE: PERSUASIONE ISTANTANEA IN 21 GIORNI\nSUBTITLE\n\nBACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n*   **PRIMARY BACKGROUND COLOR:** Warm Sand Beige #E8C18C\n*   **NO GRADIENT:** Solid flat color base.\n*   **SUBTLE PATTERN:** Fine paper grain texture (5% opacity) with faint, thin radial line accents in a slightly darker tan (#D4AD78) emanating from the center to mimic the cover's sunburst motif.\n*   **OVERALL MOOD:** Authoritative, psychological, and premium academic.\n*   **TEXT COLORS:**\n    *   **Primary Text Color:** Deep Navy Blue #142F44\n    *   **Secondary Text Color:** Pure White #FFFFFF\n    *   **Accent Text Color:** Muted Gold #C5A059\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nCRITICAL RULE: The book cover must be reproduced EXACTLY as provided - do NOT change, modify, alter, or reimagine ANY detail of the book cover (title, text, colors, layout, imagery, fonts, proportions). The cover must appear as a pixel-perfect faithful reproduction of the original. Never regenerate or reinterpret the cover design.\n\nYour task: Generate ONE image-generation prompt for the A+3 DEEP DIVE / TESTIMONIALS IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n- Shows the book cover EXACTLY as it is, without any modifications whatsoever\n\nThe DEEP DIVE image should show the book in center with bold headlines on both sides. Include a motivational quote, a call-to-action, and dynamic visual flow elements (arrows, curves). A bonus/audiobook badge near the book.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- IMPORTANT: Instruct to keep the book cover image exactly as provided, with zero alterations to any element of the cover\n- Describe the background precisely (colors, gradients, subtle thematic imagery)\n- Describe LEFT, CENTER, and RIGHT composition separately\n- Write the EXACT Italian text: headlines, quote, CTA, badge text\n- Include visual flow elements (arrows pointing from book to text)\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
         "inputImages": [],
-        "outputText": null,
+        "outputText": "Professional Amazon A+ marketing banner, 970x600 pixels, 16:9 aspect ratio. The background is a solid flat Warm Sand Beige (#E8C18C) with a fine paper grain texture and faint, thin radial line accents in a slightly darker tan (#D4AD78) emanating from the center.\n\n**COMPOSITION:**\n- **LEFT SIDE:** A hand holds a physical copy of the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling. The book cover must be a pixel-perfect, faithful reproduction of the original: a top beige section with the title in Deep Navy Blue, a middle navy blue block with \"ISTANTANEA IN 21 GIORNI\" in white and gold, and a bottom beige section with the author \"MATT RAWLING\" in navy. A small circular Muted Gold (#C5A059) badge with the text \"INCLUSO BONUS AUDIOBOOK\" is placed on the book cover. Above the book, a large bold headline in Deep Navy Blue (#142F44): \"POTERE MENTALE: DOMINA OGNI CONVERSAZIONE!\"\n- **CENTER:** A curved Muted Gold arrow points from the book toward a central motivational quote in Deep Navy Blue (#142F44): \"La persuasione non è manipolazione, ma l'arte di connettersi profondamente con gli altri.\"\n- **RIGHT SIDE:** A large bold headline in Deep Navy Blue (#142F44): \"IL SUCCESSO È UNA SCIENZA: AGISCI ORA!\". Below it, a descriptive paragraph in Deep Navy Blue: \"Il segreto per influenzare con integrità? Comprendere i meccanismi del cervello. Questa guida pratica ti insegna a comunicare con impatto, superare le obiezioni e ottenere il 'sì' che meriti.\" At the bottom right, a prominent call-to-action in Deep Navy Blue: \"Inizia oggi il tuo viaggio verso il successo comunicativo!\" with a Muted Gold arrow pointing toward the text.\n\n**STYLE & TYPOGRAPHY:**\nThe mood is authoritative, psychological, and premium academic. Use a clean, bold sans-serif font for headlines and a legible serif font for the body text. All text is in Italian. Primary text color is Deep Navy Blue (#142F44), with accents in Muted Gold (#C5A059). The book cover must remain exactly as provided with no alterations to its design or text. High-resolution, studio lighting, professional marketing aesthetic.",
         "provider": "google",
         "model": "gemini-3-flash-preview",
         "temperature": 0.7,
         "maxTokens": 4096,
-        "status": "idle",
+        "status": "complete",
         "error": null,
         "inputImageRefs": [
           "img-mleyhemb-brqfmn",
@@ -535,15 +590,19 @@
         "y": 1390
       },
       "data": {
-        "inputPrompt": null,
+        "inputPrompt": "BOOK INFORMATION (use these EXACT title, subtitle and author in the prompt):\nTITLE: PERSUASIONE ISTANTANEA IN 21 GIORNI\nSUBTITLE\n\nBACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n*   **PRIMARY BACKGROUND COLOR:** Warm Sand Beige #E8C18C\n*   **NO GRADIENT:** Solid flat color base.\n*   **SUBTLE PATTERN:** Fine paper grain texture (5% opacity) with faint, thin radial line accents in a slightly darker tan (#D4AD78) emanating from the center to mimic the cover's sunburst motif.\n*   **OVERALL MOOD:** Authoritative, psychological, and premium academic.\n*   **TEXT COLORS:**\n    *   **Primary Text Color:** Deep Navy Blue #142F44\n    *   **Secondary Text Color:** Pure White #FFFFFF\n    *   **Accent Text Color:** Muted Gold #C5A059\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nCRITICAL RULE: The book cover must be reproduced EXACTLY as provided - do NOT change, modify, alter, or reimagine ANY detail of the book cover (title, text, colors, layout, imagery, fonts, proportions). The cover must appear as a pixel-perfect faithful reproduction of the original. Never regenerate or reinterpret the cover design.\n\nYour task: Generate ONE image-generation prompt for the A+4 EMOTIONAL CONNECTION IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n- Shows the book cover EXACTLY as it is, without any modifications whatsoever\n\nThe EMOTIONAL CONNECTION image uses a split layout: LEFT side shows a relatable person (matching the book's target audience) in a confident pose with warm lighting. RIGHT side has emotional Italian headlines and descriptive text. Book cover visible. Human element adds trust and relatability.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- IMPORTANT: Instruct to keep the book cover image exactly as provided, with zero alterations to any element of the cover\n- Describe the background precisely (colors, gradients)\n- Describe the person: appearance, pose, expression, attire (matching the book's audience)\n- Write emotional Italian headlines addressing the reader's pain points\n- Write persuasive body copy adapted to the book's specific topic\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
         "inputImages": [],
-        "outputText": null,
+        "outputText": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. Split-screen layout. BACKGROUND: Solid flat Warm Sand Beige #E8C18C with a fine paper grain texture (5% opacity) and faint, thin radial line accents in #D4AD78 emanating from the center. LEFT SIDE: A professional, confident man in his 30s wearing a navy blue blazer and a crisp white shirt, arms crossed in a self-assured yet approachable pose, looking directly at the camera with a subtle smile, warm studio lighting. Superimposed text on the left bottom in bold white sans-serif: \"NON TI ASCOLTANO? ECCO LA SOLUZIONE!\". RIGHT SIDE: Top headline in Deep Navy Blue #142F44: \"LA TUA VOCE HA UN POTERE IMMENSO!\". Below it, descriptive text in Navy Blue: \"La psicologia della comunicazione ti aiuterà a trasformare ogni interazione in un'opportunità e a vivere con più carisma.\" Middle headline in Deep Navy Blue #142F44: \"SCOPRI IL SEGRETO PER PERSUADERE CON ETICA\". Below it, persuasive body copy in Navy Blue: \"Le tecniche di neuroscienza spiegate passo dopo passo per farti ascoltare, gestire le obiezioni e riscoprire il piacere di influenzare positivamente chi ti circonda.\" FAR RIGHT: A high-quality 3D standing book mockup. CRITICAL: The book cover must be a pixel-perfect, EXACT reproduction of the provided image: Title \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" (with '21' in Muted Gold #C5A059), Subtitle \"NEUROSCIENZE E PSICOLOGIA DELLA COMUNICAZIONE\", and Author \"MATT RAWLING\". Do not alter any colors, fonts, or layout elements of the cover. TEXT COLORS: Headings in Deep Navy Blue #142F44, highlights in Muted Gold #C5A059. MOOD: Authoritative, psychological, and premium academic.",
         "provider": "google",
         "model": "gemini-3-flash-preview",
         "temperature": 0.7,
         "maxTokens": 4096,
-        "status": "idle",
-        "error": null
+        "status": "complete",
+        "error": null,
+        "inputImageRefs": [
+          "img-mleyjzyg-8x4rzz",
+          "img-mleyk07q-v1jeti"
+        ]
       },
       "style": {
         "width": 320,
@@ -563,15 +622,19 @@
         "y": 1720
       },
       "data": {
-        "inputPrompt": null,
+        "inputPrompt": "BOOK INFORMATION (use these EXACT title, subtitle and author in the prompt):\nTITLE: PERSUASIONE ISTANTANEA IN 21 GIORNI\nSUBTITLE\n\nBACKGROUND STYLE GUIDE (use EXACTLY for this image's background):\n**BACKGROUND STYLE SPECIFICATION**\n\n*   **PRIMARY BACKGROUND COLOR:** Warm Sand Beige #E8C18C\n*   **NO GRADIENT:** Solid flat color base.\n*   **SUBTLE PATTERN:** Fine paper grain texture (5% opacity) with faint, thin radial line accents in a slightly darker tan (#D4AD78) emanating from the center to mimic the cover's sunburst motif.\n*   **OVERALL MOOD:** Authoritative, psychological, and premium academic.\n*   **TEXT COLORS:**\n    *   **Primary Text Color:** Deep Navy Blue #142F44\n    *   **Secondary Text Color:** Pure White #FFFFFF\n    *   **Accent Text Color:** Muted Gold #C5A059\n\n---\n\nIMAGE-SPECIFIC INSTRUCTIONS:\nYou are an expert Amazon A+ content designer. You will receive TWO images:\n1. A BOOK COVER - analyze it to extract: title, author, subtitle, color palette, design style, genre, target audience, mood\n2. An A+ REFERENCE LAYOUT - study its exact composition, text placement, visual elements, and structure\n\nCRITICAL RULE: The book cover must be reproduced EXACTLY as provided - do NOT change, modify, alter, or reimagine ANY detail of the book cover (title, text, colors, layout, imagery, fonts, proportions). The cover must appear as a pixel-perfect faithful reproduction of the original. Never regenerate or reinterpret the cover design.\n\nYour task: Generate ONE image-generation prompt for the A+5 BONUS / EBOOK IMAGE that:\n- Replicates the EXACT layout, composition, and structure from the reference image\n- Adapts ALL text content to match THIS book's topic, title, and themes\n- Matches the book cover's color palette (primary, secondary, accent colors)\n- Uses the book's actual title, author name, and subject matter\n- Writes all visible text in Italian\n- Shows the book cover EXACTLY as it is, without any modifications whatsoever\n\nThe BONUS image should show a tablet/iPad displaying the ebook version of the book. Include a headphone/audio icon for audiobook. Prominently display \"INCLUSO\" / \"BONUS\" badges. Include text about the free ebook PDF and audiobook included with purchase. Modern tech aesthetic blended with the book's color palette.\n\nIn your prompt:\n- Specify \"professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels\"\n- IMPORTANT: Instruct to keep the book cover image exactly as provided, with zero alterations to any element of the cover\n- Describe the background precisely (colors, gradients, light effects)\n- Describe the tablet device showing the ebook adaptation of the cover\n- Write Italian text: \"CON L'ACQUISTO DEL LIBRO\", \"INCLUSO\", ebook description, motivational closing line\n- Include badge elements (\"INCLUSO BONUS & AUDIOLIBRO\")\n- Specify typography styles (bold, serif, italic, size hierarchy)\n- Reference the book's actual title and author by name\n\nOutput ONLY the image generation prompt, nothing else. No explanations, no headers.",
         "inputImages": [],
-        "outputText": null,
+        "outputText": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a solid Warm Sand Beige (#E8C18C) with a subtle fine paper grain texture at 5% opacity and faint, thin radial line accents in a slightly darker tan (#D4AD78) emanating from the center. On the right side, a high-end modern tablet with a stylus rests vertically, its screen displaying a pixel-perfect, faithful reproduction of the book cover: Title \"PERSUASIONE ISTANTANEA IN 21 GIORNI\", Subtitle \"NEUROSCIENZE E PSICOLOGIA DELLA COMUNICAZIONE\", and Author \"MATT RAWLING\". Do not modify, alter, or reimagine any element of the book cover; it must appear exactly as provided in the original design with the navy blue central band and gold \"21 GIORNI\". Above the tablet, a minimalist white headphone and audio player interface icon floats elegantly. In the center-top, a premium circular gold seal badge reads \"INCLUSO BONUS & AUDIOLIBRO\" in elegant typography. On the left side, the text is arranged in a clean hierarchy: at the top \"CON L'ACQUISTO DEL LIBRO\" in Deep Navy Blue (#142F44) small caps; below it, the word \"INCLUSO\" in massive, bold Deep Navy Blue font; followed by \"UN FANTASTICO EBOOK DA SCARICARE PER TE IN PDF CON AUDIOLIBRO\" in Pure White (#FFFFFF) sans-serif bold. At the bottom left, a motivational paragraph in Deep Navy Blue reads: \"La padronanza della comunicazione non è un dono, ma una scienza da apprendere. Non aspettarti miracoli senza pratica. Ogni giorno, dedica tempo alle tecniche di persuasione: un gesto studiato, una parola efficace, un'influenza consapevole.\" The overall mood is authoritative, psychological, and premium academic, utilizing a palette of Deep Navy Blue, Pure White, and Muted Gold (#C5A059). High-resolution, studio lighting, professional graphic design composition.",
         "provider": "google",
         "model": "gemini-3-flash-preview",
         "temperature": 0.7,
         "maxTokens": 4096,
-        "status": "idle",
-        "error": null
+        "status": "complete",
+        "error": null,
+        "inputImageRefs": [
+          "img-mleyjzyg-8x4rzz",
+          "img-mleyk081-62xweu"
+        ]
       },
       "style": {
         "width": 320,
@@ -592,7 +655,7 @@
       },
       "data": {
         "inputImages": [],
-        "inputPrompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a premium dark navy blue with subtle golden light gradients and radial rays emanating from behind the book. On the LEFT side, a pair of hands is holding the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling, with the cover design clearly visible. On the RIGHT side, the layout features a sophisticated typographic hierarchy in Italian. Top right includes a small red ribbon badge with \"1st\". Main headline in large, bold golden sans-serif font: \"DOMINA L'ARTE DELLA PERSUASIONE\". Below it, a sub-headline in white: \"Vuoi influenzare le decisioni altrui?\". The main body text in a clean white sans-serif font reads: \"Scopri i segreti delle neuroscienze e della psicologia della comunicazione. In soli 21 giorni, imparerai tecniche scientifiche immediate per aumentare il tuo carisma, superare le obiezioni e ottenere ciò che desideri con naturalezza e integrità.\" In the upper left area of the text block, a circular gold seal/badge says \"METODO SCIENTIFICO\". The color palette strictly follows the book cover: deep navy blue (#1a2e40), amber gold (#d9a86a), and crisp white. High-end, professional, and authoritative mood.",
+        "inputPrompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a solid flat Warm Sand Beige (#E8C18C) with a subtle fine paper grain texture and faint, thin radial line accents in a slightly darker tan (#D4AD78) emanating from the center. \n\nLEFT SIDE COMPOSITION: A pair of hands holds the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling. The book cover must be reproduced EXACTLY as provided: a deep navy blue central band with the words \"ISTANTANEA\" in large white block letters and \"IN 21 GIORNI\" (with \"21\" in muted gold), a beige top section with the title \"PERSUASIONE\" in navy, and a beige bottom section with the author name \"MATT RAWLING\" in navy. No modifications to the cover design are permitted. In the top left corner, include a gold circular seal badge with the white text \"INCLUSO BONUS AUDIO\".\n\nRIGHT SIDE COMPOSITION: High-end typography layout in Italian. \n- At the top, the text \"METODO COMPLETO\" in Muted Gold #C5A059.\n- Main Headline: \"PADRONEGGIA L'ARTE DELLA PERSUASIONE\" in large, bold Deep Navy Blue #142F44.\n- Sub-headline: \"Vuoi influenzare gli altri con integrità e successo?\" in Deep Navy Blue #142F44.\n- Body Copy: \"Scopri le tecniche basate sulle neuroscienze per comunicare in modo efficace. Questo libro è la tua guida pratica per sviluppare carisma, leadership e controllo totale in soli 21 giorni. Con strategie scientifiche testate, trasformerai ogni conversazione in un'opportunità di successo.\" in Deep Navy Blue #142F44.\n- In the top right corner, a small red ribbon badge with white text \"N. 1\".\n\nThe overall mood is authoritative, psychological, and premium academic, utilizing a color palette of Deep Navy Blue (#142F44), Pure White (#FFFFFF), and Muted Gold (#C5A059) for all text elements.",
         "outputImage": null,
         "aspectRatio": "16:9",
         "resolution": "1K",
@@ -601,6 +664,41 @@
         "status": "complete",
         "error": null,
         "imageHistory": [
+          {
+            "id": "professional_amazon_a_marketi_3d47637584f7afce57e059baa785bcd2",
+            "timestamp": 1770633801221,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a solid flat Warm Sand Beige (#E8C18C) with a subtle fine paper grain texture and faint, thin radial line accents in a slightly darker tan (#D4AD78) emanating from the center. \n\nLEFT SIDE COMPOSITION: A pair of hands holds the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling. The book cover must be reproduced EXACTLY as provided: a deep navy blue central band with the words \"ISTANTANEA\" in large white block letters and \"IN 21 GIORNI\" (with \"21\" in muted gold), a beige top section with the title \"PERSUASIONE\" in navy, and a beige bottom section with the author name \"MATT RAWLING\" in navy. No modifications to the cover design are permitted. In the top left corner, include a gold circular seal badge with the white text \"INCLUSO BONUS AUDIO\".\n\nRIGHT SIDE COMPOSITION: High-end typography layout in Italian. \n- At the top, the text \"METODO COMPLETO\" in Muted Gold #C5A059.\n- Main Headline: \"PADRONEGGIA L'ARTE DELLA PERSUASIONE\" in large, bold Deep Navy Blue #142F44.\n- Sub-headline: \"Vuoi influenzare gli altri con integrità e successo?\" in Deep Navy Blue #142F44.\n- Body Copy: \"Scopri le tecniche basate sulle neuroscienze per comunicare in modo efficace. Questo libro è la tua guida pratica per sviluppare carisma, leadership e controllo totale in soli 21 giorni. Con strategie scientifiche testate, trasformerai ogni conversazione in un'opportunità di successo.\" in Deep Navy Blue #142F44.\n- In the top right corner, a small red ribbon badge with white text \"N. 1\".\n\nThe overall mood is authoritative, psychological, and premium academic, utilizing a color palette of Deep Navy Blue (#142F44), Pure White (#FFFFFF), and Muted Gold (#C5A059) for all text elements.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "professional_amazon_a_marketi_953e1de5e13947e4fe438b53c251fbbb",
+            "timestamp": 1770632321126,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a premium Warm Sand Beige #e9bc84 with a subtle matte paper grain texture and a fine radial sunburst line texture emanating from the edges at 12% opacity. On the LEFT side, a pair of hands prominently holds the book titled \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling. The book cover must be a pixel-perfect, exact reproduction of the original: the word \"PERSUASIONE\" in Deep Navy Blue #112c43 on a beige top, a central navy blue block with \"ISTANTANEA IN 21 GIORNI\" in white and gold, and the subtitle and author name on the bottom beige section. On the RIGHT side, the composition features a bold headline in Deep Navy Blue #112c43: \"DOMINA L'ARTE DELLA PERSUASIONE\". Below it, a compelling question in white: \"Vuoi influenzare le decisioni e comunicare con impatto?\". This is followed by a descriptive paragraph in Deep Navy Blue: \"Sviluppa carisma e autorevolezza grazie alle neuroscienze. Un percorso pratico di 21 giorni per trasformare il tuo modo di interagire e ottenere risultati immediati con tecniche scientifiche testate e strategie di comunicazione efficaci.\" In the top left corner, a circular gold and white seal badge reads \"METODO SCIENTIFICO\". Typography utilizes a hierarchy of bold sans-serif for headlines and clean, readable text for the description. The overall mood is premium, authoritative, and psychological.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "professional_amazon_a_marketi_b954117417a1fa6aaa087d3d794ee3c4",
+            "timestamp": 1770631191923,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a solid Warm Sand Beige #e8c491 with a fine canvas grain texture and a faint, thin-line radial sunburst pattern emanating from the center. \n\nOn the LEFT side, a pair of hands holds the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by MATT RAWLING. The book cover must be an EXACT, pixel-perfect faithful reproduction of the original image provided: the top third is beige with the word \"PERSUASIONE\" in large Deep Navy Blue caps; the middle is a Deep Navy Blue block with \"ISTANTANEA\" in white and \"IN 21 GIORNI\" in white with a gold \"21\"; the bottom third is beige with the subtitle \"NEUROSCIENZE E PSICOLOGIA DELLA COMUNICAZIONE\" and the author \"MATT RAWLING\" in Deep Navy Blue. \n\nA circular gold and white seal badge in the top left corner contains the text \"BONUS AUDIO LIBRO INCLUSO\". \n\nOn the RIGHT side, the marketing text is arranged in a clean hierarchy using Deep Navy Blue #1a2e40:\n- Top right: A small red ribbon tag with \"1st\" in white.\n- Small Headline: \"METODO SCIENTIFICO\" in bold caps.\n- Main Headline: \"PERSUASIONE ISTANTANEA: PRENDI IL COMANDO!\" in large, bold uppercase Deep Navy Blue.\n- Call-to-action Question: \"Vuoi padroneggiare l'arte della comunicazione?\" in bold Deep Navy Blue.\n- Body Description: \"È il momento di evolvere. Questo libro è il tuo alleato per padroneggiare le neuroscienze e la psicologia applicata. Con strategie immediate e tecniche testate, scoprirai come influenzare con integrità e ottenere risultati straordinari in soli 21 giorni.\" in a clean, professional sans-serif font.\n\nThe overall mood is Premium Academic and Professional. The color palette is strictly limited to Deep Navy Blue #1a2e40, Pure White #ffffff, Muted Gold #c5a059, and Warm Sand Beige #e8c491. All visible text is in Italian.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "professional_amazon_a_marketi_4df5b81b63cc8663dd82ba72ed6e0dc4",
+            "timestamp": 1770630728219,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a solid Warm Sand Beige (#f1c991) with a subtle radial halftone sunburst texture consisting of fine micro-dots radiating from the center in a slightly darker tan shade (#d9b37c) at 15% opacity. The overall mood is premium, academic, and authoritative. \n\nCOMPOSITION LEFT SIDE: A pair of hands realistically holds the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling. The book cover must be reproduced EXACTLY as provided: a three-band design with a sand-beige top (title \"PERSUASIONE\" in navy), a deep navy middle band (text \"ISTANTANEA IN 21 GIORNI\" in white and gold), and a sand-beige bottom (author \"MATT RAWLING\"). To the upper left of the book, place a circular gold seal badge with the Italian text \"INCLUSO BONUS ESCLUSIVO\".\n\nCOMPOSITION RIGHT SIDE: \n- Top right accent text in Muted Gold (#c5a059): \"IL METODO SCIENTIFICO\"\n- Main Headline in Deep Navy Blue (#0a253d), large bold sans-serif: \"DOMINA L'ARTE DELLA PERSUASIONE!\"\n- Sub-headline in Deep Navy Blue (#0a253d), medium bold: \"Vuoi influenzare gli altri con integrità?\"\n- Body copy in Deep Navy Blue (#0a253d), elegant readable font: \"È il momento di sbloccare il tuo potenziale comunicativo. Questo libro è il tuo alleato per padroneggiare le neuroscienze, influenzare le decisioni e ottenere risultati immediati. Con tecniche scientifiche testate, scoprirai come persuadere con eleganza e costruire una leadership carismatica.\"\n\nTYPOGRAPHY: Use a clean, modern sans-serif hierarchy. Headlines are bold and prominent in Navy Blue; body text is balanced and centered on the right half. All text is in Italian. Lighting is soft and professional, highlighting the book as the hero element.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "professional_amazon_a_marketi_f61f6a2527c6f60afb085d389ccc8d5b",
+            "timestamp": 1770628600180,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a solid Warm Sand Tan #e9c595 with faint radial light rays emanating from the center at 10% opacity in Amber Gold #c4a15a. On the LEFT side, two hands hold the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling at a slight angle; the book cover features a thick dark navy blue central band with the title in bold white and gold typography. In the top left corner, a gold circular seal badge reads \"INCLUSO BONUS PDF\". On the RIGHT side, the layout follows a clean hierarchy: at the top right, a gold ribbon icon with the text \"TECNICHE SCIENTIFICHE\". Below it, a large, bold headline in dark navy blue: \"PERSUASIONE EFFICACE: DOMINA L'ARTE DELLA COMUNICAZIONE!\". Underneath, a sub-headline in dark navy blue: \"Vuoi influenzare e convincere chiunque?\". The main body text in dark navy blue reads: \"È il momento di sbloccare il tuo potenziale. Questo libro è il tuo alleato per imparare a persuadere, eliminare le barriere comunicative e prendere il controllo delle tue interazioni. Con strategie basate sulle neuroscienze e tecniche pratiche, scoprirai come sviluppare carisma e creare una presenza magnetica.\" Typography uses professional sans-serif fonts with clear hierarchy and premium styling.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
           {
             "id": "professional_amazon_a_marketi_46267a47142e0c140c53793e5478474f",
             "timestamp": 1770628194496,
@@ -659,13 +757,13 @@
           "img-ml9mvuyr-7mbzme",
           "img-ml9mwh0i-7t5xk3"
         ],
-        "outputImageRef": "professional_amazon_a_marketi_46267a47142e0c140c53793e5478474f"
+        "outputImageRef": "professional_amazon_a_marketi_3d47637584f7afce57e059baa785bcd2"
       },
       "style": {
         "width": 408,
         "height": 372
       },
-      "selected": true,
+      "selected": false,
       "measured": {
         "width": 408,
         "height": 372
@@ -681,7 +779,7 @@
       },
       "data": {
         "inputImages": [],
-        "inputPrompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a sophisticated cream and beige gradient with a subtle paper texture and radial light. On the left, a 3D mockup of the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling; the cover design features a prominent dark navy blue central band with bold white text and cream-colored top and bottom sections. The book is presented at a slight angle with clean white dimension labels reading \"22,86 CM\" vertically and \"15,24 CM\" horizontally. On the right side, the layout features professional Italian marketing text. The main heading at the top right is \"PERCHÉ SCEGLIERE IL NOSTRO LIBRO?\" in bold dark navy blue. Below it, four benefit sections are listed with colored icons and bold headlines: 1) \"📖 METODO SCIENTIFICO: Un percorso basato sulle neuroscienze per influenzare e persuadere eticamente.\"; 2) \"🧠 PSICOLOGIA APPLICATA: Tecniche testate per decodificare il comportamento umano e comunicare meglio.\"; 3) \"🎧 BONUS AUDIO + PDF: Ascolta i contenuti extra e segui gli esercizi pratici con il materiale incluso.\"; 4) \"🔥 RISULTATI IMMEDIATI: Strategie concrete ed efficaci per trasformare la tua comunicazione da subito.\" Typography uses a clean, modern sans-serif font with a clear hierarchy. Color palette: Dark Navy Blue, Cream, and Gold accents. High-end, clean, and authoritative aesthetic.",
+        "inputPrompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a solid flat Warm Sand Beige (#E8C18C) with a subtle fine paper grain texture (5% opacity) and faint, thin radial line accents in a slightly darker tan (#D4AD78) emanating from the center. On the left side, a 3D book mockup shows the cover of \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling. The book cover must be a pixel-perfect, exact reproduction of the original: a navy blue central band with the title in white and gold, sand-colored top and bottom sections with navy blue text. White dimension lines surround the book with labels \"22,86 CM\" for height and \"15,24 CM\" for width. On the right side, the layout features a main header \"PERCHÉ SCEGLIERE IL NOSTRO LIBRO?\" in bold Deep Navy Blue (#142F44). Below it, four benefit sections are listed, each with a specific emoji, a bold headline in Muted Gold (#C5A059), and description text in Deep Navy Blue (#142F44): 1. 📖 **21 GIORNI DI TRAINING** - Un percorso strutturato per padroneggiare l'arte della persuasione in sole tre settimane. 2. 🧠 **BASI SCIENTIFICHE** - Tecniche basate su neuroscienze e psicologia per influenzare in modo etico ed efficace. 3. 🛠️ **ESERCIZI PRATICI** - Strategie immediate e strumenti concreti da applicare subito in ogni contesto. 4. ✨ **RISULTATI IMMEDIATI** - Sviluppa carisma e capacità comunicative superiori per ottenere il massimo. Typography is clean, professional, and follows a clear hierarchy. The overall mood is authoritative, psychological, and premium academic. All text is in Italian. No modifications to the book cover design.",
         "outputImage": null,
         "aspectRatio": "16:9",
         "resolution": "1K",
@@ -690,6 +788,34 @@
         "status": "complete",
         "error": null,
         "imageHistory": [
+          {
+            "id": "professional_amazon_a_marketi_203ef583d898497c15cb40ae03db5c7c",
+            "timestamp": 1770633790998,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a solid flat Warm Sand Beige (#E8C18C) with a subtle fine paper grain texture (5% opacity) and faint, thin radial line accents in a slightly darker tan (#D4AD78) emanating from the center. On the left side, a 3D book mockup shows the cover of \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling. The book cover must be a pixel-perfect, exact reproduction of the original: a navy blue central band with the title in white and gold, sand-colored top and bottom sections with navy blue text. White dimension lines surround the book with labels \"22,86 CM\" for height and \"15,24 CM\" for width. On the right side, the layout features a main header \"PERCHÉ SCEGLIERE IL NOSTRO LIBRO?\" in bold Deep Navy Blue (#142F44). Below it, four benefit sections are listed, each with a specific emoji, a bold headline in Muted Gold (#C5A059), and description text in Deep Navy Blue (#142F44): 1. 📖 **21 GIORNI DI TRAINING** - Un percorso strutturato per padroneggiare l'arte della persuasione in sole tre settimane. 2. 🧠 **BASI SCIENTIFICHE** - Tecniche basate su neuroscienze e psicologia per influenzare in modo etico ed efficace. 3. 🛠️ **ESERCIZI PRATICI** - Strategie immediate e strumenti concreti da applicare subito in ogni contesto. 4. ✨ **RISULTATI IMMEDIATI** - Sviluppa carisma e capacità comunicative superiori per ottenere il massimo. Typography is clean, professional, and follows a clear hierarchy. The overall mood is authoritative, psychological, and premium academic. All text is in Italian. No modifications to the book cover design.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "professional_amazon_a_marketi_777d188963528ccdca5cab74da586edd",
+            "timestamp": 1770632344294,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a premium Warm Sand Beige (#e9bc84) with a subtle matte paper grain texture and fine radial sunburst lines emanating from the edges at 12% opacity. On the left side, a pair of hands holds a high-resolution 3D book mockup. The book cover is a pixel-perfect reproduction of \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling: it features a central deep navy blue horizontal band with the words \"ISTANTANEA\" in white and \"IN 21 GIORNI\" (with \"21\" in muted gold), flanked by warm sand beige sections at the top and bottom containing the words \"PERSUASIONE\" and \"MATT RAWLING\" in deep navy blue. White dimension lines label the book as \"22,86 CM\" high and \"15,24 CM\" wide. To the right of the book, the headline \"PERCHÉ SCEGLIERE IL NOSTRO LIBRO?\" appears in bold Deep Navy Blue (#112c43) capital letters. Below the headline, four benefit sections are listed in Italian, each featuring an emoji, a bold headline in Muted Gold (#c4a16b), and description text in Deep Navy Blue: \"🧠 BASI SCIENTIFICHE - Scopri le ultime scoperte delle neuroscienze applicate alla persuasione quotidiana.\"; \"⏱️ RISULTATI IN 21 GIORNI - Un percorso strutturato passo dopo passo per padroneggiare l'arte di influenzare.\"; \"🎯 COMUNICAZIONE EFFICACE - Tecniche pratiche per migliorare il tuo carisma e la tua capacità di negoziazione.\"; \"🛠️ STRUMENTI PRATICI - Esercizi immediati e strategie concrete per trasformare ogni tua interazione.\" The overall composition is clean, authoritative, and professional, using a sophisticated sans-serif typography hierarchy.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "professional_amazon_a_marketi_11100c3c3bdccedb02f0555e8a8b52eb",
+            "timestamp": 1770631187926,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a solid Warm Sand Beige (#e8c491) with a subtle fine canvas grain texture and a faint, thin-line radial sunburst pattern emanating from the center. On the left side, a pair of hands holds a physical copy of the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling. The book cover must be reproduced exactly: a central deep navy blue band with \"ISTANTANEA\" in large white block letters and \"IN 21 GIORNI\" in white and muted gold, with beige top and bottom sections containing navy text. White dimension lines with labels \"22,86 CM\" and \"15,24 CM\" are positioned around the book. On the right side, the main headline is \"PERCHÉ SCEGLIERE IL NOSTRO LIBRO?\" in bold Deep Navy Blue (#1a2e40). Below the headline, there are four benefit sections with emoji icons: \"🧠 NEUROSCIENZE APPLICATE - Comprendi i meccanismi cerebrali che guidano le decisioni e il comportamento.\", \"⏱️ RISULTATI IN 21 GIORNI - Un percorso strutturato passo dopo passo per padroneggiare l'arte della persuasione.\", \"🛠️ TECNICHE PRATICHE - Esercizi immediati e strategie concrete per influenzare ogni conversazione.\", and \"🎓 APPROCCIO SCIENTIFICO - Metodi basati sulla psicologia della comunicazione per risultati reali.\" The typography is professional and clean, using Deep Navy Blue for headlines and Muted Gold (#c5a059) for accents. High-quality studio lighting, premium academic aesthetic, all text in Italian.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "professional_amazon_a_marketi_6a425abfeb0c807abdbce89bd3467662",
+            "timestamp": 1770628598207,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a solid Warm Sand Tan #e9c595 with faint radial light rays in Amber Gold #c4a15a at 10% opacity emanating from the center. On the left side, a high-quality 3D mockup of the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling is displayed at a slight angle, held by hands at the bottom. The book cover features a dark navy blue central band with the title in bold white and gold. White dimension lines with arrows indicate \"22,86 CM\" for height and \"15,24 CM\" for width. On the right side, the text is arranged in a clean, professional layout in Italian: At the top, a bold headline in dark navy blue reads \"PERCHÉ SCEGLIERE IL NOSTRO LIBRO?\". Below it are four benefit sections: 1) 📘 **METODO SCIENTIFICO** - Un percorso basato su neuroscienze per padroneggiare l'arte della persuasione. 2) 🧠 **PSICOLOGIA PRATICA** - Tecniche testate per influenzare positivamente e comunicare con carisma. 3) 🎧 **BONUS AUDIO + PDF** - Esercizi pratici e contenuti extra per un apprendimento rapido ed efficace. 4) 🔥 **RISULTATI IMMEDIATI** - Strategie concrete per trasformare le tue abilità comunicative in soli 21 giorni. The typography uses bold navy blue for headlines and a clean, readable font for descriptions, with Amber Gold accents. Professional studio lighting, sharp focus, marketing-ready composition.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
           {
             "id": "professional_amazon_a_marketi_a85729dbfaff15d533b5c67fe54cca74",
             "timestamp": 1770309339348,
@@ -734,7 +860,7 @@
           "img-ml9mvuyr-7mbzme",
           "img-ml9mwh0q-qjxh31"
         ],
-        "outputImageRef": "professional_amazon_a_marketi_a85729dbfaff15d533b5c67fe54cca74"
+        "outputImageRef": "professional_amazon_a_marketi_203ef583d898497c15cb40ae03db5c7c"
       },
       "style": {
         "width": 408,
@@ -759,7 +885,7 @@
       },
       "data": {
         "inputImages": [],
-        "inputPrompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a sophisticated gradient of warm beige and tan with subtle, elegant neural network patterns. \nCENTER-LEFT: A hand holds the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling. The book cover features a navy blue center band and tan top/bottom sections. A gold circular badge on the book says \"BONUS AUDIO LIBRO\". \nTOP LEFT: Large, bold navy blue sans-serif headline: \"POTERE DELLA MENTE: DOMINA L'ARTE DI PERSUADERE!\". \nTOP RIGHT: Large, bold navy blue sans-serif headline: \"LA COMUNICAZIONE È UNA SCIENZA: AGISCI ORA!\". \nRIGHT CENTER: Professional navy blue body text: \"Il segreto per influenzare chiunque? Padroneggiare le neuroscienze. Questa guida pratica trasforma le tue parole in strumenti di successo immediato.\" \nBOTTOM CENTER: Motivational quote in gold italics: \"Non aspettare che gli altri cambino. Impara le tecniche per guidare ogni conversazione.\" \nBOTTOM RIGHT: Call-to-action in bold navy blue: \"Inizia oggi il tuo viaggio verso il carisma assoluto!\" with a gold curved arrow pointing towards it from the book. \nVisual flow elements: Tan and gold curved arrows connecting the book to the various text blocks. Typography is modern, bold, and clean, mirroring the book cover's style. High-quality marketing graphic design, sharp focus, professional lighting. All text is in Italian.",
+        "inputPrompt": "Professional Amazon A+ marketing banner, 970x600 pixels, 16:9 aspect ratio. The background is a solid flat Warm Sand Beige (#E8C18C) with a fine paper grain texture and faint, thin radial line accents in a slightly darker tan (#D4AD78) emanating from the center.\n\n**COMPOSITION:**\n- **LEFT SIDE:** A hand holds a physical copy of the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling. The book cover must be a pixel-perfect, faithful reproduction of the original: a top beige section with the title in Deep Navy Blue, a middle navy blue block with \"ISTANTANEA IN 21 GIORNI\" in white and gold, and a bottom beige section with the author \"MATT RAWLING\" in navy. A small circular Muted Gold (#C5A059) badge with the text \"INCLUSO BONUS AUDIOBOOK\" is placed on the book cover. Above the book, a large bold headline in Deep Navy Blue (#142F44): \"POTERE MENTALE: DOMINA OGNI CONVERSAZIONE!\"\n- **CENTER:** A curved Muted Gold arrow points from the book toward a central motivational quote in Deep Navy Blue (#142F44): \"La persuasione non è manipolazione, ma l'arte di connettersi profondamente con gli altri.\"\n- **RIGHT SIDE:** A large bold headline in Deep Navy Blue (#142F44): \"IL SUCCESSO È UNA SCIENZA: AGISCI ORA!\". Below it, a descriptive paragraph in Deep Navy Blue: \"Il segreto per influenzare con integrità? Comprendere i meccanismi del cervello. Questa guida pratica ti insegna a comunicare con impatto, superare le obiezioni e ottenere il 'sì' che meriti.\" At the bottom right, a prominent call-to-action in Deep Navy Blue: \"Inizia oggi il tuo viaggio verso il successo comunicativo!\" with a Muted Gold arrow pointing toward the text.\n\n**STYLE & TYPOGRAPHY:**\nThe mood is authoritative, psychological, and premium academic. Use a clean, bold sans-serif font for headlines and a legible serif font for the body text. All text is in Italian. Primary text color is Deep Navy Blue (#142F44), with accents in Muted Gold (#C5A059). The book cover must remain exactly as provided with no alterations to its design or text. High-resolution, studio lighting, professional marketing aesthetic.",
         "outputImage": null,
         "aspectRatio": "16:9",
         "resolution": "1K",
@@ -768,6 +894,34 @@
         "status": "complete",
         "error": null,
         "imageHistory": [
+          {
+            "id": "professional_amazon_a_marketi_49bac59e6968fb5f242cf9f168055016",
+            "timestamp": 1770633793622,
+            "prompt": "Professional Amazon A+ marketing banner, 970x600 pixels, 16:9 aspect ratio. The background is a solid flat Warm Sand Beige (#E8C18C) with a fine paper grain texture and faint, thin radial line accents in a slightly darker tan (#D4AD78) emanating from the center.\n\n**COMPOSITION:**\n- **LEFT SIDE:** A hand holds a physical copy of the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling. The book cover must be a pixel-perfect, faithful reproduction of the original: a top beige section with the title in Deep Navy Blue, a middle navy blue block with \"ISTANTANEA IN 21 GIORNI\" in white and gold, and a bottom beige section with the author \"MATT RAWLING\" in navy. A small circular Muted Gold (#C5A059) badge with the text \"INCLUSO BONUS AUDIOBOOK\" is placed on the book cover. Above the book, a large bold headline in Deep Navy Blue (#142F44): \"POTERE MENTALE: DOMINA OGNI CONVERSAZIONE!\"\n- **CENTER:** A curved Muted Gold arrow points from the book toward a central motivational quote in Deep Navy Blue (#142F44): \"La persuasione non è manipolazione, ma l'arte di connettersi profondamente con gli altri.\"\n- **RIGHT SIDE:** A large bold headline in Deep Navy Blue (#142F44): \"IL SUCCESSO È UNA SCIENZA: AGISCI ORA!\". Below it, a descriptive paragraph in Deep Navy Blue: \"Il segreto per influenzare con integrità? Comprendere i meccanismi del cervello. Questa guida pratica ti insegna a comunicare con impatto, superare le obiezioni e ottenere il 'sì' che meriti.\" At the bottom right, a prominent call-to-action in Deep Navy Blue: \"Inizia oggi il tuo viaggio verso il successo comunicativo!\" with a Muted Gold arrow pointing toward the text.\n\n**STYLE & TYPOGRAPHY:**\nThe mood is authoritative, psychological, and premium academic. Use a clean, bold sans-serif font for headlines and a legible serif font for the body text. All text is in Italian. Primary text color is Deep Navy Blue (#142F44), with accents in Muted Gold (#C5A059). The book cover must remain exactly as provided with no alterations to its design or text. High-resolution, studio lighting, professional marketing aesthetic.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "professional_amazon_a_marketi_eb15545b9c84ce37d2bbedb45346fa62",
+            "timestamp": 1770632334055,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a solid Warm Sand Beige #e9bc84 with a subtle matte paper grain and a fine radial sunburst line texture emanating from the edges at 12% opacity. The composition follows a three-part \"Deep Dive\" structure. In the center-left, a hand holds the book cover of \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling; the book cover must be rendered EXACTLY as provided, with the top beige section, the dark navy middle section featuring \"ISTANTANEA IN 21 GIORNI\", and the bottom beige section with the author's name. A small circular Muted Gold #c4a16b badge saying \"BONUS AUDIOBOOK\" is placed on the book's edge. \n\nOn the LEFT side, a large, bold headline in Deep Navy Blue #112c43 reads: \"DOMINA L'ARTE DELL'INFLUENZA: RIPRENDI IL CONTROLLO!\". \n\nIn the BOTTOM CENTER, a motivational quote in Deep Navy Blue #112c43 reads: \"Smetti di subire le decisioni altrui. Il potere di persuadere è una scienza che puoi imparare.\" \n\nOn the RIGHT side, the top headline in Deep Navy Blue #112c43 reads: \"LA PERSUASIONE È UNA COMPETENZA: ATTIVALA ORA!\". Below it, a descriptive paragraph in Deep Navy Blue #112c43 reads: \"Il segreto per il successo professionale e personale? Comprendere i meccanismi della mente. Questo libro è una guida scientifica per padroneggiare il linguaggio, superare le obiezioni e diventare un comunicatore magnetico.\" At the bottom right, a bold call-to-action reads: \"Inizia ora il tuo percorso verso il successo!\". \n\nThe visual flow is enhanced by Muted Gold #c4a16b curved arrows pointing from the book toward the headlines. Typography uses a mix of bold sans-serif for headlines and a clean, legible font for body text, maintaining a premium and authoritative psychological mood.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "professional_amazon_a_marketi_549b56e18ea2f3c2ca36cbe012a57112",
+            "timestamp": 1770631177200,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a solid Warm Sand Beige (#e8c491) featuring a fine canvas grain texture and a faint, thin-line radial sunburst pattern emanating from the center to create a premium academic and professional mood. In the center-left, a hand holds the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling. The book cover must be a pixel-perfect reproduction of the original: a top beige section with the word \"PERSUASIONE\" in Deep Navy Blue, a middle Deep Navy Blue block containing \"ISTANTANEA IN 21 GIORNI\" in white and gold text, and a bottom beige section with the author name \"MATT RAWLING\" in Deep Navy Blue. A small circular gold badge with the text \"BONUS AUDIOBOOK\" is placed on the book cover.\n\nThe layout follows the reference image structure: \n- TOP LEFT HEADLINE (Deep Navy Blue, bold): \"COMUNICAZIONE EFFICACE: OTTIENI CIÒ CHE DESIDERI!\"\n- TOP RIGHT HEADLINE (Deep Navy Blue, bold): \"IL POTERE È NELLE TUE PAROLE: AGISCI ORA!\"\n- RIGHT SIDE PARAGRAPH (Deep Navy Blue): \"Il segreto per influenzare gli altri? Comprendere la mente umana. Questo libro è una guida scientifica e pratica per padroneggiare l'arte della persuasione, migliorare le tue relazioni e raggiungere finalmente i tuoi obiettivi professionali.\"\n- CENTER-BOTTOM QUOTE (Muted Gold): \"La persuasione non è manipolazione, è la chiave per aprire ogni porta e creare connessioni autentiche.\"\n- BOTTOM RIGHT CTA (Deep Navy Blue, extra bold): \"Inizia ora il tuo percorso verso il successo comunicativo!\"\n\nInclude elegant, thin Muted Gold (#c5a059) curved arrows acting as visual flow elements pointing from the book toward the headlines and the CTA. Typography uses a clean, modern sans-serif font with a clear hierarchy. All text is in Italian. No modifications to the book cover design are permitted.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "professional_amazon_a_marketi_aca89586d114985d27a1e9a9608507cd",
+            "timestamp": 1770628588089,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. **Background:** Solid Warm Sand Tan (#e9c595) with faint radial light rays in Amber Gold (#c4a15a) at 10% opacity emanating from the center. **Center:** A high-quality 3D mockup of the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling. The book cover is navy blue with white and gold text. A small circular badge on the book says \"BONUS AUDIOBOOK INCLUSO\". A hand is visible at the bottom left holding the corner of the book. **Left Side Composition:** Large bold typography in Navy Blue. Top Headline: \"COMUNICAZIONE EFFICACE: RIPRENDITI IL TUO POTERE!\". Below the book, a curved Amber Gold arrow points to a motivational quote: \"Smetti di subire le decisioni altrui. Tutto ciò di cui hai bisogno è padroneggiare la mente.\" **Right Side Composition:** Large bold typography in Navy Blue. Top Headline: \"PERSUADERE È UNA SCELTA: FAI LA TUA MOSSA!\". Below it, a descriptive paragraph in a clean sans-serif font: \"Il segreto per influenzare gli altri? Imparare le tecniche delle neuroscienze. Questo libro è una guida scientifica e pratica per padroneggiare la comunicazione, ottenere ciò che desideri e diventare un leader carismatico.\" **Bottom Right:** A bold call-to-action: \"Inizia ora il tuo percorso verso il successo sociale!\" with a curved Amber Gold arrow pointing toward the text. **Visual Style:** Professional, authoritative, and scientific. Typography uses a mix of bold sans-serif for headlines and elegant clean fonts for body text, maintaining a high-contrast palette of Navy Blue, White, and Gold over the Sand Tan background. High-resolution studio lighting.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
           {
             "id": "professional_amazon_a_marketi_a10ee060a597834384f25278f7fddfc7",
             "timestamp": 1770309338769,
@@ -812,7 +966,7 @@
           "img-ml9mvuyr-7mbzme",
           "img-ml9mwh89-tgeiv1"
         ],
-        "outputImageRef": "professional_amazon_a_marketi_a10ee060a597834384f25278f7fddfc7"
+        "outputImageRef": "professional_amazon_a_marketi_49bac59e6968fb5f242cf9f168055016"
       },
       "style": {
         "width": 408,
@@ -834,7 +988,7 @@
       },
       "data": {
         "inputImages": [],
-        "inputPrompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The layout features a precise split-screen composition. LEFT SIDE: A high-quality, relatable photo of a confident professional man in business-casual attire (navy blazer over a white shirt), looking directly at the camera with an engaging and persuasive smile. The background is a soft beige gradient with warm lighting. Overlaid on the bottom-left in large, bold navy blue and gold typography is the Italian text: \"TIMIDEZZA O INSICUREZZA? ECCO LA SOLUZIONE!\". RIGHT SIDE: Divided into two horizontal blocks. THE TOP BLOCK has a deep navy blue background with elegant typography; the headline in gold reads \"IL POTERE È NELLE TUE PAROLE!\" followed by white body text: \"La psicologia della comunicazione ti aiuterà a trasformare ogni interazione in un'opportunità e a vivere con più carisma.\" THE BOTTOM BLOCK has a light gold/beige background with navy blue text; the headline reads \"SCOPRI IL SEGRETO PER INFLUENZARE E CONVINCERE\" followed by body text: \"Le tecniche scientifiche di Matt Rawling potenziano le tue relazioni. Questa guida ti insegna a gestire la comunicazione non verbale e a farti ascoltare da chiunque.\" On the far right edge, a professional 3D book mockup of \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling is integrated into the design. The color palette strictly follows the book cover: navy blue, gold, and beige. The style is clean, authoritative, and corporate-modern.",
+        "inputPrompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. Split-screen layout. BACKGROUND: Solid flat Warm Sand Beige #E8C18C with a fine paper grain texture (5% opacity) and faint, thin radial line accents in #D4AD78 emanating from the center. LEFT SIDE: A professional, confident man in his 30s wearing a navy blue blazer and a crisp white shirt, arms crossed in a self-assured yet approachable pose, looking directly at the camera with a subtle smile, warm studio lighting. Superimposed text on the left bottom in bold white sans-serif: \"NON TI ASCOLTANO? ECCO LA SOLUZIONE!\". RIGHT SIDE: Top headline in Deep Navy Blue #142F44: \"LA TUA VOCE HA UN POTERE IMMENSO!\". Below it, descriptive text in Navy Blue: \"La psicologia della comunicazione ti aiuterà a trasformare ogni interazione in un'opportunità e a vivere con più carisma.\" Middle headline in Deep Navy Blue #142F44: \"SCOPRI IL SEGRETO PER PERSUADERE CON ETICA\". Below it, persuasive body copy in Navy Blue: \"Le tecniche di neuroscienza spiegate passo dopo passo per farti ascoltare, gestire le obiezioni e riscoprire il piacere di influenzare positivamente chi ti circonda.\" FAR RIGHT: A high-quality 3D standing book mockup. CRITICAL: The book cover must be a pixel-perfect, EXACT reproduction of the provided image: Title \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" (with '21' in Muted Gold #C5A059), Subtitle \"NEUROSCIENZE E PSICOLOGIA DELLA COMUNICAZIONE\", and Author \"MATT RAWLING\". Do not alter any colors, fonts, or layout elements of the cover. TEXT COLORS: Headings in Deep Navy Blue #142F44, highlights in Muted Gold #C5A059. MOOD: Authoritative, psychological, and premium academic.",
         "outputImage": null,
         "aspectRatio": "16:9",
         "resolution": "1K",
@@ -843,6 +997,34 @@
         "status": "complete",
         "error": null,
         "imageHistory": [
+          {
+            "id": "professional_amazon_a_marketi_da3477a8cd3987af27eed33d660ee9d0",
+            "timestamp": 1770633887350,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. Split-screen layout. BACKGROUND: Solid flat Warm Sand Beige #E8C18C with a fine paper grain texture (5% opacity) and faint, thin radial line accents in #D4AD78 emanating from the center. LEFT SIDE: A professional, confident man in his 30s wearing a navy blue blazer and a crisp white shirt, arms crossed in a self-assured yet approachable pose, looking directly at the camera with a subtle smile, warm studio lighting. Superimposed text on the left bottom in bold white sans-serif: \"NON TI ASCOLTANO? ECCO LA SOLUZIONE!\". RIGHT SIDE: Top headline in Deep Navy Blue #142F44: \"LA TUA VOCE HA UN POTERE IMMENSO!\". Below it, descriptive text in Navy Blue: \"La psicologia della comunicazione ti aiuterà a trasformare ogni interazione in un'opportunità e a vivere con più carisma.\" Middle headline in Deep Navy Blue #142F44: \"SCOPRI IL SEGRETO PER PERSUADERE CON ETICA\". Below it, persuasive body copy in Navy Blue: \"Le tecniche di neuroscienza spiegate passo dopo passo per farti ascoltare, gestire le obiezioni e riscoprire il piacere di influenzare positivamente chi ti circonda.\" FAR RIGHT: A high-quality 3D standing book mockup. CRITICAL: The book cover must be a pixel-perfect, EXACT reproduction of the provided image: Title \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" (with '21' in Muted Gold #C5A059), Subtitle \"NEUROSCIENZE E PSICOLOGIA DELLA COMUNICAZIONE\", and Author \"MATT RAWLING\". Do not alter any colors, fonts, or layout elements of the cover. TEXT COLORS: Headings in Deep Navy Blue #142F44, highlights in Muted Gold #C5A059. MOOD: Authoritative, psychological, and premium academic.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "professional_amazon_a_marketi_137886b1d7e14465870a8a25b6855271",
+            "timestamp": 1770632429563,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The composition is a split-screen layout. The background uses the Unified Background Style: a solid Warm Sand Beige (#e9bc84) with a subtle matte paper grain texture and a fine radial sunburst line texture emanating from the edges at 12% opacity. \n\nOn the LEFT side, a charismatic and confident professional man in his late 30s, dressed in business-casual attire (a dark navy blazer over a crisp shirt), is shown in a warm, well-lit environment. He has a friendly yet authoritative expression, looking directly at the viewer. Large bold text in Deep Navy Blue (#112c43) on the far left reads: \"VUOI ESSERE PIÙ CONVINCENTE? ECCO LA CHIAVE!\" \n\nOn the RIGHT side, the book cover of \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling is displayed prominently, held by the man's hand. The cover must be a pixel-perfect reproduction of the original: a three-tier design with \"PERSUASIONE\" in navy at the top, \"ISTANTANEA IN 21 GIORNI\" in white and gold on a navy central band, and the subtitle \"NEUROSCIENZE E PSICOLOGIA DELLA COMUNICAZIONE\" in gold. \n\nThe text on the right side is arranged in clear blocks. Top headline in Deep Navy Blue (#112c43): \"IL POTERE DELLA TUA MENTE AL SERVIZIO DEL SUCCESSO.\" Below it, a paragraph in Deep Navy Blue: \"Quanto conta per te essere ascoltato? La psicologia della comunicazione ti aiuterà a trasformare ogni interazione in un'opportunità e a guidare gli altri con integrità.\" In a central box with a Muted Gold (#c4a16b) accent, the text reads: \"SCOPRI IL SEGRETO PER INFLUENZARE E PERSUADERE.\" A final descriptive block in Deep Navy Blue: \"Le tecniche scientifiche immediate contenute in questo libro ti guideranno passo dopo passo per gestire lo stress comunicativo e riscoprire il piacere di ottenere risultati concreti in soli 21 giorni.\" All typography uses a mix of bold sans-serif for headlines and clean legible serif for body text, maintaining a premium and psychological mood.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "professional_amazon_a_marketi_559ca5a6db55d96c9ce13ca08321f446",
+            "timestamp": 1770631283034,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels, split-screen composition. LEFT SIDE: A relatable, confident professional man in his mid-30s wearing a smart-casual navy blue blazer, looking directly at the camera with a persuasive and friendly expression, warm studio lighting. Overlaid on the bottom-left in bold, high-impact white sans-serif typography: \"IDEE CHE NON CONVINCONO? ECCO LA SOLUZIONE!\". RIGHT SIDE: The background is a solid Warm Sand Beige #e8c491 with a subtle fine canvas grain texture and a faint, thin-line radial sunburst pattern emanating from the center. TOP RIGHT TEXT: Headline in Deep Navy Blue #1a2e40 \"LA TUA VOCE HA POTERE!\" followed by body text in Navy Blue \"Quante volte le tue idee sono passate inosservate? La psicologia della persuasione ti aiuterà a comunicare con impatto e ottenere il consenso che meriti.\" MIDDLE RIGHT TEXT: Headline in Muted Gold #c5a059 \"DIVENTA UN LEADER DELLA COMUNICAZIONE\" followed by body text in Navy Blue \"Ti senti bloccato durante le negoziazioni? Questa guida pratica ti insegna passo dopo passo come influenzare positivamente gli altri e padroneggiare l'arte del carisma in soli 21 giorni.\" BOTTOM RIGHT: A pixel-perfect, faithful reproduction of the book cover \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling, shown at a slight angle. The book cover must remain exactly as provided, with its navy blue central band, white and gold text, and beige headers. Overall mood is premium, academic, and professional. All text must be in Italian.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "professional_amazon_a_marketi_84ab022ba10223d4d901fb683e29773c",
+            "timestamp": 1770628685931,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a solid Warm Sand Tan #e9c595 with faint radial light rays emanating from the center in Amber Gold #c4a15a at 10% opacity. The layout is a split composition replicating the reference structure. On the LEFT side, a high-quality photograph of a confident professional man in his 30s wearing a sharp Navy Blue blazer, looking directly at the camera with an empowering and persuasive expression. Overlaying the bottom-left corner is bold white sans-serif text: \"TIMIDEZZA? INSICUREZZA? MANCA IL CONSENSO? ECCO LA SOLUZIONE!\". The RIGHT side features a clean text-driven layout. At the top right, a bold headline in Amber Gold #c4a15a: \"LA TUA INFLUENZA È IL TUO POTERE!\". Below it, white descriptive text: \"Quanto tempo sprechi cercando di farti capire? Le neuroscienze ti aiuteranno a trasformare ogni dialogo in un successo e a comunicare con massima efficacia.\". In the middle right, a sub-headline in bold Navy Blue: \"SCOPRI IL SEGRETO PER CONVINCERE E ISPIRARE\". Below it, Navy Blue body text: \"Le tecniche di comunicazione inefficaci limitano il tuo potenziale? Questo libro ti guida passo dopo passo per padroneggiare il linguaggio del corpo e riscoprire la forza della persuasione.\". In the bottom right corner, a realistic 3D mockup of the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling is visible. Professional studio lighting, sharp focus, high-end marketing aesthetic.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
           {
             "id": "professional_amazon_a_marketi_0888f185c5742fa9f6565edfd93c799d",
             "timestamp": 1770309435667,
@@ -887,7 +1069,7 @@
           "img-ml9oarry-u3s7pp",
           "img-ml9oarvo-62jeqo"
         ],
-        "outputImageRef": "professional_amazon_a_marketi_0888f185c5742fa9f6565edfd93c799d"
+        "outputImageRef": "professional_amazon_a_marketi_da3477a8cd3987af27eed33d660ee9d0"
       },
       "style": {
         "width": 408,
@@ -909,7 +1091,7 @@
       },
       "data": {
         "inputImages": [],
-        "inputPrompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background features a sophisticated gradient blending deep navy blue with a soft golden-beige glow and subtle radial light rays, echoing the book's cover design. On the right side, a high-end black tablet with a digital stylus displays the ebook version of \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling on its screen. Above the tablet, a minimalist white headphone icon with a digital audio playback progress bar. A prominent circular gold metallic badge at the top center reads \"INCLUSO BONUS & AUDIOLIBRO\". The left side features clean Italian typography: at the top \"CON L'ACQUISTO DEL LIBRO\" in white; followed by a large, bold white \"INCLUSO\"; then \"UN FANTASTICO EBOOK DA SCARICARE PER TE IN PDF CON AUDIOLIBRO\" in a golden-beige accent color. Below this, a motivational line in white: \"La persuasione non è magia, ma una scienza applicata.\" followed by a descriptive paragraph: \"Impara a comunicare con efficacia e padroneggia le tecniche di influenza. Ogni capitolo ti guida verso il successo personale e professionale attraverso metodi scientifici testati.\" The overall aesthetic is modern, authoritative, and professional, utilizing a sharp sans-serif font hierarchy and realistic studio lighting.",
+        "inputPrompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a solid Warm Sand Beige (#E8C18C) with a subtle fine paper grain texture at 5% opacity and faint, thin radial line accents in a slightly darker tan (#D4AD78) emanating from the center. On the right side, a high-end modern tablet with a stylus rests vertically, its screen displaying a pixel-perfect, faithful reproduction of the book cover: Title \"PERSUASIONE ISTANTANEA IN 21 GIORNI\", Subtitle \"NEUROSCIENZE E PSICOLOGIA DELLA COMUNICAZIONE\", and Author \"MATT RAWLING\". Do not modify, alter, or reimagine any element of the book cover; it must appear exactly as provided in the original design with the navy blue central band and gold \"21 GIORNI\". Above the tablet, a minimalist white headphone and audio player interface icon floats elegantly. In the center-top, a premium circular gold seal badge reads \"INCLUSO BONUS & AUDIOLIBRO\" in elegant typography. On the left side, the text is arranged in a clean hierarchy: at the top \"CON L'ACQUISTO DEL LIBRO\" in Deep Navy Blue (#142F44) small caps; below it, the word \"INCLUSO\" in massive, bold Deep Navy Blue font; followed by \"UN FANTASTICO EBOOK DA SCARICARE PER TE IN PDF CON AUDIOLIBRO\" in Pure White (#FFFFFF) sans-serif bold. At the bottom left, a motivational paragraph in Deep Navy Blue reads: \"La padronanza della comunicazione non è un dono, ma una scienza da apprendere. Non aspettarti miracoli senza pratica. Ogni giorno, dedica tempo alle tecniche di persuasione: un gesto studiato, una parola efficace, un'influenza consapevole.\" The overall mood is authoritative, psychological, and premium academic, utilizing a palette of Deep Navy Blue, Pure White, and Muted Gold (#C5A059). High-resolution, studio lighting, professional graphic design composition.",
         "outputImage": null,
         "aspectRatio": "16:9",
         "resolution": "1K",
@@ -918,6 +1100,34 @@
         "status": "complete",
         "error": null,
         "imageHistory": [
+          {
+            "id": "professional_amazon_a_marketi_6fe409278eed8db063f73b754264d5a8",
+            "timestamp": 1770633881404,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a solid Warm Sand Beige (#E8C18C) with a subtle fine paper grain texture at 5% opacity and faint, thin radial line accents in a slightly darker tan (#D4AD78) emanating from the center. On the right side, a high-end modern tablet with a stylus rests vertically, its screen displaying a pixel-perfect, faithful reproduction of the book cover: Title \"PERSUASIONE ISTANTANEA IN 21 GIORNI\", Subtitle \"NEUROSCIENZE E PSICOLOGIA DELLA COMUNICAZIONE\", and Author \"MATT RAWLING\". Do not modify, alter, or reimagine any element of the book cover; it must appear exactly as provided in the original design with the navy blue central band and gold \"21 GIORNI\". Above the tablet, a minimalist white headphone and audio player interface icon floats elegantly. In the center-top, a premium circular gold seal badge reads \"INCLUSO BONUS & AUDIOLIBRO\" in elegant typography. On the left side, the text is arranged in a clean hierarchy: at the top \"CON L'ACQUISTO DEL LIBRO\" in Deep Navy Blue (#142F44) small caps; below it, the word \"INCLUSO\" in massive, bold Deep Navy Blue font; followed by \"UN FANTASTICO EBOOK DA SCARICARE PER TE IN PDF CON AUDIOLIBRO\" in Pure White (#FFFFFF) sans-serif bold. At the bottom left, a motivational paragraph in Deep Navy Blue reads: \"La padronanza della comunicazione non è un dono, ma una scienza da apprendere. Non aspettarti miracoli senza pratica. Ogni giorno, dedica tempo alle tecniche di persuasione: un gesto studiato, una parola efficace, un'influenza consapevole.\" The overall mood is authoritative, psychological, and premium academic, utilizing a palette of Deep Navy Blue, Pure White, and Muted Gold (#C5A059). High-resolution, studio lighting, professional graphic design composition.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "professional_amazon_a_marketi_f2fb418acc30b6ce0a376a69b0658f24",
+            "timestamp": 1770632422750,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a premium Warm Sand Beige #e9bc84 with a subtle matte paper grain texture and a fine radial sunburst line texture emanating from the edges at 12% opacity. On the right side, a sleek modern tablet with a stylus displays a pixel-perfect, exact reproduction of the book cover \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling, featuring its signature deep navy blue center band, white typography, and the number \"21\" in muted gold. Above the tablet, a white minimalist headphone icon with an audio progress bar and waveform is visible. On the left side, the layout follows a clean typographic hierarchy: at the top \"CON L'ACQUISTO DEL LIBRO\" in small white sans-serif; below it, a massive, bold \"INCLUSO\" in crisp white; followed by \"UN FANTASTICO EBOOK DA SCARICARE PER TE IN PDF CON AUDIOLIBRO\" in white. A prominent circular gold badge #c4a16b with navy blue text reads \"INCLUSO BONUS & AUDIOLIBRO\". At the bottom left, a motivational text block in white reads: \"La persuasione non è un trucco, ma un'arte consapevole. Non aspettarti cambiamenti radicali dall'oggi al domani. Ogni giorno, dedica tempo alla padronanza: un'interazione efficace, un ascolto attivo, un'influenza positiva.\" The color palette is strictly Deep Navy Blue #112c43, Crisp White #ffffff, and Muted Gold #c4a16b over the beige background. High-end, authoritative psychological marketing aesthetic.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "professional_amazon_a_marketi_6c8d74fcd71796a449ebd6a70fcdccbd",
+            "timestamp": 1770631279087,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a solid Warm Sand Beige (#e8c491) with a fine canvas grain texture and a faint, thin-line radial sunburst pattern emanating from the center. On the right side, a sleek, modern tablet with a stylus displays the ebook version of the book \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by MATT RAWLING. The tablet screen must show the book cover EXACTLY as provided: a navy blue central band with the title \"ISTANTANEA IN 21 GIORNI\" (with \"21\" in muted gold), the word \"PERSUASIONE\" in navy blue at the top, and the author \"MATT RAWLING\" at the bottom. Above the tablet, there is a white headphone icon and a minimalist audio playback UI. On the left side, the layout features a professional text hierarchy in Italian. At the top: \"CON L'ACQUISTO DEL LIBRO\" in Deep Navy Blue (#1a2e40). Below it, the word \"INCLUSO\" in large, bold, Pure White (#ffffff) capital letters. Underneath: \"UN FANTASTICO EBOOK DA SCARICARE PER TE IN PDF CON AUDIOLIBRO\" in White. A circular metallic Muted Gold (#c5a059) badge is positioned prominently, reading \"INCLUSO BONUS & AUDIOLIBRO\". At the bottom left, a motivational paragraph in Deep Navy Blue: \"La persuasione non è manipolazione, ma una connessione profonda. Inizia oggi il tuo percorso per influenzare positivamente il mondo intorno a te attraverso la scienza della comunicazione.\" The typography is a mix of bold sans-serif for headings and clean, readable fonts for the body text. The overall aesthetic is premium, professional, and academic.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "professional_amazon_a_marketi_8ad58fa95770e2a49d011cd089eaa109",
+            "timestamp": 1770628673826,
+            "prompt": "Professional Amazon A+ marketing banner, aspect ratio 16:9, 970x600 pixels. The background is a solid Warm Sand Tan #e9c595 with faint radial light rays emanating from the center in Amber Gold #c4a15a at 10% opacity. On the right side, a sleek black tablet is positioned vertically, displaying the ebook cover of \"PERSUASIONE ISTANTANEA IN 21 GIORNI\" by Matt Rawling, maintaining the dark navy and tan color scheme. Above the tablet, a minimalist white headphone icon with a playback bar indicates the audiobook version. On the left side, the layout features bold Italian typography: at the top \"CON L'ACQUISTO DEL LIBRO\" in dark navy, followed by a massive, high-impact \"INCLUSO\" in white with a dark navy shadow. Below it, the text \"UN FANTASTICO EBOOK DA SCARICARE PER TE IN PDF CON AUDIOLIBRO\" is written in Amber Gold. A circular gold and white seal badge is placed in the center-top reading \"INCLUSO BONUS & AUDIOLIBRO\". In the lower-left area, a motivational paragraph in clean sans-serif Italian text reads: \"La persuasione non è una dote innata, ma un'abilità che si allena ogni giorno. Inizia oggi il tuo percorso verso il successo comunicativo con tecniche scientifiche immediate.\" The overall design is professional, authoritative, and perfectly color-coordinated with the book's palette of tan, gold, and dark navy.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          },
           {
             "id": "professional_amazon_a_marketi_09c17a84cf47382ea54cf06a59ff2a5f",
             "timestamp": 1770309434871,
@@ -962,7 +1172,7 @@
           "img-ml9oarry-u3s7pp",
           "img-ml9oarw1-8256ag"
         ],
-        "outputImageRef": "professional_amazon_a_marketi_09c17a84cf47382ea54cf06a59ff2a5f"
+        "outputImageRef": "professional_amazon_a_marketi_6fe409278eed8db063f73b754264d5a8"
       },
       "style": {
         "width": 408,
@@ -976,11 +1186,382 @@
       "dragging": false
     },
     {
+      "id": "prompt-fix",
+      "type": "prompt",
+      "position": {
+        "x": 1300,
+        "y": -500
+      },
+      "data": {
+        "prompt": "You are receiving two images:\n- Image 1: An Amazon A+ marketing banner that contains an incorrect version of the book cover\n- Image 2: The CORRECT original book cover\n\nYOUR TASK: Regenerate Image 1 replacing the book cover with the EXACT cover from Image 2. The book cover in the output must be a pixel-perfect reproduction of Image 2. Keep everything else in Image 1 exactly the same — same background, layout, text, typography, colors, and all design elements. Only the book cover itself should change.",
+        "variableName": "fix"
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "measured": {
+        "width": 320,
+        "height": 220
+      }
+    },
+    {
+      "id": "pc-fix",
+      "type": "promptConstructor",
+      "position": {
+        "x": 1600,
+        "y": -500
+      },
+      "data": {
+        "template": "BOOK INFORMATION (the correct title, subtitle and author):\n@title\n\n@fix",
+        "outputText": "BOOK INFORMATION (the correct title, subtitle and author):\nTITLE: PERSUASIONE ISTANTANEA IN 21 GIORNI\nSUBTITLE\n\nYou are receiving two images:\n- Image 1: An Amazon A+ marketing banner that contains an incorrect version of the book cover\n- Image 2: The CORRECT original book cover\n\nYOUR TASK: Regenerate Image 1 replacing the book cover with the EXACT cover from Image 2. The book cover in the output must be a pixel-perfect reproduction of Image 2. Keep everything else in Image 1 exactly the same — same background, layout, text, typography, colors, and all design elements. Only the book cover itself should change.",
+        "unresolvedVars": []
+      },
+      "style": {
+        "width": 200,
+        "height": 200
+      },
+      "selected": false,
+      "measured": {
+        "width": 200,
+        "height": 200
+      }
+    },
+    {
+      "id": "nanoBanana-fix-1",
+      "type": "nanoBanana",
+      "position": {
+        "x": 1800,
+        "y": 277
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "BOOK INFORMATION (the correct title, subtitle and author):\nTITLE: PERSUASIONE ISTANTANEA IN 21 GIORNI\nSUBTITLE\n\nYou are receiving two images:\n- Image 1: An Amazon A+ marketing banner that contains an incorrect version of the book cover\n- Image 2: The CORRECT original book cover\n\nYOUR TASK: Regenerate Image 1 replacing the book cover with the EXACT cover from Image 2. The book cover in the output must be a pixel-perfect reproduction of Image 2. Keep everything else in Image 1 exactly the same — same background, layout, text, typography, colors, and all design elements. Only the book cover itself should change.",
+        "outputImage": null,
+        "aspectRatio": "16:9",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "error",
+        "error": "fetch failed",
+        "imageHistory": [
+          {
+            "id": "book_information_the_correct_51a6bc5a7fdac3bb6defbdcb729a45b1",
+            "timestamp": 1770632456259,
+            "prompt": "BOOK INFORMATION (the correct title, subtitle and author):\nTITLE: PERSUASIONE ISTANTANEA IN 21 GIORNI\n\n\nYou are receiving two images:\n- Image 1: An Amazon A+ marketing banner that contains an incorrect version of the book cover\n- Image 2: The CORRECT original book cover\n\nYOUR TASK: Regenerate Image 1 replacing the book cover with the EXACT cover from Image 2. The book cover in the output must be a pixel-perfect reproduction of Image 2. Keep everything else in Image 1 exactly the same — same background, layout, text, typography, colors, and all design elements. Only the book cover itself should change.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          }
+        ],
+        "selectedHistoryIndex": 0,
+        "selectedModel": {
+          "provider": "kie",
+          "modelId": "gpt-image/1.5-image-to-image",
+          "displayName": "GPT Image 1.5 Edit"
+        },
+        "inputSchema": [
+          {
+            "name": "prompt",
+            "type": "text",
+            "required": true,
+            "label": "Prompt"
+          },
+          {
+            "name": "input_urls",
+            "type": "image",
+            "required": true,
+            "label": "Image",
+            "isArray": true
+          }
+        ],
+        "outputImageRef": "book_information_the_correct_51a6bc5a7fdac3bb6defbdcb729a45b1",
+        "inputImageRefs": [
+          "img-mlf0uzws-h7rbgw",
+          "img-mlf0v02g-oam32m"
+        ],
+        "parameters": {
+          "aspect_ratio": "3:2",
+          "quality": "high"
+        }
+      },
+      "style": {
+        "width": 487,
+        "height": 372
+      },
+      "selected": false,
+      "measured": {
+        "width": 487,
+        "height": 372
+      }
+    },
+    {
+      "id": "nanoBanana-fix-2",
+      "type": "nanoBanana",
+      "position": {
+        "x": 1765.7343277669447,
+        "y": 655.8872252889433
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "BOOK INFORMATION (the correct title, subtitle and author):\nTITLE: PERSUASIONE ISTANTANEA IN 21 GIORNI\nSUBTITLE\n\nYou are receiving two images:\n- Image 1: An Amazon A+ marketing banner that contains an incorrect version of the book cover\n- Image 2: The CORRECT original book cover\n\nYOUR TASK: Regenerate Image 1 replacing the book cover with the EXACT cover from Image 2. The book cover in the output must be a pixel-perfect reproduction of Image 2. Keep everything else in Image 1 exactly the same — same background, layout, text, typography, colors, and all design elements. Only the book cover itself should change.",
+        "outputImage": null,
+        "aspectRatio": "16:9",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "idle",
+        "error": null,
+        "imageHistory": [
+          {
+            "id": "book_information_the_correct_b625c769a11dc995e110392bc74ddeb9",
+            "timestamp": 1770632448742,
+            "prompt": "BOOK INFORMATION (the correct title, subtitle and author):\nTITLE: PERSUASIONE ISTANTANEA IN 21 GIORNI\n\n\nYou are receiving two images:\n- Image 1: An Amazon A+ marketing banner that contains an incorrect version of the book cover\n- Image 2: The CORRECT original book cover\n\nYOUR TASK: Regenerate Image 1 replacing the book cover with the EXACT cover from Image 2. The book cover in the output must be a pixel-perfect reproduction of Image 2. Keep everything else in Image 1 exactly the same — same background, layout, text, typography, colors, and all design elements. Only the book cover itself should change.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          }
+        ],
+        "selectedHistoryIndex": 0,
+        "selectedModel": {
+          "provider": "kie",
+          "modelId": "gpt-image/1.5-image-to-image",
+          "displayName": "GPT Image 1.5 Edit"
+        },
+        "inputSchema": [
+          {
+            "name": "prompt",
+            "type": "text",
+            "required": true,
+            "label": "Prompt"
+          },
+          {
+            "name": "input_urls",
+            "type": "image",
+            "required": true,
+            "label": "Image",
+            "isArray": true
+          }
+        ],
+        "outputImageRef": "book_information_the_correct_b625c769a11dc995e110392bc74ddeb9",
+        "inputImageRefs": [
+          "img-mlf0v0rp-a4jmvu",
+          "img-mlf0v02g-oam32m"
+        ],
+        "parameters": {
+          "aspect_ratio": "3:2",
+          "quality": "high"
+        }
+      },
+      "style": {
+        "width": 487,
+        "height": 372
+      },
+      "selected": false,
+      "measured": {
+        "width": 487,
+        "height": 372
+      },
+      "dragging": false
+    },
+    {
+      "id": "nanoBanana-fix-3",
+      "type": "nanoBanana",
+      "position": {
+        "x": 1808.2513586203377,
+        "y": 1049.5027172406753
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "BOOK INFORMATION (the correct title, subtitle and author):\nTITLE: PERSUASIONE ISTANTANEA IN 21 GIORNI\nSUBTITLE\n\nYou are receiving two images:\n- Image 1: An Amazon A+ marketing banner that contains an incorrect version of the book cover\n- Image 2: The CORRECT original book cover\n\nYOUR TASK: Regenerate Image 1 replacing the book cover with the EXACT cover from Image 2. The book cover in the output must be a pixel-perfect reproduction of Image 2. Keep everything else in Image 1 exactly the same — same background, layout, text, typography, colors, and all design elements. Only the book cover itself should change.",
+        "outputImage": null,
+        "aspectRatio": "16:9",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "idle",
+        "error": null,
+        "imageHistory": [
+          {
+            "id": "book_information_the_correct_53e53344e5bae9b6c31a46e8c8a1f272",
+            "timestamp": 1770632450734,
+            "prompt": "BOOK INFORMATION (the correct title, subtitle and author):\nTITLE: PERSUASIONE ISTANTANEA IN 21 GIORNI\n\n\nYou are receiving two images:\n- Image 1: An Amazon A+ marketing banner that contains an incorrect version of the book cover\n- Image 2: The CORRECT original book cover\n\nYOUR TASK: Regenerate Image 1 replacing the book cover with the EXACT cover from Image 2. The book cover in the output must be a pixel-perfect reproduction of Image 2. Keep everything else in Image 1 exactly the same — same background, layout, text, typography, colors, and all design elements. Only the book cover itself should change.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          }
+        ],
+        "selectedHistoryIndex": 0,
+        "selectedModel": {
+          "provider": "kie",
+          "modelId": "gpt-image/1.5-image-to-image",
+          "displayName": "GPT Image 1.5 Edit"
+        },
+        "inputSchema": [
+          {
+            "name": "prompt",
+            "type": "text",
+            "required": true,
+            "label": "Prompt"
+          },
+          {
+            "name": "input_urls",
+            "type": "image",
+            "required": true,
+            "label": "Image",
+            "isArray": true
+          }
+        ],
+        "outputImageRef": "book_information_the_correct_53e53344e5bae9b6c31a46e8c8a1f272",
+        "inputImageRefs": [
+          "img-mlf0v0zl-a9ig68",
+          "img-mlf0v02g-oam32m"
+        ],
+        "parameters": {
+          "aspect_ratio": "3:2",
+          "quality": "high"
+        }
+      },
+      "style": {
+        "width": 487,
+        "height": 372
+      },
+      "selected": false,
+      "measured": {
+        "width": 487,
+        "height": 372
+      },
+      "dragging": false
+    },
+    {
+      "id": "nanoBanana-fix-4",
+      "type": "nanoBanana",
+      "position": {
+        "x": 1800,
+        "y": 1444
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "BOOK INFORMATION (the correct title, subtitle and author):\nTITLE: PERSUASIONE ISTANTANEA IN 21 GIORNI\n\n\nYou are receiving two images:\n- Image 1: An Amazon A+ marketing banner that contains an incorrect version of the book cover\n- Image 2: The CORRECT original book cover\n\nYOUR TASK: Regenerate Image 1 replacing the book cover with the EXACT cover from Image 2. The book cover in the output must be a pixel-perfect reproduction of Image 2. Keep everything else in Image 1 exactly the same — same background, layout, text, typography, colors, and all design elements. Only the book cover itself should change.",
+        "outputImage": null,
+        "aspectRatio": "16:9",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "idle",
+        "error": null,
+        "imageHistory": [],
+        "selectedHistoryIndex": -1,
+        "selectedModel": {
+          "provider": "kie",
+          "modelId": "gpt-image/1.5-image-to-image",
+          "displayName": "GPT Image 1.5 Edit"
+        },
+        "inputSchema": [
+          {
+            "name": "prompt",
+            "type": "text",
+            "required": true,
+            "label": "Prompt"
+          },
+          {
+            "name": "input_urls",
+            "type": "image",
+            "required": true,
+            "label": "Image",
+            "isArray": true
+          }
+        ],
+        "inputImageRefs": [
+          "img-mlf0v0f7-y9xx1e",
+          "img-mlf0v02g-oam32m"
+        ],
+        "parameters": {
+          "aspect_ratio": "3:2",
+          "quality": "high"
+        }
+      },
+      "style": {
+        "width": 487,
+        "height": 372
+      },
+      "selected": false,
+      "measured": {
+        "width": 487,
+        "height": 372
+      }
+    },
+    {
+      "id": "nanoBanana-fix-5",
+      "type": "nanoBanana",
+      "position": {
+        "x": 1800,
+        "y": 1854
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "BOOK INFORMATION (the correct title, subtitle and author):\nTITLE: PERSUASIONE ISTANTANEA IN 21 GIORNI\n\n\nYou are receiving two images:\n- Image 1: An Amazon A+ marketing banner that contains an incorrect version of the book cover\n- Image 2: The CORRECT original book cover\n\nYOUR TASK: Regenerate Image 1 replacing the book cover with the EXACT cover from Image 2. The book cover in the output must be a pixel-perfect reproduction of Image 2. Keep everything else in Image 1 exactly the same — same background, layout, text, typography, colors, and all design elements. Only the book cover itself should change.",
+        "outputImage": null,
+        "aspectRatio": "16:9",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "imageHistory": [
+          {
+            "id": "book_information_the_correct_e597e7aead6aba74ff5b2ff655aeefc8",
+            "timestamp": 1770632485374,
+            "prompt": "BOOK INFORMATION (the correct title, subtitle and author):\nTITLE: PERSUASIONE ISTANTANEA IN 21 GIORNI\n\n\nYou are receiving two images:\n- Image 1: An Amazon A+ marketing banner that contains an incorrect version of the book cover\n- Image 2: The CORRECT original book cover\n\nYOUR TASK: Regenerate Image 1 replacing the book cover with the EXACT cover from Image 2. The book cover in the output must be a pixel-perfect reproduction of Image 2. Keep everything else in Image 1 exactly the same — same background, layout, text, typography, colors, and all design elements. Only the book cover itself should change.",
+            "aspectRatio": "16:9",
+            "model": "nano-banana-pro"
+          }
+        ],
+        "selectedHistoryIndex": 0,
+        "selectedModel": {
+          "provider": "kie",
+          "modelId": "gpt-image/1.5-image-to-image",
+          "displayName": "GPT Image 1.5 Edit"
+        },
+        "inputSchema": [
+          {
+            "name": "prompt",
+            "type": "text",
+            "required": true,
+            "label": "Prompt"
+          },
+          {
+            "name": "input_urls",
+            "type": "image",
+            "required": true,
+            "label": "Image",
+            "isArray": true
+          }
+        ],
+        "inputImageRefs": [
+          "img-mlf0v1gr-uhyyyt",
+          "img-mlf0v02g-oam32m"
+        ],
+        "outputImageRef": "book_information_the_correct_e597e7aead6aba74ff5b2ff655aeefc8",
+        "parameters": {
+          "aspect_ratio": "3:2",
+          "quality": "high"
+        }
+      },
+      "style": {
+        "width": 487,
+        "height": 372
+      },
+      "selected": false,
+      "measured": {
+        "width": 487,
+        "height": 372
+      }
+    },
+    {
       "id": "output-1",
       "type": "output",
       "position": {
-        "x": 1950.2653762170137,
-        "y": 398.5780376351306
+        "x": 2435.755253614283,
+        "y": 280.3009682153677
       },
       "data": {
         "image": null,
@@ -1002,8 +1583,8 @@
       "id": "output-2",
       "type": "output",
       "position": {
-        "x": 1700,
-        "y": 730
+        "x": 2307.2163086064293,
+        "y": 667.6043392158807
       },
       "data": {
         "image": null,
@@ -1018,14 +1599,15 @@
       "measured": {
         "width": 320,
         "height": 320
-      }
+      },
+      "dragging": false
     },
     {
       "id": "output-3",
       "type": "output",
       "position": {
-        "x": 1700,
-        "y": 1060
+        "x": 2343.7405978459133,
+        "y": 1055.4344638450646
       },
       "data": {
         "image": null,
@@ -1040,14 +1622,15 @@
       "measured": {
         "width": 320,
         "height": 320
-      }
+      },
+      "dragging": false
     },
     {
       "id": "output-4",
       "type": "output",
       "position": {
-        "x": 1700,
-        "y": 1390
+        "x": 2383.308577855355,
+        "y": 1485.8762592536468
       },
       "data": {
         "image": null,
@@ -1062,14 +1645,15 @@
       "measured": {
         "width": 320,
         "height": 320
-      }
+      },
+      "dragging": false
     },
     {
       "id": "output-5",
       "type": "output",
       "position": {
-        "x": 1700,
-        "y": 1720
+        "x": 2429.5155047968706,
+        "y": 1886.6697290128125
       },
       "data": {
         "image": null,
@@ -1084,7 +1668,8 @@
       "measured": {
         "width": 320,
         "height": 320
-      }
+      },
+      "dragging": false
     }
   ],
   "edges": [
@@ -1129,10 +1714,10 @@
       "selected": false
     },
     {
-      "id": "edge-nb1-out1",
+      "id": "edge-nb1-fix1",
       "source": "nanoBanana-1",
       "sourceHandle": "image",
-      "target": "output-1",
+      "target": "nanoBanana-fix-1",
       "targetHandle": "image",
       "selected": false
     },
@@ -1177,10 +1762,10 @@
       "selected": false
     },
     {
-      "id": "edge-nb2-out2",
+      "id": "edge-nb2-fix2",
       "source": "nanoBanana-2",
       "sourceHandle": "image",
-      "target": "output-2",
+      "target": "nanoBanana-fix-2",
       "targetHandle": "image",
       "selected": false
     },
@@ -1225,10 +1810,10 @@
       "selected": false
     },
     {
-      "id": "edge-nb3-out3",
+      "id": "edge-nb3-fix3",
       "source": "nanoBanana-3",
       "sourceHandle": "image",
-      "target": "output-3",
+      "target": "nanoBanana-fix-3",
       "targetHandle": "image",
       "selected": false
     },
@@ -1273,10 +1858,10 @@
       "selected": false
     },
     {
-      "id": "edge-nb4-out4",
+      "id": "edge-nb4-fix4",
       "source": "nanoBanana-4",
       "sourceHandle": "image",
-      "target": "output-4",
+      "target": "nanoBanana-fix-4",
       "targetHandle": "image",
       "selected": false
     },
@@ -1321,10 +1906,10 @@
       "selected": false
     },
     {
-      "id": "edge-nb5-out5",
+      "id": "edge-nb5-fix5",
       "source": "nanoBanana-5",
       "sourceHandle": "image",
-      "target": "output-5",
+      "target": "nanoBanana-fix-5",
       "targetHandle": "image",
       "selected": false
     },
@@ -1462,6 +2047,198 @@
       "sourceHandle": "text",
       "target": "llm-5",
       "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-title-prompt-to-llm-title",
+      "source": "prompt-title-extract",
+      "sourceHandle": "text",
+      "target": "llm-title",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-cover-to-llm-title",
+      "source": "imageInput-cover",
+      "sourceHandle": "image",
+      "target": "llm-title",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-llm-title-to-pc-1",
+      "source": "llm-title",
+      "sourceHandle": "text",
+      "target": "pc-1",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-llm-title-to-pc-2",
+      "source": "llm-title",
+      "sourceHandle": "text",
+      "target": "pc-2",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-llm-title-to-pc-3",
+      "source": "llm-title",
+      "sourceHandle": "text",
+      "target": "pc-3",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-llm-title-to-pc-4",
+      "source": "llm-title",
+      "sourceHandle": "text",
+      "target": "pc-4",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-llm-title-to-pc-5",
+      "source": "llm-title",
+      "sourceHandle": "text",
+      "target": "pc-5",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-prompt-fix-to-pc-fix",
+      "source": "prompt-fix",
+      "sourceHandle": "text",
+      "target": "pc-fix",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-llm-title-to-pc-fix",
+      "source": "llm-title",
+      "sourceHandle": "text",
+      "target": "pc-fix",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-pc-fix-to-fix-1",
+      "source": "pc-fix",
+      "sourceHandle": "text",
+      "target": "nanoBanana-fix-1",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-pc-fix-to-fix-2",
+      "source": "pc-fix",
+      "sourceHandle": "text",
+      "target": "nanoBanana-fix-2",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-pc-fix-to-fix-3",
+      "source": "pc-fix",
+      "sourceHandle": "text",
+      "target": "nanoBanana-fix-3",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-pc-fix-to-fix-4",
+      "source": "pc-fix",
+      "sourceHandle": "text",
+      "target": "nanoBanana-fix-4",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-pc-fix-to-fix-5",
+      "source": "pc-fix",
+      "sourceHandle": "text",
+      "target": "nanoBanana-fix-5",
+      "targetHandle": "text",
+      "selected": false
+    },
+    {
+      "id": "edge-cover-to-fix-1",
+      "source": "imageInput-cover",
+      "sourceHandle": "image",
+      "target": "nanoBanana-fix-1",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-cover-to-fix-2",
+      "source": "imageInput-cover",
+      "sourceHandle": "image",
+      "target": "nanoBanana-fix-2",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-cover-to-fix-3",
+      "source": "imageInput-cover",
+      "sourceHandle": "image",
+      "target": "nanoBanana-fix-3",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-cover-to-fix-4",
+      "source": "imageInput-cover",
+      "sourceHandle": "image",
+      "target": "nanoBanana-fix-4",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-cover-to-fix-5",
+      "source": "imageInput-cover",
+      "sourceHandle": "image",
+      "target": "nanoBanana-fix-5",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-fix1-out1",
+      "source": "nanoBanana-fix-1",
+      "sourceHandle": "image",
+      "target": "output-1",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-fix2-out2",
+      "source": "nanoBanana-fix-2",
+      "sourceHandle": "image",
+      "target": "output-2",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-fix3-out3",
+      "source": "nanoBanana-fix-3",
+      "sourceHandle": "image",
+      "target": "output-3",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-fix4-out4",
+      "source": "nanoBanana-fix-4",
+      "sourceHandle": "image",
+      "target": "output-4",
+      "targetHandle": "image",
+      "selected": false
+    },
+    {
+      "id": "edge-fix5-out5",
+      "source": "nanoBanana-fix-5",
+      "sourceHandle": "image",
+      "target": "output-5",
+      "targetHandle": "image",
       "selected": false
     }
   ],
