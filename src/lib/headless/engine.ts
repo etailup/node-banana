@@ -47,8 +47,66 @@ const SUPPORTED_TYPES = new Set([
   "promptConstructor",
   "nanoBanana",
   "llmGenerate",
+  "splitGrid",
   "output",
 ]);
+
+// ---------------------------------------------------------------------------
+// Server-side Image Splitting (sharp — replaces browser Canvas)
+// ---------------------------------------------------------------------------
+
+/**
+ * Parse a base64 data URL into a raw Buffer.
+ * Handles both `data:image/...;base64,XXX` and raw base64 strings.
+ */
+function base64ToBuffer(dataUrl: string): Buffer {
+  const match = dataUrl.match(/^data:[^;]+;base64,(.+)$/);
+  return Buffer.from(match ? match[1] : dataUrl, "base64");
+}
+
+/**
+ * Convert a raw image Buffer to a PNG data URL.
+ */
+function bufferToDataUrl(buf: Buffer, mime = "image/png"): string {
+  return `data:${mime};base64,${buf.toString("base64")}`;
+}
+
+/**
+ * Split a base64 image into a grid of cells using sharp.
+ * Server-side equivalent of gridSplitter.ts splitWithDimensions().
+ */
+async function splitGridImage(
+  imageBase64: string,
+  rows: number,
+  cols: number,
+): Promise<string[]> {
+  const sharp = (await import("sharp")).default;
+  const buf = base64ToBuffer(imageBase64);
+  const meta = await sharp(buf).metadata();
+  const imgW = meta.width!;
+  const imgH = meta.height!;
+
+  const cellW = Math.floor(imgW / cols);
+  const cellH = Math.floor(imgH / rows);
+
+  const cells: string[] = [];
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const extracted = await sharp(buf)
+        .extract({
+          left: col * cellW,
+          top: row * cellH,
+          width: cellW,
+          height: cellH,
+        })
+        .png()
+        .toBuffer();
+      cells.push(bufferToDataUrl(extracted));
+    }
+  }
+
+  return cells;
+}
 
 // ---------------------------------------------------------------------------
 // Image URL Fetching
@@ -90,6 +148,13 @@ async function executeNode(
     // imageInput: resolve image from URL or embedded base64
     // ------------------------------------------------------------------
     case "imageInput": {
+      // Check if already populated by upstream splitGrid node
+      const prePopulated = nodeOutputs.get(node.id);
+      if (prePopulated?.image) {
+        result.outputImage = prePopulated.image;
+        break;
+      }
+
       let image: string | null = null;
 
       // Priority: imageUrl (possibly overridden) -> embedded base64
@@ -243,6 +308,46 @@ async function executeNode(
       } else {
         result.error = llmResult.error || "LLM API returned no text";
       }
+      break;
+    }
+
+    // ------------------------------------------------------------------
+    // splitGrid: split image into grid cells, populate child imageInputs
+    // ------------------------------------------------------------------
+    case "splitGrid": {
+      const inputs = getConnectedInputs(node.id, allNodes, allEdges, nodeOutputs);
+      const sourceImage = inputs.images[0] || null;
+
+      if (!sourceImage) {
+        result.error = "No input image connected to splitGrid node";
+        break;
+      }
+
+      const gridRows = (node.data.gridRows as number) || 2;
+      const gridCols = (node.data.gridCols as number) || 3;
+      const childNodeIds = node.data.childNodeIds as
+        | Array<{ imageInput: string; prompt?: string; nanoBanana?: string }>
+        | undefined;
+
+      if (!childNodeIds || childNodeIds.length === 0) {
+        result.error = "splitGrid node has no childNodeIds configured";
+        break;
+      }
+
+      const splitImages = await splitGridImage(sourceImage, gridRows, gridCols);
+
+      // Pre-populate child imageInput nodes in nodeOutputs so they
+      // pick up the split data when they execute at a later level.
+      for (let i = 0; i < childNodeIds.length; i++) {
+        if (splitImages[i]) {
+          nodeOutputs.set(childNodeIds[i].imageInput, {
+            image: splitImages[i],
+          });
+        }
+      }
+
+      // splitGrid itself outputs the source image (for graph completeness)
+      result.outputImage = sourceImage;
       break;
     }
 
