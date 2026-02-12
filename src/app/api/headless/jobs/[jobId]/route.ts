@@ -16,7 +16,7 @@ export async function GET(
   { params }: { params: Promise<{ jobId: string }> },
 ) {
   // Auth
-  const authError = validateApiKey(request);
+  const { error: authError } = await validateApiKey(request);
   if (authError) return authError;
 
   const { jobId } = await params;

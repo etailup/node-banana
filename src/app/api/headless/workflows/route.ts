@@ -13,7 +13,7 @@ import type { WorkflowFileJSON, WorkflowVariableMap } from "@/lib/headless/types
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const authError = validateApiKey(request);
+  const { error: authError } = await validateApiKey(request);
   if (authError) return authError;
 
   try {
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const authError = validateApiKey(request);
+  const { error: authError } = await validateApiKey(request);
   if (authError) return authError;
 
   let body: { name: string; definition: WorkflowFileJSON; variables?: WorkflowVariableMap };

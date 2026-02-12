@@ -8,7 +8,7 @@ import { FloatingActionBar } from "@/components/FloatingActionBar";
 import { AnnotationModal } from "@/components/AnnotationModal";
 import { useWorkflowStore } from "@/store/workflowStore";
 
-export default function Home() {
+export default function EditorPage() {
   const initializeAutoSave = useWorkflowStore(
     (state) => state.initializeAutoSave
   );
