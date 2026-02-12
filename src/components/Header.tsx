@@ -3,6 +3,7 @@
 import { useState, useRef, useMemo, useCallback } from "react";
 import { useWorkflowStore, WorkflowFile } from "@/store/workflowStore";
 import { ProjectSetupModal } from "./ProjectSetupModal";
+import { HeadlessPublishModal } from "./HeadlessPublishModal";
 import { CostIndicator } from "./CostIndicator";
 
 function CommentsNavigationIcon() {
@@ -72,6 +73,7 @@ export function Header() {
   } = useWorkflowStore();
 
   const [showProjectModal, setShowProjectModal] = useState(false);
+  const [showPublishModal, setShowPublishModal] = useState(false);
   const [projectModalMode, setProjectModalMode] = useState<"new" | "settings">("new");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -176,6 +178,10 @@ export function Header() {
         onSave={handleProjectSave}
         mode={projectModalMode}
       />
+      <HeadlessPublishModal
+        isOpen={showPublishModal}
+        onClose={() => setShowPublishModal(false)}
+      />
       <input
         ref={fileInputRef}
         type="file"
@@ -264,6 +270,25 @@ export function Header() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setShowPublishModal(true)}
+                    className="p-1.5 text-neutral-400 hover:text-violet-300 hover:bg-neutral-800 rounded transition-colors"
+                    title="Publish to Headless API"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z"
                       />
                     </svg>
                   </button>

@@ -11,6 +11,7 @@ import {
   updateWorkflow,
   deleteWorkflow,
 } from "@/lib/headless/storage";
+import { extractVariableNames, groupNodesByLevel } from "@/lib/headless/graph";
 import type { WorkflowFileJSON, WorkflowVariableMap } from "@/lib/headless/types";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +29,29 @@ export async function GET(
     if (!workflow) {
       return NextResponse.json({ error: "Workflow not found" }, { status: 404 });
     }
-    return NextResponse.json({ workflow });
+
+    // Build summary for quick introspection
+    const { definition, variables } = workflow;
+    const detectedVarNames = extractVariableNames(definition);
+    const allVarNames = [
+      ...new Set([...detectedVarNames, ...Object.keys(variables || {})]),
+    ];
+    const nodeTypeCounts: Record<string, number> = {};
+    for (const node of definition.nodes) {
+      nodeTypeCounts[node.type] = (nodeTypeCounts[node.type] || 0) + 1;
+    }
+    const levels = groupNodesByLevel(definition.nodes, definition.edges);
+
+    return NextResponse.json({
+      workflow,
+      summary: {
+        variableNames: allVarNames,
+        nodeTypeCounts,
+        nodeCount: definition.nodes.length,
+        edgeCount: definition.edges.length,
+        executionLevels: levels.length,
+      },
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: message }, { status: 500 });
