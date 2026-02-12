@@ -17,7 +17,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const authError = validateApiKey(request);
+  const { error: authError } = await validateApiKey(request);
   if (authError) return authError;
 
   const { id } = await params;

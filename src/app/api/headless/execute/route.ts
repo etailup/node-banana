@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   // Auth
-  const authError = validateApiKey(request);
+  const { error: authError } = await validateApiKey(request);
   if (authError) return authError;
 
   // Parse body

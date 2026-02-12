@@ -3,8 +3,8 @@ import "./globals.css";
 import { Toast } from "@/components/Toast";
 
 export const metadata: Metadata = {
-  title: "ContentWiz - AI Image Workflow",
-  description: "Node-based image annotation and generation workflow using AI",
+  title: "Node Banana",
+  description: "Visual node editor for AI image generation workflows",
 };
 
 export default function RootLayout({

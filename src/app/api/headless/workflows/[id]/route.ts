@@ -20,7 +20,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const authError = validateApiKey(request);
+  const { error: authError } = await validateApiKey(request);
   if (authError) return authError;
 
   const { id } = await params;
@@ -62,7 +62,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const authError = validateApiKey(request);
+  const { error: authError } = await validateApiKey(request);
   if (authError) return authError;
 
   const { id } = await params;
@@ -93,8 +93,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const authError = validateApiKey(request);
-  if (authError) return authError;
+  const { error: authError2 } = await validateApiKey(request);
+  if (authError2) return authError2;
 
   const { id } = await params;
 
