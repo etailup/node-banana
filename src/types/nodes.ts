@@ -37,6 +37,7 @@ export type NodeType =
   | "imageCompare"
   | "videoStitch"
   | "easeCurve"
+  | "generate3d"
   | "glbViewer";
 
 /**
@@ -176,6 +177,21 @@ export interface GenerateVideoNodeData extends BaseNodeData {
 }
 
 /**
+ * Generate 3D node - AI 3D model generation
+ */
+export interface Generate3DNodeData extends BaseNodeData {
+  inputImages: string[];
+  inputImageRefs?: string[];
+  inputPrompt: string | null;
+  output3dUrl: string | null;
+  selectedModel?: SelectedModel;
+  parameters?: Record<string, unknown>;
+  inputSchema?: ModelInputDef[];
+  status: NodeStatus;
+  error: string | null;
+}
+
+/**
  * LLM Generate node - AI text generation
  */
 export interface LLMGenerateNodeData extends BaseNodeData {
@@ -303,6 +319,7 @@ export type WorkflowNodeData =
   | PromptConstructorNodeData
   | NanoBananaNodeData
   | GenerateVideoNodeData
+  | Generate3DNodeData
   | LLMGenerateNodeData
   | SplitGridNodeData
   | OutputNodeData
@@ -346,6 +363,14 @@ export interface GenerateVideoNodeDefaults {
   };
 }
 
+export interface Generate3DNodeDefaults {
+  selectedModel?: {
+    provider: ProviderType;
+    modelId: string;
+    displayName: string;
+  };
+}
+
 export interface LLMNodeDefaults {
   provider?: LLMProvider;
   model?: LLMModelType;
@@ -356,5 +381,6 @@ export interface LLMNodeDefaults {
 export interface NodeDefaultsConfig {
   generateImage?: GenerateImageNodeDefaults;
   generateVideo?: GenerateVideoNodeDefaults;
+  generate3d?: Generate3DNodeDefaults;
   llm?: LLMNodeDefaults;
 }
