@@ -21,6 +21,8 @@ export default function NewCampaignPage() {
   const [variableMap, setVariableMap] = useState<Record<string, string>>({})
   const [campaignName, setCampaignName] = useState("")
   const [concurrency, setConcurrency] = useState(5)
+  const [autoQualityReview, setAutoQualityReview] = useState(false)
+  const [qualityThreshold, setQualityThreshold] = useState(70)
   const [launching, setLaunching] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -66,6 +68,8 @@ export default function NewCampaignPage() {
           data: csvData,
           variableMap,
           concurrency,
+          autoQualityReview,
+          qualityThreshold: autoQualityReview ? qualityThreshold / 100 : undefined,
         }),
       })
 
@@ -218,6 +222,36 @@ export default function NewCampaignPage() {
                     <option key={n} value={n}>{n}</option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={autoQualityReview}
+                    onChange={(e) => setAutoQualityReview(e.target.checked)}
+                    className="w-4 h-4 rounded border-neutral-600 bg-neutral-700 text-blue-600 focus:ring-blue-500"
+                  />
+                  <div>
+                    <span className="text-sm text-neutral-200">Auto Quality Review</span>
+                    <p className="text-xs text-neutral-500">Score each output with vision AI after generation</p>
+                  </div>
+                </label>
+                {autoQualityReview && (
+                  <div className="mt-3 ml-7">
+                    <label className="block text-xs text-neutral-400 mb-1">
+                      Pass threshold: {qualityThreshold}%
+                    </label>
+                    <input
+                      type="range"
+                      min={30}
+                      max={95}
+                      step={5}
+                      value={qualityThreshold}
+                      onChange={(e) => setQualityThreshold(parseInt(e.target.value))}
+                      className="w-48 accent-blue-600"
+                    />
+                  </div>
+                )}
               </div>
               <div className="bg-neutral-700/30 border border-neutral-600 rounded-lg p-4">
                 <div className="text-sm text-neutral-300">
