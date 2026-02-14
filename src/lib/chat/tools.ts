@@ -187,6 +187,31 @@ export function createChatTools(nodeIds: string[]) {
       execute: async ({ description }) => ({ description }),
     }),
 
+    optimizePrompt: tool({
+      description:
+        'Optimize a prompt to get better image generation results. Use when user says "optimize", "improve my prompt", "make this prompt better", or "/optimize". Generates multiple variations and scores them.',
+      inputSchema: z.object({
+        prompt: z
+          .string()
+          .describe("The base prompt to optimize"),
+        variationCount: z
+          .number()
+          .min(2)
+          .max(10)
+          .optional()
+          .describe("Number of variations to generate (default: 4)"),
+        referenceImageNodeId: z
+          .string()
+          .optional()
+          .describe("Node ID of an image input to use as reference for scoring"),
+      }),
+      execute: async ({ prompt, variationCount, referenceImageNodeId }) => ({
+        prompt,
+        variationCount: variationCount ?? 4,
+        referenceImageNodeId,
+      }),
+    }),
+
     editWorkflow: tool({
       description:
         "Make targeted edits to the current workflow. Use when user wants to add, remove, or modify nodes and connections. Reference nodes by their ID.",

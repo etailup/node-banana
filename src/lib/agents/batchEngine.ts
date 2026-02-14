@@ -16,6 +16,8 @@ import {
   getCampaignProgress,
 } from "./batchStorage"
 import { updateAgentJob } from "./storage"
+import { reviewImage } from "./qualityReview"
+import { checkAgentLimits } from "./limits"
 import type { ParameterOverrides } from "@/lib/headless/types"
 
 // ---------------------------------------------------------------------------
@@ -25,7 +27,10 @@ import type { ParameterOverrides } from "@/lib/headless/types"
 export interface BatchEngineConfig {
   campaignId: string
   agentJobId: string
+  planId?: string
   callbackUrl?: string
+  autoQualityReview?: boolean
+  qualityThreshold?: number
 }
 
 /**
@@ -54,6 +59,24 @@ export async function runBatchCampaign(config: BatchEngineConfig): Promise<void>
       // Re-check campaign status (may have been paused/cancelled)
       const currentCampaign = await getCampaign(config.campaignId)
       if (!currentCampaign || currentCampaign.status === "paused" || currentCampaign.status === "failed") {
+        break
+      }
+
+      // Check quota before processing next batch
+      const quotaCheck = await checkAgentLimits(
+        campaign.user_id,
+        "batch",
+        config.planId || "free",
+        concurrency
+      )
+      if (!quotaCheck.allowed) {
+        await updateCampaignStatus(config.campaignId, "paused")
+        await updateAgentJob(config.agentJobId, {
+          result: {
+            progress: await getCampaignProgress(config.campaignId),
+            pauseReason: `Batch item quota exceeded (${quotaCheck.current}/${quotaCheck.limit} used this month). Upgrade your plan or wait for the next billing cycle to resume.`,
+          },
+        })
         break
       }
 
@@ -90,10 +113,32 @@ export async function runBatchCampaign(config: BatchEngineConfig): Promise<void>
               .map(o => o.imageUrl)
               .filter(Boolean) as string[]
 
+            // Auto quality review if enabled
+            let qualityResults: Record<string, unknown> | undefined
+            if (config.autoQualityReview && outputUrls.length > 0) {
+              try {
+                const reviews = await Promise.all(
+                  outputUrls.map(url => reviewImage(url, "", undefined, config.qualityThreshold ?? 0.70))
+                )
+                qualityResults = {
+                  reviews: reviews.map(r => ({
+                    grade: r.grade,
+                    overall: r.scores.overall,
+                    passed: r.passed,
+                    issues: r.issues,
+                  })),
+                  allPassed: reviews.every(r => r.passed),
+                }
+              } catch {
+                // Quality review failure shouldn't fail the batch item
+              }
+            }
+
             await updateBatchItem(item.id, {
               status: "completed",
               output_urls: outputUrls,
               completed_at: new Date().toISOString(),
+              ...(qualityResults ? { quality_results: qualityResults } : {}),
             })
           } else {
             const errorMsg = result.errors?.[0]?.message || "Job failed"
