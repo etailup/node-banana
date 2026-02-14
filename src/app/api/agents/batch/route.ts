@@ -35,6 +35,8 @@ export async function POST(request: NextRequest) {
     variableMap?: Record<string, string>
     concurrency?: number
     callbackUrl?: string
+    autoQualityReview?: boolean
+    qualityThreshold?: number
   }
   try {
     body = await request.json()
@@ -112,6 +114,8 @@ export async function POST(request: NextRequest) {
       agentJobId: agentJob.id,
       planId,
       callbackUrl: body.callbackUrl,
+      autoQualityReview: body.autoQualityReview,
+      qualityThreshold: body.qualityThreshold,
     }).catch(async (err) => {
       console.error("Batch campaign error:", err)
       await updateAgentJob(agentJob.id, {
