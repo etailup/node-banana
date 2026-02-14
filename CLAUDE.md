@@ -219,6 +219,7 @@ All routes in `src/app/api/`:
 - Never push directly to `main`, `master`, or `develop`
 
 ## Commits
-- Commit frequently and atomically, if a task is complete, commit. 
+- Commit after each logical task or unit of work is complete. When implementing a multi-task plan, commit after finishing each task — do NOT batch all tasks into a single commit at the end.
+- Each commit should be atomic and self-contained: one task = one commit.
 - The .planning directory is untracked, do not attempt to commit any changes to the files in this directory.
 
