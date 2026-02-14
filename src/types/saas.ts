@@ -54,6 +54,10 @@ export type PlanLimits = {
   maxConcurrent: number
   maxWorkflows: number
   maxApiKeys: number
+  agentOptimizations: number
+  agentBatchItems: number
+  agentBatchConcurrency: number
+  agentQualityReviews: number
 }
 
 export type ApiResponse<T> = {
