@@ -52,29 +52,21 @@ export async function getMonthlyUsage(userId: string): Promise<number> {
 }
 
 /**
- * Increment the job count for the current month.
+ * Increment the job count for the current month using atomic RPC.
  * Creates the record if it doesn't exist.
  */
 export async function incrementUsage(userId: string): Promise<number> {
   const month = getCurrentMonth()
 
-  // Upsert with increment
-  const { data, error } = await table("usage_records")
-    .upsert(
-      {
-        user_id: userId,
-        month,
-        job_count: 1,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id,month" }
-    )
-    .select("job_count")
-    .single()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (getSupabase().rpc as any)("increment_usage", {
+    p_user_id: userId,
+    p_month: month,
+  })
 
   if (error) {
     console.error("Error incrementing usage:", error)
-    // Fallback: try to read + update
+    // Fallback: try client-side read + write
     const current = await getMonthlyUsage(userId)
     const newCount = current + 1
 
@@ -92,7 +84,7 @@ export async function incrementUsage(userId: string): Promise<number> {
     return newCount
   }
 
-  return data?.job_count ?? 1
+  return data ?? 1
 }
 
 /**

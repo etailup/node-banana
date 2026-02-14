@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { constructWebhookEvent } from "@/lib/stripe"
+import { constructWebhookEvent, getStripe } from "@/lib/stripe"
 import { createAdminClient } from "@/lib/supabase/server"
 import type Stripe from "stripe"
 
@@ -32,12 +32,24 @@ export async function POST(request: NextRequest) {
           break
         }
 
+        // Retrieve the full subscription to get the price ID
+        let stripePriceId: string | null = null
+        if (session.subscription) {
+          try {
+            const sub = await getStripe().subscriptions.retrieve(session.subscription as string)
+            stripePriceId = sub.items.data[0]?.price.id ?? null
+          } catch (err) {
+            console.error("Failed to retrieve subscription from Stripe:", err)
+          }
+        }
+
         await admin.from("subscriptions").upsert(
           {
             user_id: userId,
             status: "active",
             stripe_customer_id: session.customer as string,
             stripe_subscription_id: session.subscription as string,
+            stripe_price_id: stripePriceId,
             updated_at: new Date().toISOString(),
           },
           { onConflict: "user_id" }

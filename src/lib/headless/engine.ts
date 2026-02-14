@@ -529,7 +529,7 @@ export async function executeWorkflow(
   parameters?: ParameterOverrides,
   callbackUrl?: string,
   workflowId?: string,
-  options?: EngineOptions,
+  options?: EngineOptions & { userId?: string | null },
 ): Promise<string> {
   const baseUrl = options?.baseUrl || getBaseUrl();
   const concurrency = options?.maxConcurrency || getMaxConcurrency();
@@ -539,7 +539,7 @@ export async function executeWorkflow(
   const resolved = resolveVariables(workflow, parameters);
 
   // 2. Create job record
-  const job = await createJob(workflowId || null, parameters || {}, callbackUrl || null);
+  const job = await createJob(workflowId || null, parameters || {}, callbackUrl || null, options?.userId);
   const jobId = job.id;
 
   // 3. Topological sort

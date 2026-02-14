@@ -116,3 +116,19 @@ export async function revokeApiKey(userId: string, keyId: string): Promise<void>
 
   if (error) throw new Error(`Failed to revoke API key: ${error.message}`)
 }
+
+/**
+ * Count non-revoked API keys for a user.
+ */
+export async function countUserApiKeys(userId: string): Promise<number> {
+  const { count, error } = await table("api_keys")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .is("revoked_at", null)
+
+  if (error) {
+    console.error("Failed to count API keys:", error)
+    return 0
+  }
+  return count || 0
+}
