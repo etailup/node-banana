@@ -18,6 +18,7 @@ import {
 } from "./simpleNodeExecutors";
 import { executeNanoBanana } from "./nanoBananaExecutor";
 import { executeGenerateVideo } from "./generateVideoExecutor";
+import { executeGenerate3D } from "./generate3dExecutor";
 import { executeLlmGenerate } from "./llmGenerateExecutor";
 import { executeSplitGrid } from "./splitGridExecutor";
 import { executeVideoStitch, executeEaseCurve } from "./videoProcessingExecutors";
@@ -57,6 +58,9 @@ export async function executeNode(
       break;
     case "generateVideo":
       await executeGenerateVideo(ctx, regenOpts);
+      break;
+    case "generate3d":
+      await executeGenerate3D(ctx, regenOpts);
       break;
     case "llmGenerate":
       await executeLlmGenerate(ctx, regenOpts);

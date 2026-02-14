@@ -1094,6 +1094,7 @@ export function WorkflowCanvas() {
             promptConstructor: { width: 340, height: 280 },
             nanoBanana: { width: 300, height: 300 },
             generateVideo: { width: 300, height: 300 },
+            generate3d: { width: 300, height: 300 },
             llmGenerate: { width: 320, height: 360 },
             splitGrid: { width: 300, height: 320 },
             output: { width: 320, height: 320 },
