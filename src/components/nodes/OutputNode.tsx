@@ -6,6 +6,8 @@ import { BaseNode } from "./BaseNode";
 import { useCommentNavigation } from "@/hooks/useCommentNavigation";
 import { useWorkflowStore } from "@/store/workflowStore";
 import { OutputNodeData } from "@/types";
+import { QualityBadge } from "./QualityBadge";
+import { QualityDetailModal } from "@/components/QualityDetailModal";
 
 type OutputNodeType = Node<OutputNodeData, "output">;
 
@@ -14,6 +16,8 @@ export function OutputNode({ id, data, selected }: NodeProps<OutputNodeType>) {
   const commentNavigation = useCommentNavigation(id);
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const [showLightbox, setShowLightbox] = useState(false);
+  const [showQualityModal, setShowQualityModal] = useState(false);
+  const [reviewLoading, setReviewLoading] = useState(false);
 
   // Determine if content is video
   const isVideo = useMemo(() => {
@@ -69,6 +73,49 @@ export function OutputNode({ id, data, selected }: NodeProps<OutputNodeType>) {
     document.body.removeChild(link);
   }, [contentSrc, isVideo, nodeData.outputFilename]);
 
+  const handleReview = useCallback(async () => {
+    if (!contentSrc || isVideo || reviewLoading) return;
+    setReviewLoading(true);
+    try {
+      const res = await fetch("/api/agents/quality-review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          images: [{ url: contentSrc }],
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const review = data.reviews?.[0];
+        if (review) {
+          updateNodeData(id, {
+            qualityReview: {
+              grade: review.grade,
+              scores: review.scores,
+              issues: review.issues,
+              suggestion: review.suggestion,
+              passed: review.passed,
+              reviewId: review.id,
+            },
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Quality review failed:", err);
+    } finally {
+      setReviewLoading(false);
+    }
+  }, [contentSrc, isVideo, reviewLoading, id, updateNodeData]);
+
+  const qualityReview = nodeData.qualityReview as {
+    grade: "A" | "B" | "C" | "F";
+    scores: { artifacts: number; text_readability: number; composition: number; prompt_alignment: number; overall: number };
+    issues: string[];
+    suggestion: string;
+    passed: boolean;
+    reviewId: string;
+  } | undefined;
+
   return (
     <>
       <BaseNode
@@ -95,6 +142,15 @@ export function OutputNode({ id, data, selected }: NodeProps<OutputNodeType>) {
               className="relative cursor-pointer group flex-1 min-h-0"
               onClick={() => setShowLightbox(true)}
             >
+              {qualityReview && (
+                <div onClick={(e) => e.stopPropagation()}>
+                  <QualityBadge
+                    grade={qualityReview.grade}
+                    score={qualityReview.scores.overall}
+                    onClick={() => setShowQualityModal(true)}
+                  />
+                </div>
+              )}
               {isVideo ? (
                 <video
                   src={contentSrc}
@@ -119,12 +175,23 @@ export function OutputNode({ id, data, selected }: NodeProps<OutputNodeType>) {
                 </span>
               </div>
             </div>
-            <button
-              onClick={handleDownload}
-              className="w-full py-1.5 bg-white hover:bg-neutral-200 text-neutral-900 text-[10px] font-medium rounded transition-colors shrink-0"
-            >
-              Download
-            </button>
+            <div className="flex gap-1.5 shrink-0">
+              <button
+                onClick={handleDownload}
+                className="flex-1 py-1.5 bg-white hover:bg-neutral-200 text-neutral-900 text-[10px] font-medium rounded transition-colors"
+              >
+                Download
+              </button>
+              {!isVideo && (
+                <button
+                  onClick={handleReview}
+                  disabled={reviewLoading}
+                  className="py-1.5 px-2 bg-neutral-600 hover:bg-neutral-500 text-neutral-200 text-[10px] font-medium rounded transition-colors disabled:opacity-50"
+                >
+                  {reviewLoading ? "..." : "Review"}
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           <div className="w-full flex-1 min-h-[144px] border border-dashed border-neutral-600 rounded flex items-center justify-center">
@@ -143,6 +210,23 @@ export function OutputNode({ id, data, selected }: NodeProps<OutputNodeType>) {
           />
         </div>
       </BaseNode>
+
+      {/* Quality Detail Modal */}
+      {showQualityModal && qualityReview && (
+        <QualityDetailModal
+          grade={qualityReview.grade}
+          scores={qualityReview.scores}
+          issues={qualityReview.issues}
+          suggestion={qualityReview.suggestion}
+          onClose={() => setShowQualityModal(false)}
+          onAcceptAnyway={() => {
+            updateNodeData(id, {
+              qualityReview: { ...qualityReview, passed: true },
+            });
+            setShowQualityModal(false);
+          }}
+        />
+      )}
 
       {/* Lightbox Modal */}
       {showLightbox && contentSrc && (

@@ -18,18 +18,30 @@ const planLimitsMap: Record<string, PlanLimits> = {
     maxConcurrent: 2,
     maxWorkflows: 5,
     maxApiKeys: 2,
+    agentOptimizations: 5,
+    agentBatchItems: 50,
+    agentBatchConcurrency: 1,
+    agentQualityReviews: 20,
   },
   pro: {
     runsPerMonth: 1000,
     maxConcurrent: 10,
     maxWorkflows: 50,
     maxApiKeys: 10,
+    agentOptimizations: 50,
+    agentBatchItems: 5000,
+    agentBatchConcurrency: 10,
+    agentQualityReviews: 500,
   },
   enterprise: {
     runsPerMonth: Infinity,
     maxConcurrent: 50,
     maxWorkflows: Infinity,
     maxApiKeys: 50,
+    agentOptimizations: Infinity,
+    agentBatchItems: Infinity,
+    agentBatchConcurrency: 50,
+    agentQualityReviews: Infinity,
   },
 }
 
@@ -55,7 +67,7 @@ export const plans: Plan[] = [
     name: "Pro",
     description: "For professionals and teams",
     price: 49,
-    priceId: null, // TODO: Add Stripe Price ID (e.g., "price_xxx")
+    priceId: process.env.STRIPE_PRICE_PRO || null,
     features: [
       "1,000 workflow runs/month",
       "10 concurrent jobs",
@@ -73,7 +85,7 @@ export const plans: Plan[] = [
     name: "Enterprise",
     description: "For scale",
     price: 199,
-    priceId: null, // TODO: Add Stripe Price ID (e.g., "price_xxx")
+    priceId: process.env.STRIPE_PRICE_ENTERPRISE || null,
     features: [
       "Unlimited workflow runs",
       "50 concurrent jobs",
