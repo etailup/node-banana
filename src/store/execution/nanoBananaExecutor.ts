@@ -80,9 +80,6 @@ export async function executeNanoBanana(
   const provider = nodeData.selectedModel?.provider || "gemini";
   const headers = buildGenerateHeaders(provider, providerSettings);
 
-  // Determine mediaType from model capabilities
-  const is3DModel = nodeData.selectedModel?.capabilities?.some((c: string) => c.includes("3d"));
-
   const requestPayload = {
     images,
     prompt: promptText,
@@ -93,7 +90,6 @@ export async function executeNanoBanana(
     selectedModel: nodeData.selectedModel,
     parameters: nodeData.parameters,
     dynamicInputs,
-    ...(is3DModel ? { mediaType: "3d" as const } : {}),
   };
 
   try {
@@ -123,41 +119,6 @@ export async function executeNanoBanana(
 
     const result = await response.json();
 
-    // Handle 3D model response
-    if (result.success && result.model3dUrl) {
-      updateNodeData(node.id, {
-        output3dUrl: result.model3dUrl,
-        outputImage: null,
-        status: "complete",
-        error: null,
-      });
-
-      // Track cost if applicable
-      if (nodeData.selectedModel?.provider === "fal" && nodeData.selectedModel?.pricing) {
-        addIncurredCost(nodeData.selectedModel.pricing.amount);
-      }
-
-      // Auto-save 3D model to generations folder if configured
-      if (generationsPath) {
-        const savePromise = fetch("/api/save-generation", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            directoryPath: generationsPath,
-            model3d: result.model3dUrl,
-            prompt: promptText,
-          }),
-        })
-          .then((res) => res.json())
-          .catch((err) => {
-            console.error("Failed to save 3D model:", err);
-          });
-
-        trackSaveGeneration(`3d-${Date.now()}`, savePromise);
-      }
-      return;
-    }
-
     if (result.success && result.image) {
       const timestamp = Date.now();
       const imageId = `${timestamp}`;
@@ -183,7 +144,6 @@ export async function executeNanoBanana(
 
       updateNodeData(node.id, {
         outputImage: result.image,
-        output3dUrl: null,
         status: "complete",
         error: null,
         imageHistory: updatedHistory,

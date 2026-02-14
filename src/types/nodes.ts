@@ -151,7 +151,6 @@ export interface NanoBananaNodeData extends BaseNodeData {
   useGoogleSearch: boolean; // Only available for Nano Banana Pro
   parameters?: Record<string, unknown>; // Model-specific parameters for external providers
   inputSchema?: ModelInputDef[]; // Model's input schema for dynamic handles
-  output3dUrl?: string | null; // URL to generated 3D GLB model
   status: NodeStatus;
   error: string | null;
   imageHistory: CarouselImageItem[]; // Carousel history (IDs only)

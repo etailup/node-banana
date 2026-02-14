@@ -123,7 +123,6 @@ export const createDefaultNodeData = (type: NodeType): WorkflowNodeData => {
         inputImages: [],
         inputPrompt: null,
         outputImage: null,
-        output3dUrl: null,
         aspectRatio,
         resolution,
         model: legacyDefaults.model, // Keep legacy model field for backward compat

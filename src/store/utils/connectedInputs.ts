@@ -63,9 +63,6 @@ function getSourceOutput(sourceNode: WorkflowNode): { type: "image" | "text" | "
     return { type: "image", value: (sourceNode.data as AnnotationNodeData).outputImage };
   } else if (sourceNode.type === "nanoBanana") {
     const nbData = sourceNode.data as NanoBananaNodeData;
-    if (nbData.output3dUrl) {
-      return { type: "3d", value: nbData.output3dUrl };
-    }
     return { type: "image", value: nbData.outputImage };
   } else if (sourceNode.type === "generate3d") {
     const g3dData = sourceNode.data as Generate3DNodeData;
