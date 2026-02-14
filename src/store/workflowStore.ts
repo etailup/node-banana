@@ -68,6 +68,7 @@ import {
   executeSplitGrid,
   executeVideoStitch,
   executeEaseCurve,
+  executeGlbViewer,
 } from "./execution";
 import type { NodeExecutionContext } from "./execution";
 export type { LevelGroup } from "./utils/executionUtils";
@@ -157,7 +158,7 @@ interface WorkflowStore {
 
   // Helpers
   getNodeById: (id: string) => WorkflowNode | undefined;
-  getConnectedInputs: (nodeId: string) => { images: string[]; videos: string[]; audio: string[]; text: string | null; dynamicInputs: Record<string, string | string[]>; easeCurve: { bezierHandles: [number, number, number, number]; easingPreset: string | null } | null };
+  getConnectedInputs: (nodeId: string) => { images: string[]; videos: string[]; audio: string[]; model3d: string | null; text: string | null; dynamicInputs: Record<string, string | string[]>; easeCurve: { bezierHandles: [number, number, number, number]; easingPreset: string | null } | null };
   validateWorkflow: () => { valid: boolean; errors: string[] };
 
   // Global Image History
@@ -208,6 +209,10 @@ interface WorkflowStore {
   // Model search dialog state
   modelSearchOpen: boolean;
   modelSearchProvider: ProviderType | null;
+
+  // Keyboard shortcuts dialog state
+  shortcutsDialogOpen: boolean;
+  setShortcutsDialogOpen: (open: boolean) => void;
 
   // Model search dialog actions
   setModelSearchOpen: (open: boolean, provider?: ProviderType | null) => void;
@@ -319,6 +324,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   // Model search dialog initial state
   modelSearchOpen: false,
   modelSearchProvider: null,
+
+  // Keyboard shortcuts dialog initial state
+  shortcutsDialogOpen: false,
 
   // Recent models initial state
   recentModels: getRecentModels(),
@@ -836,6 +844,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           case "audioInput":
             // Data source nodes - no execution needed
             break;
+          case "glbViewer":
+            await executeGlbViewer(executionCtx);
+            break;
           case "annotation":
             await executeAnnotation(executionCtx);
             break;
@@ -1040,6 +1051,30 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         set({ isRunning: false, currentNodeIds: [] });
         await logger.endSession();
         return;
+      }
+
+      // After regeneration, execute directly connected downstream consumer nodes
+      // (e.g. glbViewer needs to fetch+load 3D model from upstream nanoBanana)
+      const { edges: currentEdges } = get();
+      const downstreamEdges = currentEdges.filter(e => e.source === nodeId);
+      for (const edge of downstreamEdges) {
+        const targetNode = get().nodes.find(n => n.id === edge.target);
+        if (!targetNode) continue;
+        const targetCtx = get()._buildExecutionContext(targetNode);
+        switch (targetNode.type) {
+          case "glbViewer":
+            await executeGlbViewer(targetCtx);
+            break;
+          case "output":
+            await executeOutput(targetCtx);
+            break;
+          case "outputGallery":
+            await executeOutputGallery(targetCtx);
+            break;
+          case "imageCompare":
+            await executeImageCompare(targetCtx);
+            break;
+        }
       }
 
       logger.info('node.execution', 'Node regeneration completed successfully', { nodeId });
@@ -1542,6 +1577,11 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     };
     set({ providerSettings: updated });
     saveProviderSettings(updated);
+  },
+
+  // Keyboard shortcuts dialog actions
+  setShortcutsDialogOpen: (open: boolean) => {
+    set({ shortcutsDialogOpen: open });
   },
 
   // Model search dialog actions
