@@ -106,6 +106,9 @@ export async function generateWithWaveSpeed(
         // If the key is "images" and value is not an array, wrap it
         if (key === "images" && !Array.isArray(value)) {
           payload[key] = [value];
+        } else if (key !== "images" && Array.isArray(value)) {
+          // Unwrap array to single value for non-array params
+          payload[key] = value[0];
         } else {
           payload[key] = value;
         }

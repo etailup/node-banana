@@ -83,6 +83,8 @@ export async function generateWithReplicate(
       if (value !== null && value !== undefined && value !== '') {
         if (schemaArrayParams.has(key) && !Array.isArray(value)) {
           predictionInput[key] = [value];  // Wrap in array
+        } else if (!schemaArrayParams.has(key) && Array.isArray(value)) {
+          predictionInput[key] = value[0];  // Unwrap array to single value
         } else {
           predictionInput[key] = value;
         }

@@ -277,6 +277,9 @@ export async function generateWithFalQueue(
         // Wrap in array if schema expects array but we have a single value
         if (schemaArrayParams.has(key) && !Array.isArray(processedValue)) {
           filteredInputs[key] = [processedValue];
+        } else if (!schemaArrayParams.has(key) && Array.isArray(processedValue)) {
+          // Unwrap array to single value if schema expects a string (e.g. image_url)
+          filteredInputs[key] = processedValue[0];
         } else {
           filteredInputs[key] = processedValue;
         }

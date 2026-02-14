@@ -436,7 +436,12 @@ export async function generateWithKie(
             }
           }
           if (processedArray.length > 0) {
-            inputParams[key] = processedArray;
+            // Singular keys get first element, plural keys get full array
+            if (key === "image_url" || key === "video_url" || key === "tail_image_url") {
+              inputParams[key] = processedArray[0];
+            } else {
+              inputParams[key] = processedArray;
+            }
             handledImageKeys.add(key);
           }
         } else {
