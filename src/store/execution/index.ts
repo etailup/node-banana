@@ -24,6 +24,9 @@ export type { NanoBananaOptions } from "./nanoBananaExecutor";
 export { executeGenerateVideo } from "./generateVideoExecutor";
 export type { GenerateVideoOptions } from "./generateVideoExecutor";
 
+export { executeGenerate3D } from "./generate3dExecutor";
+export type { Generate3DOptions } from "./generate3dExecutor";
+
 export { executeLlmGenerate } from "./llmGenerateExecutor";
 export type { LlmGenerateOptions } from "./llmGenerateExecutor";
 

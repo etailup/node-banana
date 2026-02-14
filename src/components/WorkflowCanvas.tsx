@@ -28,6 +28,7 @@ import {
   PromptConstructorNode,
   GenerateImageNode,
   GenerateVideoNode,
+  Generate3DNode,
   LLMGenerateNode,
   SplitGridNode,
   OutputNode,
@@ -63,6 +64,7 @@ const nodeTypes: NodeTypes = {
   promptConstructor: PromptConstructorNode,
   nanoBanana: GenerateImageNode,
   generateVideo: GenerateVideoNode,
+  generate3d: Generate3DNode,
   llmGenerate: LLMGenerateNode,
   splitGrid: SplitGridNode,
   output: OutputNode,
@@ -118,6 +120,8 @@ const getNodeHandles = (nodeType: string): { inputs: string[]; outputs: string[]
       return { inputs: ["image", "text"], outputs: ["image"] };
     case "generateVideo":
       return { inputs: ["image", "text"], outputs: ["video"] };
+    case "generate3d":
+      return { inputs: ["image", "text"], outputs: ["3d"] };
     case "llmGenerate":
       return { inputs: ["text", "image"], outputs: ["text"] };
     case "splitGrid":
@@ -488,8 +492,9 @@ export function WorkflowCanvas() {
               return null;
             }
           }
-          // Output handle - check for video or image type
+          // Output handle - check for video, 3d, or image type
           if (handleType === "video") return "video";
+          if (handleType === "3d") return "3d";
           return handleType === "image" ? "image" : null;
         }
 
@@ -1663,6 +1668,8 @@ export function WorkflowCanvas() {
                 return "#22c55e";
               case "generateVideo":
                 return "#9333ea";
+              case "generate3d":
+                return "#fb923c";
               case "llmGenerate":
                 return "#06b6d4";
               case "splitGrid":
