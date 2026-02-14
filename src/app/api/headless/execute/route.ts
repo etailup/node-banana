@@ -10,6 +10,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateApiKey } from "@/lib/headless/auth";
 import { executeWorkflow } from "@/lib/headless/engine";
 import { getWorkflow, countRunningJobs } from "@/lib/headless/storage";
+import { checkUsageLimits, incrementUsage } from "@/lib/usage";
+import { getSubscription } from "@/lib/supabase/db";
+import { getPlanByPriceId } from "@/lib/plans";
 import type { HeadlessExecuteRequest, ExecuteResponse } from "@/lib/headless/types";
 
 export const maxDuration = 300; // 5 min (Vercel)
@@ -17,8 +20,26 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   // Auth
-  const { error: authError } = await validateApiKey(request);
+  const { error: authError, auth } = await validateApiKey(request);
   if (authError) return authError;
+
+  // Usage limit enforcement for user-authenticated requests
+  if (auth.userId) {
+    const subscription = await getSubscription(auth.userId);
+    const priceId = subscription?.stripe_price_id ?? null;
+    const plan = getPlanByPriceId(priceId);
+    const planId = plan?.id ?? "free";
+
+    const usage = await checkUsageLimits(auth.userId, planId);
+    if (!usage.allowed) {
+      return NextResponse.json(
+        {
+          error: `Monthly usage limit reached (${usage.current}/${usage.limit}). Upgrade your plan for more runs.`,
+        },
+        { status: 429 },
+      );
+    }
+  }
 
   // Parse body
   let body: HeadlessExecuteRequest;
@@ -73,8 +94,15 @@ export async function POST(request: NextRequest) {
       body.parameters,
       body.callbackUrl,
       storedWorkflowId,
-      { maxConcurrency: body.maxConcurrency },
+      { maxConcurrency: body.maxConcurrency, userId: auth.userId },
     );
+
+    // Increment usage for user-authenticated requests
+    if (auth.userId) {
+      incrementUsage(auth.userId).catch((err) =>
+        console.error("Failed to increment usage:", err)
+      );
+    }
 
     const response: ExecuteResponse = { jobId, status: "pending" };
     return NextResponse.json(response, { status: 202 });

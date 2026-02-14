@@ -104,10 +104,14 @@ export async function createWorkflow(
   name: string,
   definition: WorkflowFileJSON,
   variables: WorkflowVariableMap = {},
+  userId?: string | null,
 ): Promise<HeadlessWorkflow> {
+  const row: Record<string, unknown> = { name, definition, variables };
+  if (userId) row.user_id = userId;
+
   const { data, error } = await getSupabase()
     .from("headless_workflows")
-    .insert({ name, definition, variables })
+    .insert(row)
     .select()
     .single();
 
@@ -127,14 +131,36 @@ export async function getWorkflow(id: string): Promise<HeadlessWorkflow | null> 
   return data as HeadlessWorkflow;
 }
 
-export async function listWorkflows(): Promise<HeadlessWorkflow[]> {
-  const { data, error } = await getSupabase()
+export async function listWorkflows(userId?: string | null): Promise<HeadlessWorkflow[]> {
+  let query = getSupabase()
     .from("headless_workflows")
     .select("*")
     .order("created_at", { ascending: false });
 
+  if (userId) {
+    query = query.eq("user_id", userId);
+  }
+
+  const { data, error } = await query;
+
   if (error) throw new Error(`Failed to list workflows: ${error.message}`);
   return (data || []) as HeadlessWorkflow[];
+}
+
+/**
+ * Count workflows owned by a user.
+ */
+export async function countUserWorkflows(userId: string): Promise<number> {
+  const { count, error } = await getSupabase()
+    .from("headless_workflows")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId);
+
+  if (error) {
+    console.error("Failed to count workflows:", error);
+    return 0;
+  }
+  return count || 0;
 }
 
 export async function updateWorkflow(
@@ -169,18 +195,22 @@ export async function createJob(
   workflowId: string | null,
   parameters: ParameterOverrides,
   callbackUrl: string | null,
+  userId?: string | null,
 ): Promise<HeadlessJob> {
+  const row: Record<string, unknown> = {
+    workflow_id: workflowId,
+    status: "pending",
+    parameters,
+    progress: { completed: 0, total: 0 },
+    outputs: {},
+    errors: [],
+    callback_url: callbackUrl,
+  };
+  if (userId) row.user_id = userId;
+
   const { data, error } = await getSupabase()
     .from("headless_jobs")
-    .insert({
-      workflow_id: workflowId,
-      status: "pending",
-      parameters,
-      progress: { completed: 0, total: 0 },
-      outputs: {},
-      errors: [],
-      callback_url: callbackUrl,
-    })
+    .insert(row)
     .select()
     .single();
 
