@@ -29,7 +29,8 @@ async function generateWithGoogle(
   maxTokens: number,
   images?: string[],
   requestId?: string,
-  userApiKey?: string | null
+  userApiKey?: string | null,
+  systemPrompt?: string
 ): Promise<string> {
   // User-provided key takes precedence over env variable
   const apiKey = userApiKey || process.env.GEMINI_API_KEY;
@@ -86,6 +87,7 @@ async function generateWithGoogle(
     config: {
       temperature,
       maxOutputTokens: maxTokens,
+      ...(systemPrompt ? { systemInstruction: systemPrompt } : {}),
     },
   });
   const duration = Date.now() - startTime;
@@ -113,7 +115,8 @@ async function generateWithOpenAI(
   maxTokens: number,
   images?: string[],
   requestId?: string,
-  userApiKey?: string | null
+  userApiKey?: string | null,
+  systemPrompt?: string
 ): Promise<string> {
   // User-provided key takes precedence over env variable
   const apiKey = userApiKey || process.env.OPENAI_API_KEY;
@@ -156,7 +159,10 @@ async function generateWithOpenAI(
     },
     body: JSON.stringify({
       model: modelId,
-      messages: [{ role: "user", content }],
+      messages: [
+        ...(systemPrompt ? [{ role: "system", content: systemPrompt }] : []),
+        { role: "user", content },
+      ],
       temperature,
       max_tokens: maxTokens,
     }),
@@ -198,14 +204,15 @@ export async function POST(request: NextRequest) {
     const geminiApiKey = request.headers.get("X-Gemini-API-Key");
     const openaiApiKey = request.headers.get("X-OpenAI-API-Key");
 
-    const body: LLMGenerateRequest = await request.json();
+    const body: LLMGenerateRequest & { systemPrompt?: string } = await request.json();
     const {
       prompt,
       images,
       provider,
       model,
       temperature = 0.7,
-      maxTokens = 1024
+      maxTokens = 1024,
+      systemPrompt,
     } = body;
 
     logger.info('api.llm', 'LLM generation request received', {
@@ -230,9 +237,9 @@ export async function POST(request: NextRequest) {
     let text: string;
 
     if (provider === "google") {
-      text = await generateWithGoogle(prompt, model, temperature, maxTokens, images, requestId, geminiApiKey);
+      text = await generateWithGoogle(prompt, model, temperature, maxTokens, images, requestId, geminiApiKey, systemPrompt);
     } else if (provider === "openai") {
-      text = await generateWithOpenAI(prompt, model, temperature, maxTokens, images, requestId, openaiApiKey);
+      text = await generateWithOpenAI(prompt, model, temperature, maxTokens, images, requestId, openaiApiKey, systemPrompt);
     } else {
       logger.warn('api.llm', 'Unknown provider requested', { requestId, provider });
       return NextResponse.json<LLMGenerateResponse>(
