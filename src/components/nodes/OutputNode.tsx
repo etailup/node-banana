@@ -15,6 +15,9 @@ export function OutputNode({ id, data, selected }: NodeProps<OutputNodeType>) {
   const nodeData = data;
   const commentNavigation = useCommentNavigation(id);
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
+  const edges = useWorkflowStore((state) => state.edges);
+  const nodes = useWorkflowStore((state) => state.nodes);
+  const regenerateNode = useWorkflowStore((state) => state.regenerateNode);
   const [showLightbox, setShowLightbox] = useState(false);
   const [showQualityModal, setShowQualityModal] = useState(false);
   const [reviewLoading, setReviewLoading] = useState(false);
@@ -106,6 +109,33 @@ export function OutputNode({ id, data, selected }: NodeProps<OutputNodeType>) {
       setReviewLoading(false);
     }
   }, [contentSrc, isVideo, reviewLoading, id, updateNodeData]);
+
+  const handleRegenerateWithFix = useCallback((suggestion: string) => {
+    // Walk upstream: output ← nanoBanana ← prompt
+    // Find the nanoBanana node that feeds this output
+    const sourceEdge = edges.find(e => e.target === id && e.targetHandle === "image");
+    if (!sourceEdge) return;
+
+    const genNodeId = sourceEdge.source;
+    const genNode = nodes.find(n => n.id === genNodeId);
+    if (!genNode || genNode.type !== "nanoBanana") return;
+
+    // Find the prompt node that feeds the nanoBanana
+    const promptEdge = edges.find(e => e.target === genNodeId && e.targetHandle === "text");
+    if (promptEdge) {
+      const promptNode = nodes.find(n => n.id === promptEdge.source);
+      if (promptNode && promptNode.type === "prompt") {
+        const currentPrompt = (promptNode.data as { prompt?: string }).prompt || "";
+        updateNodeData(promptNode.id, {
+          prompt: `${currentPrompt}\n\nImprovement: ${suggestion}`,
+        });
+      }
+    }
+
+    // Clear old review and re-run the generate node
+    updateNodeData(id, { qualityReview: undefined });
+    regenerateNode(genNodeId);
+  }, [id, edges, nodes, updateNodeData, regenerateNode]);
 
   const qualityReview = nodeData.qualityReview as {
     grade: "A" | "B" | "C" | "F";
@@ -224,6 +254,10 @@ export function OutputNode({ id, data, selected }: NodeProps<OutputNodeType>) {
               qualityReview: { ...qualityReview, passed: true },
             });
             setShowQualityModal(false);
+          }}
+          onRegenerateWithFix={(suggestion) => {
+            setShowQualityModal(false);
+            handleRegenerateWithFix(suggestion);
           }}
         />
       )}

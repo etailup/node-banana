@@ -110,6 +110,7 @@ export async function POST(request: NextRequest) {
     runBatchCampaign({
       campaignId: campaign.id,
       agentJobId: agentJob.id,
+      planId,
       callbackUrl: body.callbackUrl,
     }).catch(async (err) => {
       console.error("Batch campaign error:", err)
