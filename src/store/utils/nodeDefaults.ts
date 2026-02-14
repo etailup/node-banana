@@ -7,6 +7,7 @@ import {
   PromptConstructorNodeData,
   NanoBananaNodeData,
   GenerateVideoNodeData,
+  Generate3DNodeData,
   LLMGenerateNodeData,
   SplitGridNodeData,
   OutputNodeData,
@@ -32,6 +33,7 @@ export const defaultNodeDimensions: Record<NodeType, { width: number; height: nu
   promptConstructor: { width: 340, height: 280 },
   nanoBanana: { width: 300, height: 300 },
   generateVideo: { width: 300, height: 300 },
+  generate3d: { width: 300, height: 300 },
   llmGenerate: { width: 320, height: 360 },
   splitGrid: { width: 300, height: 320 },
   output: { width: 320, height: 320 },
@@ -145,6 +147,17 @@ export const createDefaultNodeData = (type: NodeType): WorkflowNodeData => {
         videoHistory: [],
         selectedVideoHistoryIndex: 0,
       } as GenerateVideoNodeData;
+    }
+    case "generate3d": {
+      const nodeDefaults = loadNodeDefaults();
+      return {
+        inputImages: [],
+        inputPrompt: null,
+        output3dUrl: null,
+        selectedModel: nodeDefaults.generate3d?.selectedModel,
+        status: "idle",
+        error: null,
+      } as Generate3DNodeData;
     }
     case "llmGenerate": {
       const nodeDefaults = loadNodeDefaults();
