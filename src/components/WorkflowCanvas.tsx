@@ -84,10 +84,12 @@ const edgeTypes: EdgeTypes = {
 // - Video handles can only connect to generateVideo or output nodes
 // Helper to determine handle type from handle ID
 // For dynamic handles, we use naming convention: image inputs contain "image", text inputs are "prompt" or "negative_prompt"
-const getHandleType = (handleId: string | null | undefined): "image" | "text" | "video" | "audio" | "easeCurve" | null => {
+const getHandleType = (handleId: string | null | undefined): "image" | "text" | "video" | "audio" | "3d" | "easeCurve" | null => {
   if (!handleId) return null;
   // EaseCurve handles (must check before other types)
   if (handleId === "easeCurve") return "easeCurve";
+  // 3D handles
+  if (handleId === "3d") return "3d";
   // Standard handles
   if (handleId === "video") return "video";
   if (handleId === "audio" || handleId.startsWith("audio")) return "audio";
@@ -131,7 +133,7 @@ const getNodeHandles = (nodeType: string): { inputs: string[]; outputs: string[]
     case "easeCurve":
       return { inputs: ["video", "easeCurve"], outputs: ["video", "easeCurve"] };
     case "glbViewer":
-      return { inputs: [], outputs: ["image"] };
+      return { inputs: ["3d"], outputs: ["image"] };
     default:
       return { inputs: [], outputs: [] };
   }
@@ -140,7 +142,7 @@ const getNodeHandles = (nodeType: string): { inputs: string[]; outputs: string[]
 interface ConnectionDropState {
   position: { x: number; y: number };
   flowPosition: { x: number; y: number };
-  handleType: "image" | "text" | "video" | "audio" | "easeCurve" | null;
+  handleType: "image" | "text" | "video" | "audio" | "3d" | "easeCurve" | null;
   connectionType: "source" | "target";
   sourceNodeId: string | null;
   sourceHandleId: string | null;
@@ -331,6 +333,11 @@ export function WorkflowCanvas() {
         return false;
       }
 
+      // 3D connections: 3d handles can only connect to matching 3d handles
+      if (sourceType === "3d" || targetType === "3d") {
+        return sourceType === "3d" && targetType === "3d";
+      }
+
       // Audio connections: audio handles can only connect to audio handles
       if (sourceType === "audio" || targetType === "audio") {
         return sourceType === "audio" && targetType === "audio";
@@ -455,7 +462,7 @@ export function WorkflowCanvas() {
       // Helper to find a compatible handle on a node by type
       const findCompatibleHandle = (
         node: Node,
-        handleType: "image" | "text" | "video" | "audio" | "easeCurve",
+        handleType: "image" | "text" | "video" | "audio" | "3d" | "easeCurve",
         needInput: boolean,
         batchUsed?: Set<string>
       ): string | null => {
@@ -830,6 +837,12 @@ export function WorkflowCanvas() {
         } else if (nodeType === "videoStitch") {
           // VideoStitch accepts audio
           targetHandleId = "audio";
+        }
+      } else if (handleType === "3d") {
+        if (nodeType === "glbViewer") {
+          targetHandleId = "3d";
+        } else if (nodeType === "nanoBanana") {
+          sourceHandleIdForNewNode = "3d";
         }
       } else if (handleType === "easeCurve") {
         if (nodeType === "easeCurve") {

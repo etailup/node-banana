@@ -28,6 +28,7 @@ export interface ConnectedInputs {
   images: string[];
   videos: string[];
   audio: string[];
+  model3d: string | null;
   text: string | null;
   dynamicInputs: Record<string, string | string[]>;
   easeCurve: { bezierHandles: [number, number, number, number]; easingPreset: string | null } | null;
@@ -52,7 +53,7 @@ function isTextHandle(handleId: string | null | undefined): boolean {
 /**
  * Extract output data and type from a source node
  */
-function getSourceOutput(sourceNode: WorkflowNode): { type: "image" | "text" | "video" | "audio"; value: string | null } {
+function getSourceOutput(sourceNode: WorkflowNode): { type: "image" | "text" | "video" | "audio" | "3d"; value: string | null } {
   if (sourceNode.type === "imageInput") {
     return { type: "image", value: (sourceNode.data as ImageInputNodeData).image };
   } else if (sourceNode.type === "audioInput") {
@@ -60,7 +61,11 @@ function getSourceOutput(sourceNode: WorkflowNode): { type: "image" | "text" | "
   } else if (sourceNode.type === "annotation") {
     return { type: "image", value: (sourceNode.data as AnnotationNodeData).outputImage };
   } else if (sourceNode.type === "nanoBanana") {
-    return { type: "image", value: (sourceNode.data as NanoBananaNodeData).outputImage };
+    const nbData = sourceNode.data as NanoBananaNodeData;
+    if (nbData.output3dUrl) {
+      return { type: "3d", value: nbData.output3dUrl };
+    }
+    return { type: "image", value: nbData.outputImage };
   } else if (sourceNode.type === "generateVideo") {
     return { type: "video", value: (sourceNode.data as GenerateVideoNodeData).outputVideo };
   } else if (sourceNode.type === "videoStitch") {
@@ -92,6 +97,7 @@ export function getConnectedInputsPure(
   const images: string[] = [];
   const videos: string[] = [];
   const audio: string[] = [];
+  let model3d: string | null = null;
   let text: string | null = null;
   const dynamicInputs: Record<string, string | string[]> = {};
 
@@ -145,7 +151,9 @@ export function getConnectedInputsPure(
       }
 
       // Route to typed arrays based on source output type
-      if (type === "video") {
+      if (type === "3d") {
+        model3d = value;
+      } else if (type === "video") {
         videos.push(value);
       } else if (type === "audio") {
         audio.push(value);
@@ -172,7 +180,7 @@ export function getConnectedInputsPure(
     }
   }
 
-  return { images, videos, audio, text, dynamicInputs, easeCurve };
+  return { images, videos, audio, model3d, text, dynamicInputs, easeCurve };
 }
 
 /**

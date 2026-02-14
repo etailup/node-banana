@@ -110,25 +110,13 @@ function Model({ url, onError }: { url: string; onError?: () => void }) {
 function SceneEnvironment({ groupRef }: { groupRef: React.RefObject<THREE.Group | null> }) {
   return (
     <group ref={groupRef}>
-      {/* Ground grid */}
-      <gridHelper
-        args={[10, 20, "#555555", "#333333"]}
-        position={[0, -1, 0]}
+      <spotLight
+        position={[5, 8, 5]}
+        angle={0.4}
+        penumbra={0.8}
+        intensity={1.5}
+        castShadow
       />
-
-      {/* Subtle axis indicator at origin */}
-      <group position={[0, -1, 0]}>
-        {/* X axis - red */}
-        <mesh position={[0.75, 0.005, 0]}>
-          <boxGeometry args={[1.5, 0.01, 0.01]} />
-          <meshBasicMaterial color="#ef4444" transparent opacity={0.5} />
-        </mesh>
-        {/* Z axis - blue */}
-        <mesh position={[0, 0.005, 0.75]}>
-          <boxGeometry args={[0.01, 0.01, 1.5]} />
-          <meshBasicMaterial color="#3b82f6" transparent opacity={0.5} />
-        </mesh>
-      </group>
     </group>
   );
 }
@@ -278,6 +266,15 @@ export function GLBViewerNode({ id, data, selected }: NodeProps<GLBViewerNodeTyp
     };
   }, [nodeData.glbUrl]);
 
+  // Prevent wheel events from reaching React Flow (stop graph zoom/pan while scrolling to zoom 3D)
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const stopWheel = (e: WheelEvent) => e.stopPropagation();
+    el.addEventListener("wheel", stopWheel, { passive: false });
+    return () => el.removeEventListener("wheel", stopWheel);
+  }, [nodeData.glbUrl]);
+
   // Shared file processing logic for both click-to-upload and drag-and-drop
   const processFile = useCallback(
     (file: File) => {
@@ -369,6 +366,7 @@ export function GLBViewerNode({ id, data, selected }: NodeProps<GLBViewerNodeTyp
       onCommentChange={(comment) => updateNodeData(id, { comment: comment || undefined })}
       selected={selected}
       commentNavigation={commentNavigation ?? undefined}
+      contentClassName={nodeData.glbUrl ? "flex-1 min-h-0 overflow-hidden flex flex-col" : undefined}
     >
       <input
         ref={fileInputRef}
@@ -379,18 +377,18 @@ export function GLBViewerNode({ id, data, selected }: NodeProps<GLBViewerNodeTyp
       />
 
       {nodeData.glbUrl ? (
-        <div className="relative flex-1 flex flex-col min-h-0">
-          {/* 3D Viewport — fills available space, responsive to node resize */}
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* 3D Viewport — fills node edge-to-edge */}
           <div
             ref={viewportRef}
-            className="nodrag nopan nowheel relative w-full flex-1 min-h-[200px] rounded overflow-hidden bg-neutral-900 border border-neutral-700"
+            className={`nodrag nopan nowheel relative w-full flex-1 min-h-[200px] overflow-hidden bg-neutral-900 ${nodeData.capturedImage ? "" : "rounded-b-[5px]"}`}
             onPointerDown={() => setIsInteracting(true)}
             onPointerUp={() => setIsInteracting(false)}
           >
             <Canvas
+              resize={{ offsetSize: true }}
               gl={{ preserveDrawingBuffer: true, antialias: true, alpha: false }}
               camera={{ position: [3.5, 2.1, 3.5], fov: 45, near: 0.01, far: 100 }}
-              style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
               onCreated={({ gl }) => {
                 gl.setClearColor(new THREE.Color("#1a1a1a"));
                 gl.toneMapping = THREE.ACESFilmicToneMapping;
@@ -423,56 +421,56 @@ export function GLBViewerNode({ id, data, selected }: NodeProps<GLBViewerNodeTyp
               <AutoRotate enabled={autoRotate && !isInteracting} />
               <CaptureHelper captureRef={captureRef} envGroupRef={envGroupRef} />
             </Canvas>
-          </div>
 
-          {/* Controls bar */}
-          <div className="mt-1.5 flex items-center justify-between shrink-0 gap-1">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-[10px] text-neutral-400 truncate max-w-[100px]">
-                {nodeData.filename}
-              </span>
-              <button
-                onClick={() => setAutoRotate(!autoRotate)}
-                title={autoRotate ? "Stop auto-rotate" : "Auto-rotate"}
-                className={`p-0.5 rounded transition-colors ${
-                  autoRotate
-                    ? "text-cyan-400 bg-cyan-400/10"
-                    : "text-neutral-500 hover:text-neutral-300"
-                }`}
-              >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
-                </svg>
-              </button>
-            </div>
+            {/* Controls bar — overlaid on viewport */}
+            <div className="absolute bottom-0 left-0 right-0 z-10 px-3 py-1.5 flex items-center justify-between gap-1 pointer-events-none bg-gradient-to-t from-black/60 to-transparent">
+              <div className="flex items-center gap-1.5 min-w-0 pointer-events-auto">
+                <span className="text-[10px] text-neutral-400 truncate max-w-[100px]">
+                  {nodeData.filename}
+                </span>
+                <button
+                  onClick={() => setAutoRotate(!autoRotate)}
+                  title={autoRotate ? "Stop auto-rotate" : "Auto-rotate"}
+                  className={`p-0.5 rounded transition-colors ${
+                    autoRotate
+                      ? "text-cyan-400 bg-cyan-400/10"
+                      : "text-neutral-500 hover:text-neutral-300"
+                  }`}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+                  </svg>
+                </button>
+              </div>
 
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                onClick={handleCapture}
-                title="Capture current view as image"
-                className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-neutral-300 hover:text-neutral-100 bg-neutral-700 hover:bg-neutral-600 rounded transition-colors"
-              >
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
-                </svg>
-                Capture
-              </button>
-              <button
-                onClick={handleRemove}
-                title="Remove model"
-                className="p-0.5 text-neutral-500 hover:text-red-400 rounded transition-colors"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-1 shrink-0 pointer-events-auto">
+                <button
+                  onClick={handleCapture}
+                  title="Capture current view as image"
+                  className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-neutral-300 hover:text-neutral-100 bg-neutral-700 hover:bg-neutral-600 rounded transition-colors"
+                >
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+                  </svg>
+                  Capture
+                </button>
+                <button
+                  onClick={handleRemove}
+                  title="Remove model"
+                  className="p-0.5 text-neutral-500 hover:text-red-400 rounded transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Captured image preview */}
           {nodeData.capturedImage && (
-            <div className="mt-1.5 shrink-0">
+            <div className="px-3 py-1.5 shrink-0">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[10px] text-green-400 flex items-center gap-1">
                   <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
@@ -509,13 +507,43 @@ export function GLBViewerNode({ id, data, selected }: NodeProps<GLBViewerNodeTyp
         </div>
       )}
 
-      {/* Output handle - image */}
+      {/* 3D input handle - accepts generated 3D models */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="3d"
+        style={{ top: "50%" }}
+        data-handletype="3d"
+      />
+      <div
+        className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none text-right"
+        style={{
+          right: `calc(100% + 8px)`,
+          top: "calc(50% - 18px)",
+          color: "var(--handle-color-3d)",
+        }}
+      >
+        3D
+      </div>
+
+      {/* Output handle - image (captured viewport) */}
       <Handle
         type="source"
         position={Position.Right}
         id="image"
+        style={{ top: "50%" }}
         data-handletype="image"
       />
+      <div
+        className="absolute text-[10px] font-medium whitespace-nowrap pointer-events-none"
+        style={{
+          left: `calc(100% + 8px)`,
+          top: "calc(50% - 18px)",
+          color: "var(--handle-color-image)",
+        }}
+      >
+        Image
+      </div>
     </BaseNode>
   );
 }
