@@ -1,0 +1,6 @@
+workflows/
+screenshots/
+docs/
+AGENTIC_NEXTJS-MASTERSTARTERKIT/
+*.md
+!README.md
