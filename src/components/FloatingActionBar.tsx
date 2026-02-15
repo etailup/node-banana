@@ -137,6 +137,17 @@ function GenerateComboButton() {
             Video
           </button>
           <button
+            onClick={() => handleAddNode("generate3d")}
+            draggable
+            onDragStart={(e) => handleDragStart(e, "generate3d")}
+            className="w-full px-3 py-2 text-left text-[11px] font-medium text-neutral-300 hover:bg-neutral-700 hover:text-neutral-100 transition-colors flex items-center gap-2 cursor-grab active:cursor-grabbing"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+            </svg>
+            3D
+          </button>
+          <button
             onClick={() => handleAddNode("llmGenerate")}
             draggable
             onDragStart={(e) => handleDragStart(e, "llmGenerate")}
@@ -250,7 +261,6 @@ export function FloatingActionBar() {
     <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50">
       <div className="flex items-center gap-0.5 bg-neutral-800/95 backdrop-blur-sm rounded-lg shadow-lg border border-neutral-700/80 px-1.5 py-1">
         <NodeButton type="imageInput" label="Image" />
-        <NodeButton type="glbViewer" label="3D" />
         <NodeButton type="annotation" label="Annotate" />
         <NodeButton type="prompt" label="Prompt" />
         <GenerateComboButton />
