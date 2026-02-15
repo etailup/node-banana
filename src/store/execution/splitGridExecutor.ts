@@ -55,6 +55,7 @@ export async function executeSplitGrid(ctx: NodeExecutionContext): Promise<void>
           img.onload = () => {
             updateNodeData(childSet.imageInput, {
               image: splitImages[index],
+              imageRef: undefined,
               filename: `split-${Math.floor(index / nodeData.gridCols) + 1}-${(index % nodeData.gridCols) + 1}.png`,
               dimensions: { width: img.width, height: img.height },
             });

@@ -61,7 +61,7 @@ describe("executeAnnotation", () => {
 
     await executeAnnotation(ctx);
 
-    expect(ctx.updateNodeData).toHaveBeenCalledWith("ann", { sourceImage: "data:image/png;base64,abc" });
+    expect(ctx.updateNodeData).toHaveBeenCalledWith("ann", { sourceImage: "data:image/png;base64,abc", sourceImageRef: undefined });
   });
 
   it("should pass through image as output when no annotations exist", async () => {
@@ -79,7 +79,7 @@ describe("executeAnnotation", () => {
 
     await executeAnnotation(ctx);
 
-    expect(ctx.updateNodeData).toHaveBeenCalledWith("ann", { outputImage: "data:image/png;base64,abc" });
+    expect(ctx.updateNodeData).toHaveBeenCalledWith("ann", { outputImage: "data:image/png;base64,abc", outputImageRef: undefined });
   });
 
   it("should not overwrite existing annotated outputImage", async () => {
@@ -98,7 +98,7 @@ describe("executeAnnotation", () => {
     await executeAnnotation(ctx);
 
     // Should set sourceImage but NOT overwrite outputImage (it has real annotations)
-    expect(ctx.updateNodeData).toHaveBeenCalledWith("ann", { sourceImage: "data:image/png;base64,abc" });
+    expect(ctx.updateNodeData).toHaveBeenCalledWith("ann", { sourceImage: "data:image/png;base64,abc", sourceImageRef: undefined });
     const calls = (ctx.updateNodeData as ReturnType<typeof vi.fn>).mock.calls;
     const outputCall = calls.find((c: unknown[]) => (c[1] as Record<string, unknown>).outputImage !== undefined);
     expect(outputCall).toBeUndefined();
@@ -120,8 +120,8 @@ describe("executeAnnotation", () => {
 
     await executeAnnotation(ctx);
 
-    expect(ctx.updateNodeData).toHaveBeenCalledWith("ann", { sourceImage: "new-image" });
-    expect(ctx.updateNodeData).toHaveBeenCalledWith("ann", { outputImage: "new-image" });
+    expect(ctx.updateNodeData).toHaveBeenCalledWith("ann", { sourceImage: "new-image", sourceImageRef: undefined });
+    expect(ctx.updateNodeData).toHaveBeenCalledWith("ann", { outputImage: "new-image", outputImageRef: undefined });
   });
 
   it("should do nothing when no images connected", async () => {

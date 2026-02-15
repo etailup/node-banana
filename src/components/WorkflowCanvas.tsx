@@ -1143,6 +1143,7 @@ export function WorkflowCanvas() {
                     // Update the selected imageInput node with the pasted image
                     updateNodeData(selectedImageInputNode.id, {
                       image: dataUrl,
+                      imageRef: undefined,
                       filename: `pasted-${Date.now()}.png`,
                       dimensions: { width: img.width, height: img.height },
                     });

@@ -27,11 +27,11 @@ export async function executeAnnotation(ctx: NodeExecutionContext): Promise<void
     const image = images[0] || null;
     if (image) {
       const nodeData = node.data as AnnotationNodeData;
-      updateNodeData(node.id, { sourceImage: image });
+      updateNodeData(node.id, { sourceImage: image, sourceImageRef: undefined });
       // Pass through the image if no annotations exist, or if the previous
       // output was itself a pass-through of the old source image
       if (!nodeData.outputImage || nodeData.outputImage === nodeData.sourceImage) {
-        updateNodeData(node.id, { outputImage: image });
+        updateNodeData(node.id, { outputImage: image, outputImageRef: undefined });
       }
     }
   } catch (err) {
