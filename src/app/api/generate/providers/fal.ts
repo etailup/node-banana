@@ -279,7 +279,9 @@ export async function generateWithFalQueue(
           filteredInputs[key] = [processedValue];
         } else if (!schemaArrayParams.has(key) && Array.isArray(processedValue)) {
           // Unwrap array to single value if schema expects a string (e.g. image_url)
-          filteredInputs[key] = processedValue[0];
+          if (processedValue.length > 0) {
+            filteredInputs[key] = processedValue[0];
+          }
         } else {
           filteredInputs[key] = processedValue;
         }
