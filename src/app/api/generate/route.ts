@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
           id: selectedModel!.modelId,
           name: selectedModel!.displayName,
           provider: "replicate",
-          capabilities: mediaType === "video" ? ["text-to-video"] : mediaType === "3d" ? ["text-to-3d"] : ["text-to-image"],
+          capabilities: mediaType === "audio" ? ["text-to-audio"] : mediaType === "video" ? ["text-to-video"] : mediaType === "3d" ? ["text-to-3d"] : ["text-to-image"],
           description: null,
         },
         prompt: prompt || "",
@@ -178,6 +178,16 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      if (output.type === "audio") {
+        const isLargeAudio = !output.data && output.url;
+        return NextResponse.json<GenerateResponse>({
+          success: true,
+          audio: isLargeAudio ? undefined : output.data,
+          audioUrl: isLargeAudio ? output.url : undefined,
+          contentType: "audio",
+        });
+      }
+
       return NextResponse.json<GenerateResponse>({
         success: true,
         image: output.data,
@@ -220,7 +230,7 @@ export async function POST(request: NextRequest) {
           id: selectedModel!.modelId,
           name: selectedModel!.displayName,
           provider: "fal",
-          capabilities: mediaType === "video" ? ["text-to-video"] : mediaType === "3d" ? ["text-to-3d"] : ["text-to-image"],
+          capabilities: mediaType === "audio" ? ["text-to-audio"] : mediaType === "video" ? ["text-to-video"] : mediaType === "3d" ? ["text-to-3d"] : ["text-to-image"],
           description: null,
         },
         prompt: prompt || "",
@@ -273,6 +283,16 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      if (output.type === "audio") {
+        const isLargeAudio = !output.data && output.url;
+        return NextResponse.json<GenerateResponse>({
+          success: true,
+          audio: isLargeAudio ? undefined : output.data,
+          audioUrl: isLargeAudio ? output.url : undefined,
+          contentType: "audio",
+        });
+      }
+
       return NextResponse.json<GenerateResponse>({
         success: true,
         image: output.data,
@@ -319,7 +339,7 @@ export async function POST(request: NextRequest) {
           id: selectedModel!.modelId,
           name: selectedModel!.displayName,
           provider: "kie",
-          capabilities: mediaType === "video" ? ["text-to-video"] : mediaType === "3d" ? ["text-to-3d"] : ["text-to-image"],
+          capabilities: mediaType === "audio" ? ["text-to-audio"] : mediaType === "video" ? ["text-to-video"] : mediaType === "3d" ? ["text-to-3d"] : ["text-to-image"],
           description: null,
         },
         prompt: prompt || "",
@@ -372,6 +392,16 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      if (output.type === "audio") {
+        const isLargeAudio = !output.data && output.url;
+        return NextResponse.json<GenerateResponse>({
+          success: true,
+          audio: isLargeAudio ? undefined : output.data,
+          audioUrl: isLargeAudio ? output.url : undefined,
+          contentType: "audio",
+        });
+      }
+
       return NextResponse.json<GenerateResponse>({
         success: true,
         image: output.data,
@@ -418,7 +448,7 @@ export async function POST(request: NextRequest) {
           id: selectedModel!.modelId,
           name: selectedModel!.displayName,
           provider: "wavespeed",
-          capabilities: mediaType === "video" ? ["text-to-video"] : mediaType === "3d" ? ["text-to-3d"] : ["text-to-image"],
+          capabilities: mediaType === "audio" ? ["text-to-audio"] : mediaType === "video" ? ["text-to-video"] : mediaType === "3d" ? ["text-to-3d"] : ["text-to-image"],
           description: null,
         },
         prompt: prompt || "",
@@ -468,6 +498,16 @@ export async function POST(request: NextRequest) {
           video: isLargeVideo ? undefined : output.data,
           videoUrl: isLargeVideo ? output.url : undefined,
           contentType: "video",
+        });
+      }
+
+      if (output.type === "audio") {
+        const isLargeAudio = !output.data && output.url;
+        return NextResponse.json<GenerateResponse>({
+          success: true,
+          audio: isLargeAudio ? undefined : output.data,
+          audioUrl: isLargeAudio ? output.url : undefined,
+          contentType: "audio",
         });
       }
 
