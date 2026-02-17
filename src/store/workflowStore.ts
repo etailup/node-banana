@@ -68,6 +68,7 @@ import {
   executeNanoBanana,
   executeGenerateVideo,
   executeGenerate3D,
+  executeGenerateAudio,
   executeLlmGenerate,
   executeSplitGrid,
   executeVideoStitch,
@@ -893,6 +894,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           case "generate3d":
             await executeGenerate3D(executionCtx);
             break;
+          case "generateAudio":
+            await executeGenerateAudio(executionCtx);
+            break;
           case "llmGenerate":
             await executeLlmGenerate(executionCtx);
             break;
@@ -1048,6 +1052,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         await executeGenerateVideo(executionCtx, regenOptions);
       } else if (node.type === "generate3d") {
         await executeGenerate3D(executionCtx, regenOptions);
+      } else if (node.type === "generateAudio") {
+        await executeGenerateAudio(executionCtx, regenOptions);
       } else if (node.type === "splitGrid") {
         await executeSplitGrid(executionCtx);
       } else if (node.type === "videoStitch") {
