@@ -205,6 +205,7 @@ interface WorkflowStore {
   setUseExternalImageStorage: (enabled: boolean) => void;
   markAsUnsaved: () => void;
   saveToFile: () => Promise<boolean>;
+  saveAsFile: (name: string) => Promise<boolean>;
   initializeAutoSave: () => void;
   cleanupAutoSave: () => void;
 
@@ -1683,6 +1684,28 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     } finally {
       set({ isSaving: false });
     }
+  },
+
+  saveAsFile: async (name: string) => {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      return false;
+    }
+
+    const { saveDirectoryPath } = get();
+    if (!saveDirectoryPath) {
+      return false;
+    }
+
+    // Save As creates another workflow JSON in the same project folder.
+    const newWorkflowId = generateWorkflowId();
+    set({
+      workflowId: newWorkflowId,
+      workflowName: trimmedName,
+      hasUnsavedChanges: true,
+    });
+
+    return await get().saveToFile();
   },
 
   initializeAutoSave: () => {

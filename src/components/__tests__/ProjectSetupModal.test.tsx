@@ -658,7 +658,7 @@ describe("ProjectSetupModal", () => {
       });
     });
 
-    it("should append project name to selected path in new mode", async () => {
+    it("should keep selected parent path in input after browse", async () => {
       mockFetch.mockImplementation((url: string) => {
         if (url === "/api/env-status") {
           return Promise.resolve({
@@ -684,14 +684,11 @@ describe("ProjectSetupModal", () => {
         />
       );
 
-      fireEvent.change(screen.getByPlaceholderText("my-project"), {
-        target: { value: "My Project" },
-      });
       fireEvent.click(screen.getByText("Browse"));
 
       await waitFor(() => {
         const directoryInput = screen.getByPlaceholderText("/Users/username/projects/my-project") as HTMLInputElement;
-        expect(directoryInput.value).toBe("/selected/path/My Project");
+        expect(directoryInput.value).toBe("/selected/path");
       });
     });
 
@@ -800,6 +797,66 @@ describe("ProjectSetupModal", () => {
       await waitFor(() => {
         // Should keep original value when cancelled
         expect(directoryInput.value).toBe("/original/path");
+      });
+    });
+
+    it("should save using latest project name when renamed after browse", async () => {
+      mockFetch.mockImplementation((url: string) => {
+        if (url === "/api/env-status") {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ gemini: false, openai: false, replicate: false, fal: false }),
+          });
+        }
+        if (url === "/api/browse-directory") {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ success: true, path: "/selected/path" }),
+          });
+        }
+        if (url.startsWith("/api/workflow")) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ exists: false, isDirectory: false }),
+          });
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true }) });
+      });
+
+      const onSave = vi.fn();
+
+      render(
+        <ProjectSetupModal
+          isOpen={true}
+          onClose={vi.fn()}
+          onSave={onSave}
+          mode="new"
+        />
+      );
+
+      fireEvent.change(screen.getByPlaceholderText("my-project"), {
+        target: { value: "Foo" },
+      });
+
+      fireEvent.click(screen.getByText("Browse"));
+
+      await waitFor(() => {
+        const directoryInput = screen.getByPlaceholderText("/Users/username/projects/my-project") as HTMLInputElement;
+        expect(directoryInput.value).toBe("/selected/path");
+      });
+
+      fireEvent.change(screen.getByPlaceholderText("my-project"), {
+        target: { value: "Bar" },
+      });
+
+      fireEvent.click(screen.getByText("Create"));
+
+      await waitFor(() => {
+        expect(onSave).toHaveBeenCalledWith(
+          "mock-workflow-id",
+          "Bar",
+          "/selected/path/Bar"
+        );
       });
     });
   });

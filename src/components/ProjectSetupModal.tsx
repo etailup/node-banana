@@ -238,7 +238,7 @@ export function ProjectSetupModal({
       }
 
       if (result.path) {
-        setDirectoryPath(ensureProjectSubfolderPath(result.path, name));
+        setDirectoryPath(result.path);
       }
     } catch (err) {
       setError(
