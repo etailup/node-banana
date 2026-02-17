@@ -124,6 +124,8 @@ const getNodeHandles = (nodeType: string): { inputs: string[]; outputs: string[]
       return { inputs: ["image", "text"], outputs: ["video"] };
     case "generate3d":
       return { inputs: ["image", "text"], outputs: ["3d"] };
+    case "generateAudio":
+      return { inputs: ["text"], outputs: ["audio"] };
     case "llmGenerate":
       return { inputs: ["text", "image"], outputs: ["text"] };
     case "splitGrid":
@@ -810,7 +812,7 @@ export function WorkflowCanvas() {
           sourceHandleIdForNewNode = "image";
         }
       } else if (handleType === "text") {
-        if (nodeType === "nanoBanana" || nodeType === "generateVideo" || nodeType === "llmGenerate") {
+        if (nodeType === "nanoBanana" || nodeType === "generateVideo" || nodeType === "generateAudio" || nodeType === "llmGenerate") {
           targetHandleId = "text";
           // llmGenerate also has a text output
           if (nodeType === "llmGenerate") {
@@ -841,6 +843,10 @@ export function WorkflowCanvas() {
         if (nodeType === "audioInput") {
           // AudioInput outputs audio
           sourceHandleIdForNewNode = "audio";
+        } else if (nodeType === "generateAudio") {
+          // GenerateAudio outputs audio
+          sourceHandleIdForNewNode = "audio";
+          targetHandleId = "text";
         } else if (nodeType === "videoStitch") {
           // VideoStitch accepts audio
           targetHandleId = "audio";
