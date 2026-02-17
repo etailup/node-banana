@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate directory exists
+    // Validate directory exists, or create it if missing
     try {
       const stats = await fs.stat(directoryPath);
       if (!stats.isDirectory()) {
@@ -48,13 +48,20 @@ export async function POST(request: NextRequest) {
         );
       }
     } catch (dirError) {
-      logger.warn('file.error', 'Workflow save failed: directory does not exist', {
-        directoryPath,
-      });
-      return NextResponse.json(
-        { success: false, error: "Directory does not exist" },
-        { status: 400 }
-      );
+      try {
+        await fs.mkdir(directoryPath, { recursive: true });
+        logger.info('file.save', 'Created workflow directory', {
+          directoryPath,
+        });
+      } catch (mkdirError) {
+        logger.error('file.error', 'Failed to create workflow directory', {
+          directoryPath,
+        }, mkdirError instanceof Error ? mkdirError : undefined);
+        return NextResponse.json(
+          { success: false, error: "Failed to create directory" },
+          { status: 500 }
+        );
+      }
     }
 
     // Auto-create subfolders for inputs and generations
