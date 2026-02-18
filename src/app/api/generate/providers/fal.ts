@@ -473,6 +473,8 @@ export async function generateWithFalQueue(
         mediaUrl = result.glb.url;
       } else if (result.video && result.video.url) {
         mediaUrl = result.video.url;
+      } else if (result.audio && result.audio.url) {
+        mediaUrl = result.audio.url;
       } else if (result.images && Array.isArray(result.images) && result.images.length > 0) {
         mediaUrl = result.images[0].url;
       } else if (result.image && result.image.url) {
@@ -508,6 +510,7 @@ export async function generateWithFalQueue(
 
       const is3DModel = input.model.capabilities.some(c => c.includes("3d"));
       const isVideoModel = input.model.capabilities.some(c => c.includes("video"));
+      const isAudioModel = input.model.capabilities.some(c => c.includes("audio"));
 
       // For 3D models, return URL directly (GLB files are binary — don't base64 encode)
       if (is3DModel) {
@@ -521,6 +524,22 @@ export async function generateWithFalQueue(
               url: mediaUrl,
             },
           ],
+        };
+      }
+
+      // For audio models, always base64 encode (audio files are small)
+      if (isAudioModel) {
+        const audioContentType = mediaResponse.headers.get("content-type") || "audio/mpeg";
+        const audioBuffer = await mediaResponse.arrayBuffer();
+        const audioBase64 = Buffer.from(audioBuffer).toString("base64");
+        console.log(`[API:${requestId}] SUCCESS - Returning audio`);
+        return {
+          success: true,
+          outputs: [{
+            type: "audio",
+            data: `data:${audioContentType};base64,${audioBase64}`,
+            url: mediaUrl,
+          }],
         };
       }
 
