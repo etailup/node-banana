@@ -870,9 +870,16 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
       switch (node.type) {
           case "imageInput":
-          case "audioInput":
-            // Data source nodes - no execution needed
+            // Data source node - no execution needed
             break;
+          case "audioInput": {
+            // If audio is connected from upstream, use it (connection wins over upload)
+            const audioInputs = get().getConnectedInputs(node.id);
+            if (audioInputs.audio.length > 0 && audioInputs.audio[0]) {
+              get().updateNodeData(node.id, { audioFile: audioInputs.audio[0] });
+            }
+            break;
+          }
           case "glbViewer":
             await executeGlbViewer(executionCtx);
             break;

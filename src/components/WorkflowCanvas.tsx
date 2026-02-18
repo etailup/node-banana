@@ -850,7 +850,8 @@ export function WorkflowCanvas() {
         }
       } else if (handleType === "audio") {
         if (nodeType === "audioInput") {
-          // AudioInput outputs audio
+          // Audio node: accepts audio input and outputs audio
+          targetHandleId = "audio";
           sourceHandleIdForNewNode = "audio";
         } else if (nodeType === "generateAudio") {
           // GenerateAudio outputs audio

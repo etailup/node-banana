@@ -278,7 +278,7 @@ export function AudioInputNode({ id, data, selected }: NodeProps<AudioInputNodeT
   return (
     <BaseNode
       id={id}
-      title="Audio Input"
+      title="Audio"
       customTitle={nodeData.customTitle}
       comment={nodeData.comment}
       onCustomTitleChange={(title) => updateNodeData(id, { customTitle: title || undefined })}
@@ -389,6 +389,13 @@ export function AudioInputNode({ id, data, selected }: NodeProps<AudioInputNodeT
         </div>
       )}
 
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="audio"
+        data-handletype="audio"
+        style={{ background: "rgb(167, 139, 250)" }}
+      />
       <Handle
         type="source"
         position={Position.Right}
