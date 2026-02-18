@@ -148,7 +148,7 @@ export async function executeGenerateVideo(
       });
 
       // Track cost
-      if (nodeData.selectedModel?.provider === "fal" && nodeData.selectedModel?.pricing) {
+      if (nodeData.selectedModel?.pricing) {
         addIncurredCost(nodeData.selectedModel.pricing.amount);
       }
 
