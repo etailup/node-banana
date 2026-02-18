@@ -193,6 +193,18 @@ export function GenerateAudioNode({ id, data, selected }: NodeProps<GenerateAudi
     updateNodeData(id, { outputAudio: null, status: "idle", error: null, duration: null, format: null });
   }, [id, updateNodeData]);
 
+  const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!audioRef.current || !audioRef.current.duration || !isFinite(audioRef.current.duration) || !waveformContainerRef.current) return;
+
+    const rect = waveformContainerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const progress = x / rect.width;
+    const newTime = progress * audioRef.current.duration;
+
+    audioRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+  }, []);
+
   const handlePlayPause = useCallback(() => {
     if (!audioRef.current) return;
 
@@ -418,6 +430,7 @@ export function GenerateAudioNode({ id, data, selected }: NodeProps<GenerateAudi
               <div
                 ref={waveformContainerRef}
                 className="h-16 bg-neutral-900/50 rounded cursor-pointer relative"
+                onClick={handleSeek}
               >
                 <canvas ref={canvasRef} className="w-full h-full" />
               </div>
