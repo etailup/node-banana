@@ -68,6 +68,7 @@ import {
   executeNanoBanana,
   executeGenerateVideo,
   executeGenerate3D,
+  executeGenerateAudio,
   executeLlmGenerate,
   executeSplitGrid,
   executeVideoStitch,
@@ -869,9 +870,16 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
       switch (node.type) {
           case "imageInput":
-          case "audioInput":
-            // Data source nodes - no execution needed
+            // Data source node - no execution needed
             break;
+          case "audioInput": {
+            // If audio is connected from upstream, use it (connection wins over upload)
+            const audioInputs = get().getConnectedInputs(node.id);
+            if (audioInputs.audio.length > 0 && audioInputs.audio[0]) {
+              get().updateNodeData(node.id, { audioFile: audioInputs.audio[0] });
+            }
+            break;
+          }
           case "glbViewer":
             await executeGlbViewer(executionCtx);
             break;
@@ -892,6 +900,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             break;
           case "generate3d":
             await executeGenerate3D(executionCtx);
+            break;
+          case "generateAudio":
+            await executeGenerateAudio(executionCtx);
             break;
           case "llmGenerate":
             await executeLlmGenerate(executionCtx);
@@ -1048,6 +1059,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         await executeGenerateVideo(executionCtx, regenOptions);
       } else if (node.type === "generate3d") {
         await executeGenerate3D(executionCtx, regenOptions);
+      } else if (node.type === "generateAudio") {
+        await executeGenerateAudio(executionCtx, regenOptions);
       } else if (node.type === "splitGrid") {
         await executeSplitGrid(executionCtx);
       } else if (node.type === "videoStitch") {
