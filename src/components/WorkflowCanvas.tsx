@@ -131,7 +131,7 @@ const getNodeHandles = (nodeType: string): { inputs: string[]; outputs: string[]
     case "splitGrid":
       return { inputs: ["image"], outputs: ["reference"] };
     case "output":
-      return { inputs: ["image", "video"], outputs: [] };
+      return { inputs: ["image", "video", "audio"], outputs: [] };
     case "outputGallery":
       return { inputs: ["image"], outputs: [] };
     case "imageCompare":
@@ -346,8 +346,12 @@ export function WorkflowCanvas() {
         return sourceType === "3d" && targetType === "3d";
       }
 
-      // Audio connections: audio handles can only connect to audio handles
+      // Audio connections: audio handles connect to audio handles, plus output node
       if (sourceType === "audio" || targetType === "audio") {
+        if (sourceType === "audio") {
+          const targetNode = nodes.find((n) => n.id === connection.target);
+          if (targetNode?.type === "output") return true;
+        }
         return sourceType === "audio" && targetType === "audio";
       }
 
@@ -524,6 +528,11 @@ export function WorkflowCanvas() {
         // For video output connecting to output node, allow "image" input (output node accepts both)
         if (handleType === "video" && needInput && node.type === "output") {
           return "image";
+        }
+
+        // For audio output connecting to output node, use the "audio" input handle
+        if (handleType === "audio" && needInput && node.type === "output") {
+          return "audio";
         }
 
         // Then check each handle's type
@@ -849,6 +858,9 @@ export function WorkflowCanvas() {
           targetHandleId = "text";
         } else if (nodeType === "videoStitch") {
           // VideoStitch accepts audio
+          targetHandleId = "audio";
+        } else if (nodeType === "output") {
+          // Output accepts audio on its audio handle
           targetHandleId = "audio";
         }
       } else if (handleType === "3d") {

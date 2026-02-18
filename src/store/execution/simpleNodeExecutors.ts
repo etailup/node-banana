@@ -147,9 +147,40 @@ export async function executePromptConstructor(ctx: NodeExecutionContext): Promi
  */
 export async function executeOutput(ctx: NodeExecutionContext): Promise<void> {
   const { node, getConnectedInputs, updateNodeData, saveDirectoryPath } = ctx;
-  const { images, videos } = getConnectedInputs(node.id);
+  const { images, videos, audio } = getConnectedInputs(node.id);
 
-  // Check videos array first (typed data from source)
+  // Check audio array first
+  if (audio.length > 0) {
+    const audioContent = audio[0];
+    updateNodeData(node.id, {
+      audio: audioContent,
+      image: null,
+      video: null,
+      contentType: "audio",
+    });
+
+    // Save to /outputs directory if we have a project path
+    if (saveDirectoryPath) {
+      const outputNodeData = node.data as OutputNodeData;
+      const outputsPath = `${saveDirectoryPath}/outputs`;
+
+      fetch("/api/save-generation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          directoryPath: outputsPath,
+          audio: audioContent,
+          customFilename: outputNodeData.outputFilename || undefined,
+          createDirectory: true,
+        }),
+      }).catch((err) => {
+        console.error("Failed to save output:", err);
+      });
+    }
+    return;
+  }
+
+  // Check videos array (typed data from source)
   if (videos.length > 0) {
     const videoContent = videos[0];
     updateNodeData(node.id, {
