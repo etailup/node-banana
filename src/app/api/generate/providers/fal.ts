@@ -471,6 +471,10 @@ export async function generateWithFalQueue(
         mediaUrl = result.mesh.url;
       } else if (result.glb?.url) {
         mediaUrl = result.glb.url;
+      } else if (result.model_glb?.url) {
+        mediaUrl = result.model_glb.url;
+      } else if (result.model_urls?.glb?.url) {
+        mediaUrl = result.model_urls.glb.url;
       } else if (result.video && result.video.url) {
         mediaUrl = result.video.url;
       } else if (result.audio && result.audio.url) {
@@ -484,7 +488,7 @@ export async function generateWithFalQueue(
       }
 
       if (!mediaUrl) {
-        console.error(`[API:${requestId}] No media URL found in queue result`);
+        console.error(`[API:${requestId}] No media URL found in queue result. Result keys: ${Object.keys(result).join(", ")}`);
         return {
           success: false,
           error: "No media URL in response",

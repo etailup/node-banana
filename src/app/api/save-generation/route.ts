@@ -16,6 +16,11 @@ function getExtensionFromMime(mimeType: string): string {
     "video/webm": "webm",
     "video/quicktime": "mov",
     "model/gltf-binary": "glb",
+    "model/gltf+json": "gltf",
+    "model/obj": "obj",
+    "model/vnd.usdz+zip": "usdz",
+    "model/fbx": "fbx",
+    "model/stl": "stl",
     "audio/mpeg": "mp3",
     "audio/wav": "wav",
     "audio/ogg": "ogg",
@@ -49,6 +54,25 @@ function getExtensionFromMime(mimeType: string): string {
 // Helper to detect if a string is an HTTP URL
 function isHttpUrl(str: string): boolean {
   return str.startsWith("http://") || str.startsWith("https://");
+}
+
+// Known file extensions for 3D models and common media
+const KNOWN_3D_EXTENSIONS = new Set(["glb", "gltf", "obj", "fbx", "usdz", "stl", "ply"]);
+const KNOWN_MEDIA_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "webp", "svg", "mp4", "webm", "mov"]);
+
+// Helper to extract a recognized file extension from a URL pathname
+export function getExtensionFromUrl(url: string): string | null {
+  try {
+    const urlObj = new URL(url);
+    const pathname = urlObj.pathname;
+    const lastDot = pathname.lastIndexOf(".");
+    if (lastDot === -1 || lastDot === pathname.length - 1) return null;
+    const ext = pathname.substring(lastDot + 1).toLowerCase();
+    if (KNOWN_3D_EXTENSIONS.has(ext) || KNOWN_MEDIA_EXTENSIONS.has(ext)) return ext;
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 // Helper to compute MD5 hash of buffer content
@@ -184,10 +208,18 @@ export async function POST(request: NextRequest) {
         }
 
         const rawSaveContentType = response.headers.get("content-type");
-        const contentType = (rawSaveContentType && (rawSaveContentType.startsWith("video/") || rawSaveContentType.startsWith("image/") || rawSaveContentType.startsWith("model/") || rawSaveContentType.startsWith("audio/")))
-          ? rawSaveContentType
-          : (isModel ? "model/gltf-binary" : isAudio ? "audio/mpeg" : isVideo ? "video/mp4" : "image/png");
-        extension = getExtensionFromMime(contentType);
+
+        // For 3D models, try extracting extension from URL first (most reliable with CDN URLs)
+        const urlExtension = isModel ? getExtensionFromUrl(content) : null;
+
+        if (urlExtension) {
+          extension = urlExtension;
+        } else {
+          const contentType = (rawSaveContentType && (rawSaveContentType.startsWith("video/") || rawSaveContentType.startsWith("image/") || rawSaveContentType.startsWith("model/") || rawSaveContentType.startsWith("audio/")))
+            ? rawSaveContentType
+            : (isModel ? "model/gltf-binary" : isAudio ? "audio/mpeg" : isVideo ? "video/mp4" : "image/png");
+          extension = getExtensionFromMime(contentType);
+        }
 
         const arrayBuffer = await response.arrayBuffer();
 
@@ -221,7 +253,11 @@ export async function POST(request: NextRequest) {
 
     // Safety net: if extension resolved to "bin" but we know the media type, use correct extension
     if (extension === "bin") {
-      extension = isModel ? "glb" : isAudio ? "mp3" : isVideo ? "mp4" : "png";
+      if (isModel && isHttpUrl(content)) {
+        extension = getExtensionFromUrl(content) || "glb";
+      } else {
+        extension = isModel ? "glb" : isAudio ? "mp3" : isVideo ? "mp4" : "png";
+      }
     }
 
     // Compute content hash for deduplication

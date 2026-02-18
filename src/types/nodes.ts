@@ -184,6 +184,8 @@ export interface Generate3DNodeData extends BaseNodeData {
   inputImageRefs?: string[];
   inputPrompt: string | null;
   output3dUrl: string | null;
+  savedFilename: string | null;
+  savedFilePath: string | null;
   selectedModel?: SelectedModel;
   parameters?: Record<string, unknown>;
   inputSchema?: ModelInputDef[];
