@@ -12,7 +12,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { GenerateRequest, GenerateResponse, ModelType, SelectedModel, ProviderType } from "@/types";
-import { GenerationInput } from "@/lib/providers/types";
+import { GenerationInput, ModelCapability } from "@/lib/providers/types";
 import { generateWithGemini } from "./providers/gemini";
 import { generateWithReplicate } from "./providers/replicate";
 import { clearFalInputMappingCache as _clearFalInputMappingCache, generateWithFalQueue } from "./providers/fal";
@@ -73,8 +73,8 @@ function buildMediaResponse(output: { type: string; data: string; url?: string }
   });
 }
 
-function capabilitiesForMediaType(mediaType?: string): string[] {
-  const map: Record<string, string[]> = {
+function capabilitiesForMediaType(mediaType?: string): ModelCapability[] {
+  const map: Record<string, ModelCapability[]> = {
     audio: ["text-to-audio"],
     video: ["text-to-video"],
     "3d": ["text-to-3d"],
