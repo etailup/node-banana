@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useState, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useState, useEffect, useMemo } from "react";
 import { Handle, Position, NodeProps, Node, useReactFlow } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
 import { ProviderBadge } from "./ProviderBadge";
@@ -11,6 +11,7 @@ import { GenerateAudioNodeData, ProviderType, SelectedModel, ModelInputDef } fro
 import { ProviderModel } from "@/lib/providers/types";
 import { ModelSearchDialog } from "@/components/modals/ModelSearchDialog";
 import { useAudioVisualization } from "@/hooks/useAudioVisualization";
+import { useAudioPlayback } from "@/hooks/useAudioPlayback";
 
 type GenerateAudioNodeType = Node<GenerateAudioNodeData, "generateAudio">;
 
@@ -21,12 +22,6 @@ export function GenerateAudioNode({ id, data, selected }: NodeProps<GenerateAudi
   const generationsPath = useWorkflowStore((state) => state.generationsPath);
   const [isBrowseDialogOpen, setIsBrowseDialogOpen] = useState(false);
   const [isLoadingCarouselAudio, setIsLoadingCarouselAudio] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const waveformContainerRef = useRef<HTMLDivElement>(null);
-  const animationFrameRef = useRef<number | undefined>(undefined);
 
   // Get the current selected provider (default to fal)
   const currentProvider: ProviderType = nodeData.selectedModel?.provider || "fal";
@@ -46,176 +41,29 @@ export function GenerateAudioNode({ id, data, selected }: NodeProps<GenerateAudi
     }
   }, [nodeData.outputAudio]);
 
-  // Setup audio element
-  useEffect(() => {
-    if (!nodeData.outputAudio) {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-      setIsPlaying(false);
-      setCurrentTime(0);
-      return;
-    }
-
-    // Clean up previous audio element
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
-
-    const audio = new Audio(nodeData.outputAudio);
-    audioRef.current = audio;
-
-    const handleEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-    };
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-    };
-    audio.addEventListener("ended", handleEnded);
-    audio.addEventListener("timeupdate", handleTimeUpdate);
-
-    return () => {
-      audio.removeEventListener("ended", handleEnded);
-      audio.removeEventListener("timeupdate", handleTimeUpdate);
-      audio.pause();
-      audioRef.current = null;
-    };
-  }, [nodeData.outputAudio]);
-
-  // Draw waveform with optional progress indicator
-  const drawWaveform = useCallback(
-    (ctx: CanvasRenderingContext2D, width: number, height: number, peaks: number[], progress?: number) => {
-      ctx.clearRect(0, 0, width, height);
-
-      const barCount = Math.min(peaks.length, width);
-      const barWidth = width / barCount;
-      const barGap = 1;
-      const progressX = progress !== undefined ? progress * width : -1;
-
-      for (let i = 0; i < barCount; i++) {
-        const peakIndex = Math.floor((i / barCount) * peaks.length);
-        const peak = peaks[peakIndex] || 0;
-        const barHeight = peak * height;
-        const x = i * barWidth;
-        const y = (height - barHeight) / 2;
-
-        ctx.fillStyle = x < progressX ? "rgb(139, 92, 246)" : "rgba(139, 92, 246, 0.4)"; // violet-500 played, violet-500/40 unplayed
-        ctx.fillRect(x, y, barWidth - barGap, barHeight);
-      }
-
-      // Draw playback position line
-      if (progressX > 0) {
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(progressX, 0);
-        ctx.lineTo(progressX, height);
-        ctx.stroke();
-      }
-    },
-    []
-  );
-
-  // Effect: ResizeObserver for waveform canvas
-  useEffect(() => {
-    if (!waveformData || !canvasRef.current || !waveformContainerRef.current) return;
-
-    const canvas = canvasRef.current;
-    const container = waveformContainerRef.current;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const width = entry.contentRect.width;
-        const height = entry.contentRect.height;
-
-        canvas.width = width;
-        canvas.height = height;
-
-        drawWaveform(ctx, width, height, waveformData.peaks);
-      }
-    });
-
-    resizeObserver.observe(container);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, [waveformData, drawWaveform]);
-
-  // Effect: Redraw waveform with playback progress
-  useEffect(() => {
-    if (!waveformData || !canvasRef.current) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const width = canvas.width;
-    const height = canvas.height;
-    if (width === 0 || height === 0) return;
-
-    const duration = audioRef.current?.duration;
-    const progress = duration && isFinite(duration) && currentTime > 0 ? currentTime / duration : undefined;
-    drawWaveform(ctx, width, height, waveformData.peaks, progress);
-  }, [isPlaying, currentTime, waveformData, drawWaveform]);
-
-  // Animation loop for smooth playback position updates
-  useEffect(() => {
-    if (isPlaying && audioRef.current) {
-      const updatePosition = () => {
-        if (audioRef.current) {
-          setCurrentTime(audioRef.current.currentTime);
-        }
-        animationFrameRef.current = requestAnimationFrame(updatePosition);
-      };
-      animationFrameRef.current = requestAnimationFrame(updatePosition);
-    }
-
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
-  }, [isPlaying]);
+  const {
+    audioRef,
+    canvasRef,
+    waveformContainerRef,
+    isPlaying,
+    currentTime,
+    handlePlayPause,
+    handleSeek,
+    formatTime,
+  } = useAudioPlayback({
+    audioSrc: nodeData.outputAudio ?? null,
+    waveformData,
+    isLoadingWaveform,
+  });
 
   const handleClearAudio = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
     }
-    setIsPlaying(false);
-    setCurrentTime(0);
     setAudioBlob(null);
     updateNodeData(id, { outputAudio: null, status: "idle", error: null, duration: null, format: null });
-  }, [id, updateNodeData]);
-
-  const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!audioRef.current || !audioRef.current.duration || !isFinite(audioRef.current.duration) || !waveformContainerRef.current) return;
-
-    const rect = waveformContainerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const progress = x / rect.width;
-    const newTime = progress * audioRef.current.duration;
-
-    audioRef.current.currentTime = newTime;
-    setCurrentTime(newTime);
-  }, []);
-
-  const handlePlayPause = useCallback(() => {
-    if (!audioRef.current) return;
-
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      audioRef.current.play();
-      setIsPlaying(true);
-    }
-  }, [isPlaying]);
+  }, [id, updateNodeData, audioRef]);
 
   const handleParametersChange = useCallback(
     (parameters: Record<string, unknown>) => {
@@ -342,12 +190,6 @@ export function GenerateAudioNode({ id, data, selected }: NodeProps<GenerateAudi
     }
     return "Generate Audio";
   }, [nodeData.selectedModel?.displayName, nodeData.selectedModel?.modelId]);
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
 
   // Provider badge as title prefix
   const titlePrefix = useMemo(() => (
