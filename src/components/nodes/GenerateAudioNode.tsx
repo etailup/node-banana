@@ -101,7 +101,7 @@ export function GenerateAudioNode({ id, data, selected }: NodeProps<GenerateAudi
         const x = i * barWidth;
         const y = (height - barHeight) / 2;
 
-        ctx.fillStyle = x < progressX ? "rgb(196, 181, 253)" : "rgb(167, 139, 250)"; // violet-300 played, violet-400 unplayed
+        ctx.fillStyle = x < progressX ? "rgb(139, 92, 246)" : "rgba(139, 92, 246, 0.4)"; // violet-500 played, violet-500/40 unplayed
         ctx.fillRect(x, y, barWidth - barGap, barHeight);
       }
 
