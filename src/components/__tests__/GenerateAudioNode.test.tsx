@@ -303,37 +303,31 @@ describe("GenerateAudioNode", () => {
     });
   });
 
-  describe("Regenerate Button", () => {
-    it("should show regenerate button when audio is complete", () => {
+  describe("Run Button", () => {
+    it("should show run button in header", () => {
       render(
         <TestWrapper>
-          <GenerateAudioNode {...createNodeProps({
-            outputAudio: "data:audio/mp3;base64,abc123",
-            status: "complete",
-          })} />
+          <GenerateAudioNode {...createNodeProps()} />
         </TestWrapper>
       );
 
-      expect(screen.getByText("Regenerate")).toBeInTheDocument();
+      expect(screen.getByTitle("Run this node")).toBeInTheDocument();
     });
 
-    it("should call regenerateNode when regenerate button is clicked", () => {
+    it("should call regenerateNode when run button is clicked", () => {
       render(
         <TestWrapper>
-          <GenerateAudioNode {...createNodeProps({
-            outputAudio: "data:audio/mp3;base64,abc123",
-            status: "complete",
-          })} />
+          <GenerateAudioNode {...createNodeProps()} />
         </TestWrapper>
       );
 
-      const regenButton = screen.getByText("Regenerate");
-      fireEvent.click(regenButton);
+      const runButton = screen.getByTitle("Run this node");
+      fireEvent.click(runButton);
 
       expect(mockRegenerateNode).toHaveBeenCalledWith("test-audio-1");
     });
 
-    it("should disable regenerate button when workflow is running", () => {
+    it("should disable run button when workflow is running", () => {
       mockUseWorkflowStore.mockImplementation((selector) => {
         const state = {
           updateNodeData: mockUpdateNodeData,
@@ -355,15 +349,12 @@ describe("GenerateAudioNode", () => {
 
       render(
         <TestWrapper>
-          <GenerateAudioNode {...createNodeProps({
-            outputAudio: "data:audio/mp3;base64,abc123",
-            status: "complete",
-          })} />
+          <GenerateAudioNode {...createNodeProps()} />
         </TestWrapper>
       );
 
-      const regenButton = screen.getByText("Regenerate");
-      expect(regenButton).toBeDisabled();
+      const runButton = screen.getByTitle("Run this node");
+      expect(runButton).toBeDisabled();
     });
   });
 

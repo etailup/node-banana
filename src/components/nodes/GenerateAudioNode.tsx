@@ -26,6 +26,7 @@ export function GenerateAudioNode({ id, data, selected }: NodeProps<GenerateAudi
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const waveformContainerRef = useRef<HTMLDivElement>(null);
+  const animationFrameRef = useRef<number | undefined>(undefined);
 
   // Get the current selected provider (default to fal)
   const currentProvider: ProviderType = nodeData.selectedModel?.provider || "fal";
@@ -84,16 +85,15 @@ export function GenerateAudioNode({ id, data, selected }: NodeProps<GenerateAudi
     };
   }, [nodeData.outputAudio]);
 
-  // Draw waveform
+  // Draw waveform with optional progress indicator
   const drawWaveform = useCallback(
-    (ctx: CanvasRenderingContext2D, width: number, height: number, peaks: number[]) => {
+    (ctx: CanvasRenderingContext2D, width: number, height: number, peaks: number[], progress?: number) => {
       ctx.clearRect(0, 0, width, height);
 
       const barCount = Math.min(peaks.length, width);
       const barWidth = width / barCount;
       const barGap = 1;
-
-      ctx.fillStyle = "rgb(167, 139, 250)"; // violet-400
+      const progressX = progress !== undefined ? progress * width : -1;
 
       for (let i = 0; i < barCount; i++) {
         const peakIndex = Math.floor((i / barCount) * peaks.length);
@@ -102,7 +102,18 @@ export function GenerateAudioNode({ id, data, selected }: NodeProps<GenerateAudi
         const x = i * barWidth;
         const y = (height - barHeight) / 2;
 
+        ctx.fillStyle = x < progressX ? "rgb(196, 181, 253)" : "rgb(167, 139, 250)"; // violet-300 played, violet-400 unplayed
         ctx.fillRect(x, y, barWidth - barGap, barHeight);
+      }
+
+      // Draw playback position line
+      if (progressX > 0) {
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(progressX, 0);
+        ctx.lineTo(progressX, height);
+        ctx.stroke();
       }
     },
     []
@@ -136,7 +147,7 @@ export function GenerateAudioNode({ id, data, selected }: NodeProps<GenerateAudi
     };
   }, [waveformData, drawWaveform]);
 
-  // Effect: Redraw waveform with playback position
+  // Effect: Redraw waveform with playback progress
   useEffect(() => {
     if (!waveformData || !canvasRef.current) return;
 
@@ -148,21 +159,28 @@ export function GenerateAudioNode({ id, data, selected }: NodeProps<GenerateAudi
     const height = canvas.height;
     if (width === 0 || height === 0) return;
 
-    drawWaveform(ctx, width, height, waveformData.peaks);
-
-    // Draw playback position
-    if (isPlaying && nodeData.duration) {
-      const progress = currentTime / nodeData.duration;
-      const x = progress * width;
-
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
-      ctx.stroke();
-    }
+    const progress = nodeData.duration && currentTime > 0 ? currentTime / nodeData.duration : undefined;
+    drawWaveform(ctx, width, height, waveformData.peaks, progress);
   }, [isPlaying, currentTime, nodeData.duration, waveformData, drawWaveform]);
+
+  // Animation loop for smooth playback position updates
+  useEffect(() => {
+    if (isPlaying && audioRef.current) {
+      const updatePosition = () => {
+        if (audioRef.current) {
+          setCurrentTime(audioRef.current.currentTime);
+        }
+        animationFrameRef.current = requestAnimationFrame(updatePosition);
+      };
+      animationFrameRef.current = requestAnimationFrame(updatePosition);
+    }
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [isPlaying]);
 
   const handleClearAudio = useCallback(() => {
     if (audioRef.current) {
@@ -368,7 +386,10 @@ export function GenerateAudioNode({ id, data, selected }: NodeProps<GenerateAudi
         comment={nodeData.comment}
         onCustomTitleChange={(title) => updateNodeData(id, { customTitle: title || undefined })}
         onCommentChange={(comment) => updateNodeData(id, { comment: comment || undefined })}
+        onRun={handleRegenerate}
         selected={selected}
+        isExecuting={isRunning}
+        hasError={nodeData.status === "error"}
         commentNavigation={commentNavigation ?? undefined}
         minWidth={300}
         minHeight={250}
@@ -494,18 +515,6 @@ export function GenerateAudioNode({ id, data, selected }: NodeProps<GenerateAudi
           <div className="mt-2 p-2 bg-red-500/10 border border-red-500/30 rounded text-xs text-red-400">
             {nodeData.error}
           </div>
-        )}
-
-        {/* Regenerate button */}
-        {nodeData.status === "complete" && nodeData.outputAudio && (
-          <button
-            onClick={handleRegenerate}
-            disabled={isRunning}
-            className="w-full mt-2 px-2 py-1.5 text-xs bg-neutral-700 hover:bg-neutral-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Regenerate audio"
-          >
-            Regenerate
-          </button>
         )}
 
         {/* Dynamic handles from schema */}

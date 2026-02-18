@@ -72,16 +72,15 @@ export function AudioInputNode({ id, data, selected }: NodeProps<AudioInputNodeT
     };
   }, [nodeData.audioFile]);
 
-  // Helper to draw waveform bars on canvas
+  // Helper to draw waveform bars on canvas with optional progress indicator
   const drawWaveform = useCallback(
-    (ctx: CanvasRenderingContext2D, width: number, height: number, peaks: number[]) => {
+    (ctx: CanvasRenderingContext2D, width: number, height: number, peaks: number[], progress?: number) => {
       ctx.clearRect(0, 0, width, height);
 
       const barCount = Math.min(peaks.length, width);
       const barWidth = width / barCount;
       const barGap = 1;
-
-      ctx.fillStyle = "rgb(167, 139, 250)"; // violet-400
+      const progressX = progress !== undefined ? progress * width : -1;
 
       for (let i = 0; i < barCount; i++) {
         const peakIndex = Math.floor((i / barCount) * peaks.length);
@@ -90,7 +89,18 @@ export function AudioInputNode({ id, data, selected }: NodeProps<AudioInputNodeT
         const x = i * barWidth;
         const y = (height - barHeight) / 2;
 
+        ctx.fillStyle = x < progressX ? "rgb(196, 181, 253)" : "rgb(167, 139, 250)"; // violet-300 played, violet-400 unplayed
         ctx.fillRect(x, y, barWidth - barGap, barHeight);
+      }
+
+      // Draw playback position line
+      if (progressX > 0) {
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(progressX, 0);
+        ctx.lineTo(progressX, height);
+        ctx.stroke();
       }
     },
     []
@@ -124,7 +134,7 @@ export function AudioInputNode({ id, data, selected }: NodeProps<AudioInputNodeT
     };
   }, [waveformData, drawWaveform]);
 
-  // Effect B: Redraw waveform + playback position (lightweight, no ResizeObserver)
+  // Effect B: Redraw waveform + playback progress (lightweight, no ResizeObserver)
   useEffect(() => {
     if (!waveformData || !canvasRef.current) return;
 
@@ -136,20 +146,8 @@ export function AudioInputNode({ id, data, selected }: NodeProps<AudioInputNodeT
     const height = canvas.height;
     if (width === 0 || height === 0) return;
 
-    drawWaveform(ctx, width, height, waveformData.peaks);
-
-    // Draw playback position
-    if (isPlaying && nodeData.duration) {
-      const progress = currentTime / nodeData.duration;
-      const x = progress * width;
-
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
-      ctx.stroke();
-    }
+    const progress = nodeData.duration && currentTime > 0 ? currentTime / nodeData.duration : undefined;
+    drawWaveform(ctx, width, height, waveformData.peaks, progress);
   }, [isPlaying, currentTime, nodeData.duration, waveformData, drawWaveform]);
 
   // Animation loop for smooth playback position updates
