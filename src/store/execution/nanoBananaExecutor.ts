@@ -62,6 +62,13 @@ export async function executeNanoBanana(
     promptText = connectedText || promptFromDynamic || null;
   }
 
+  // Defensive: ensure promptText is actually a string at runtime
+  // (Guards against corrupted node data or race conditions in parallel execution)
+  if (promptText !== null && typeof promptText !== 'string') {
+    console.warn('[nanoBanana] promptText was not a string, coercing:', typeof promptText, promptText);
+    promptText = Array.isArray(promptText) ? (promptText as string[])[0] ?? null : String(promptText);
+  }
+
   if (!promptText) {
     updateNodeData(node.id, {
       status: "error",
@@ -80,6 +87,13 @@ export async function executeNanoBanana(
   const provider = nodeData.selectedModel?.provider || "gemini";
   const headers = buildGenerateHeaders(provider, providerSettings);
 
+  // Sanitize dynamicInputs: coerce prompt to string if it's an array
+  // (Defensive guard for parallel execution race conditions)
+  const sanitizedDynamicInputs = { ...dynamicInputs };
+  if (Array.isArray(sanitizedDynamicInputs.prompt)) {
+    sanitizedDynamicInputs.prompt = (sanitizedDynamicInputs.prompt as string[])[0] ?? '';
+  }
+
   const requestPayload = {
     images,
     prompt: promptText,
@@ -89,8 +103,17 @@ export async function executeNanoBanana(
     useGoogleSearch: nodeData.useGoogleSearch,
     selectedModel: nodeData.selectedModel,
     parameters: nodeData.parameters,
-    dynamicInputs,
+    dynamicInputs: sanitizedDynamicInputs,
   };
+
+  // Final guard: assert that prompt is a string before sending to API
+  // This catches any remaining edge cases and provides a clear error message
+  if (typeof requestPayload.prompt !== 'string') {
+    const errorMsg = `Internal error: prompt is ${typeof requestPayload.prompt}, expected string`;
+    console.error('[nanoBanana]', errorMsg);
+    updateNodeData(node.id, { status: 'error', error: errorMsg });
+    throw new Error(errorMsg);
+  }
 
   try {
     const response = await fetch("/api/generate", {

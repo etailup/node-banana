@@ -162,7 +162,9 @@ export function getConnectedInputsPure(
       } else if (type === "audio") {
         audio.push(value);
       } else if (type === "text" || isTextHandle(handleId)) {
-        text = value;
+        // Defensive: ensure text values are always strings
+        // (Guards against corrupted node data during parallel execution)
+        text = typeof value === 'string' ? value : String(value);
       } else if (isImageHandle(handleId) || !handleId) {
         images.push(value);
       }
