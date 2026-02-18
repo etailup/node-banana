@@ -29,6 +29,7 @@ import {
   GenerateImageNode,
   GenerateVideoNode,
   Generate3DNode,
+  GenerateAudioNode,
   LLMGenerateNode,
   SplitGridNode,
   OutputNode,
@@ -65,6 +66,7 @@ const nodeTypes: NodeTypes = {
   nanoBanana: GenerateImageNode,
   generateVideo: GenerateVideoNode,
   generate3d: Generate3DNode,
+  generateAudio: GenerateAudioNode,
   llmGenerate: LLMGenerateNode,
   splitGrid: SplitGridNode,
   output: OutputNode,
@@ -109,7 +111,7 @@ const getNodeHandles = (nodeType: string): { inputs: string[]; outputs: string[]
     case "imageInput":
       return { inputs: ["reference"], outputs: ["image"] };
     case "audioInput":
-      return { inputs: [], outputs: ["audio"] };
+      return { inputs: ["audio"], outputs: ["audio"] };
     case "annotation":
       return { inputs: ["image"], outputs: ["image"] };
     case "prompt":
@@ -122,12 +124,14 @@ const getNodeHandles = (nodeType: string): { inputs: string[]; outputs: string[]
       return { inputs: ["image", "text"], outputs: ["video"] };
     case "generate3d":
       return { inputs: ["image", "text"], outputs: ["3d"] };
+    case "generateAudio":
+      return { inputs: ["text"], outputs: ["audio"] };
     case "llmGenerate":
       return { inputs: ["text", "image"], outputs: ["text"] };
     case "splitGrid":
       return { inputs: ["image"], outputs: ["reference"] };
     case "output":
-      return { inputs: ["image", "video"], outputs: [] };
+      return { inputs: ["image", "video", "audio"], outputs: [] };
     case "outputGallery":
       return { inputs: ["image"], outputs: [] };
     case "imageCompare":
@@ -342,8 +346,12 @@ export function WorkflowCanvas() {
         return sourceType === "3d" && targetType === "3d";
       }
 
-      // Audio connections: audio handles can only connect to audio handles
+      // Audio connections: audio handles connect to audio handles, plus output node
       if (sourceType === "audio" || targetType === "audio") {
+        if (sourceType === "audio") {
+          const targetNode = nodes.find((n) => n.id === connection.target);
+          if (targetNode?.type === "output") return true;
+        }
         return sourceType === "audio" && targetType === "audio";
       }
 
@@ -520,6 +528,11 @@ export function WorkflowCanvas() {
         // For video output connecting to output node, allow "image" input (output node accepts both)
         if (handleType === "video" && needInput && node.type === "output") {
           return "image";
+        }
+
+        // For audio output connecting to output node, use the "audio" input handle
+        if (handleType === "audio" && needInput && node.type === "output") {
+          return "audio";
         }
 
         // Then check each handle's type
@@ -808,7 +821,7 @@ export function WorkflowCanvas() {
           sourceHandleIdForNewNode = "image";
         }
       } else if (handleType === "text") {
-        if (nodeType === "nanoBanana" || nodeType === "generateVideo" || nodeType === "llmGenerate") {
+        if (nodeType === "nanoBanana" || nodeType === "generateVideo" || nodeType === "generateAudio" || nodeType === "llmGenerate") {
           targetHandleId = "text";
           // llmGenerate also has a text output
           if (nodeType === "llmGenerate") {
@@ -837,10 +850,18 @@ export function WorkflowCanvas() {
         }
       } else if (handleType === "audio") {
         if (nodeType === "audioInput") {
-          // AudioInput outputs audio
+          // Audio node: accepts audio input and outputs audio
+          targetHandleId = "audio";
           sourceHandleIdForNewNode = "audio";
+        } else if (nodeType === "generateAudio") {
+          // GenerateAudio outputs audio
+          sourceHandleIdForNewNode = "audio";
+          targetHandleId = "text";
         } else if (nodeType === "videoStitch") {
           // VideoStitch accepts audio
+          targetHandleId = "audio";
+        } else if (nodeType === "output") {
+          // Output accepts audio on its audio handle
           targetHandleId = "audio";
         }
       } else if (handleType === "3d") {
@@ -1080,6 +1101,9 @@ export function WorkflowCanvas() {
           case "a":
             nodeType = "annotation";
             break;
+          case "t":
+            nodeType = "generateAudio";
+            break;
         }
 
         if (nodeType) {
@@ -1095,6 +1119,7 @@ export function WorkflowCanvas() {
             nanoBanana: { width: 300, height: 300 },
             generateVideo: { width: 300, height: 300 },
             generate3d: { width: 300, height: 300 },
+            generateAudio: { width: 300, height: 280 },
             llmGenerate: { width: 320, height: 360 },
             splitGrid: { width: 300, height: 320 },
             output: { width: 320, height: 320 },
@@ -1672,6 +1697,8 @@ export function WorkflowCanvas() {
                 return "#9333ea";
               case "generate3d":
                 return "#fb923c";
+              case "generateAudio":
+                return "#d946ef"; // fuchsia-500 (audio/TTS)
               case "llmGenerate":
                 return "#06b6d4";
               case "splitGrid":
