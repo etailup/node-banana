@@ -73,6 +73,7 @@ import {
   executeSplitGrid,
   executeVideoStitch,
   executeEaseCurve,
+  executeVideoTrim,
   executeGlbViewer,
 } from "./execution";
 import type { NodeExecutionContext } from "./execution";
@@ -1073,6 +1074,11 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         set({ isRunning: false, currentNodeIds: [] });
         await logger.endSession();
         return;
+      } else if (node.type === "videoTrim") {
+        await executeVideoTrim(executionCtx);
+        set({ isRunning: false, currentNodeIds: [] });
+        await logger.endSession();
+        return;
       }
 
       // After regeneration, execute directly connected downstream consumer nodes
@@ -1213,6 +1219,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           break;
         case "easeCurve":
           await executeEaseCurve(executionCtx);
+          break;
+        case "videoTrim":
+          await executeVideoTrim(executionCtx);
           break;
       }
     };

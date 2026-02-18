@@ -38,4 +38,5 @@ export { executeSplitGrid } from "./splitGridExecutor";
 export {
   executeVideoStitch,
   executeEaseCurve,
+  executeVideoTrim,
 } from "./videoProcessingExecutors";
