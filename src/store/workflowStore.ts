@@ -962,21 +962,21 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             batch.map((node) => executeSingleNode(node, abortController.signal))
           );
 
-          // Check for failures (fail-fast behavior)
-          const failed = results.find(
-            (r): r is PromiseRejectedResult =>
-              r.status === 'rejected' &&
-              !(r.reason instanceof DOMException && r.reason.name === 'AbortError')
-          );
-
-          if (failed) {
-            // Log the failure and abort remaining executions
-            logger.error('workflow.error', 'Node execution failed in parallel batch', {
-              level: levelIdx,
-              error: failed.reason instanceof Error ? failed.reason.message : String(failed.reason),
-            });
-            abortController.abort();
-            throw failed.reason;
+          // Check for failures with node context (fail-fast behavior)
+          for (let i = 0; i < results.length; i++) {
+            const r = results[i];
+            if (r.status === 'rejected' &&
+                !(r.reason instanceof DOMException && r.reason.name === 'AbortError')) {
+              const failedNode = batch[i];
+              logger.error('workflow.error', 'Node execution failed in parallel batch', {
+                level: levelIdx,
+                nodeId: failedNode.id,
+                nodeType: failedNode.type,
+                error: r.reason instanceof Error ? r.reason.message : String(r.reason),
+              });
+              abortController.abort();
+              throw r.reason;
+            }
           }
         }
       }

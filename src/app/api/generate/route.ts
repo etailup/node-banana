@@ -432,10 +432,27 @@ export async function POST(request: NextRequest) {
     // Use selectedModel.modelId if available (new format), fallback to legacy model field
     const geminiModel = (selectedModel?.modelId as ModelType) || model;
 
+    // Resolve prompt: use top-level prompt, fall back to dynamicInputs.prompt
+    // This handles cases where the prompt arrives via dynamicInputs instead of top-level
+    let resolvedPrompt = prompt;
+    if (!resolvedPrompt && dynamicInputs?.prompt) {
+      resolvedPrompt = Array.isArray(dynamicInputs.prompt)
+        ? dynamicInputs.prompt[0]
+        : dynamicInputs.prompt;
+    }
+    // Validate: if a prompt was provided but isn't a string (corrupted data), return clear error
+    // If no prompt provided but images exist, that's valid (image-to-image)
+    if (resolvedPrompt !== undefined && resolvedPrompt !== null && typeof resolvedPrompt !== 'string') {
+      return NextResponse.json<GenerateResponse>(
+        { success: false, error: "prompt must be a string" },
+        { status: 400 }
+      );
+    }
+
     return await generateWithGemini(
       requestId,
       geminiApiKey,
-      prompt,
+      resolvedPrompt,
       images || [],
       geminiModel,
       aspectRatio,
