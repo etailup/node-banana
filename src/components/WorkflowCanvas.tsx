@@ -111,7 +111,7 @@ const getNodeHandles = (nodeType: string): { inputs: string[]; outputs: string[]
     case "imageInput":
       return { inputs: ["reference"], outputs: ["image"] };
     case "audioInput":
-      return { inputs: [], outputs: ["audio"] };
+      return { inputs: ["audio"], outputs: ["audio"] };
     case "annotation":
       return { inputs: ["image"], outputs: ["image"] };
     case "prompt":
