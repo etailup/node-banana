@@ -74,6 +74,7 @@ import {
   executeVideoStitch,
   executeEaseCurve,
   executeVideoTrim,
+  executeVideoFrameGrab,
   executeGlbViewer,
 } from "./execution";
 import type { NodeExecutionContext } from "./execution";
@@ -940,6 +941,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           case "easeCurve":
             await executeEaseCurve(executionCtx);
             break;
+          case "videoFrameGrab":
+            await executeVideoFrameGrab(executionCtx);
+            break;
         }
     }; // End of executeSingleNode helper
 
@@ -1093,6 +1097,11 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         set({ isRunning: false, currentNodeIds: [] });
         await logger.endSession();
         return;
+      } else if (node.type === "videoFrameGrab") {
+        await executeVideoFrameGrab(executionCtx);
+        set({ isRunning: false, currentNodeIds: [] });
+        await logger.endSession();
+        return;
       }
 
       // After regeneration, execute directly connected downstream consumer nodes
@@ -1236,6 +1245,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           break;
         case "videoTrim":
           await executeVideoTrim(executionCtx);
+          break;
+        case "videoFrameGrab":
+          await executeVideoFrameGrab(executionCtx);
           break;
       }
     };

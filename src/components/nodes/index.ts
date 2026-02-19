@@ -15,4 +15,5 @@ export { ImageCompareNode } from "./ImageCompareNode";
 export { VideoStitchNode } from "./VideoStitchNode";
 export { EaseCurveNode } from "./EaseCurveNode";
 export { VideoTrimNode } from "./VideoTrimNode";
+export { VideoFrameGrabNode } from "./VideoFrameGrabNode";
 export { GroupNode } from "./GroupNode";

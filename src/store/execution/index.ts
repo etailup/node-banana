@@ -39,4 +39,5 @@ export {
   executeVideoStitch,
   executeEaseCurve,
   executeVideoTrim,
+  executeVideoFrameGrab,
 } from "./videoProcessingExecutors";

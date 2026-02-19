@@ -38,6 +38,7 @@ import {
   VideoStitchNode,
   EaseCurveNode,
   VideoTrimNode,
+  VideoFrameGrabNode,
 } from "./nodes";
 
 // Lazy-load GLBViewerNode to avoid bundling three.js for users who don't use 3D nodes
@@ -76,6 +77,7 @@ const nodeTypes: NodeTypes = {
   videoStitch: VideoStitchNode,
   easeCurve: EaseCurveNode,
   videoTrim: VideoTrimNode,
+  videoFrameGrab: VideoFrameGrabNode,
   glbViewer: GLBViewerNode,
 };
 
@@ -144,6 +146,8 @@ const getNodeHandles = (nodeType: string): { inputs: string[]; outputs: string[]
       return { inputs: ["video", "easeCurve"], outputs: ["video", "easeCurve"] };
     case "videoTrim":
       return { inputs: ["video"], outputs: ["video"] };
+    case "videoFrameGrab":
+      return { inputs: ["video"], outputs: ["image"] };
     case "glbViewer":
       return { inputs: ["3d"], outputs: ["image"] };
     default:
@@ -336,7 +340,7 @@ export function WorkflowCanvas() {
         if (!targetNode) return false;
 
         const targetNodeType = targetNode.type;
-        if (targetNodeType === "generateVideo" || targetNodeType === "videoStitch" || targetNodeType === "easeCurve" || targetNodeType === "videoTrim" || targetNodeType === "output") {
+        if (targetNodeType === "generateVideo" || targetNodeType === "videoStitch" || targetNodeType === "easeCurve" || targetNodeType === "videoTrim" || targetNodeType === "videoFrameGrab" || targetNodeType === "output") {
           // For output node, we allow video even though its handle is typed as "image"
           // because output node can display both images and videos
           return true;
@@ -849,6 +853,10 @@ export function WorkflowCanvas() {
           // VideoTrim accepts video input and outputs video
           targetHandleId = "video";
           sourceHandleIdForNewNode = "video";
+        } else if (nodeType === "videoFrameGrab") {
+          // VideoFrameGrab accepts video input and outputs image
+          targetHandleId = "video";
+          sourceHandleIdForNewNode = "image";
         } else if (nodeType === "generateVideo") {
           // GenerateVideo outputs video
           sourceHandleIdForNewNode = "video";
@@ -1725,6 +1733,8 @@ export function WorkflowCanvas() {
                 return "#bef264"; // lime-300 (easy-peasy-ease)
               case "videoTrim":
                 return "#60a5fa"; // blue-400 (trim/cut)
+              case "videoFrameGrab":
+                return "#38bdf8"; // sky-400 (image from video)
               case "glbViewer":
                 return "#38bdf8"; // sky-400 (3D viewport)
               default:

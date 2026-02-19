@@ -356,6 +356,13 @@ function createDefaultNodeData(type: NodeType): WorkflowNodeData {
         progress: 0,
         encoderSupported: null,
       };
+    case "videoFrameGrab":
+      return {
+        framePosition: "first",
+        outputImage: null,
+        status: "idle",
+        error: null,
+      };
     case "glbViewer":
       return {
         glbUrl: null,
