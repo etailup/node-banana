@@ -569,7 +569,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         y: node.position.y + offset.y,
       },
       selected: true, // Select newly pasted nodes
-      data: { ...node.data }, // Deep copy data
+      data: JSON.parse(JSON.stringify(node.data)),
     }));
 
     // Create new edges with updated source/target IDs
@@ -590,6 +590,20 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       nodes: [...updatedNodes, ...newNodes] as WorkflowNode[],
       edges: [...edges, ...newEdges],
       hasUnsavedChanges: true,
+    });
+
+    // Fix React Flow selection race condition: After paste, React Flow's internal
+    // reconciliation may fire onNodesChange with stale selection state that re-selects
+    // original nodes. Schedule an explicit selection correction after reconciliation.
+    const newNodeIdSet = new Set(newNodes.map(n => n.id));
+    requestAnimationFrame(() => {
+      const currentNodes = get().nodes;
+      const selectionChanges: NodeChange<WorkflowNode>[] = currentNodes.map(n => ({
+        type: 'select' as const,
+        id: n.id,
+        selected: newNodeIdSet.has(n.id),
+      }));
+      get().onNodesChange(selectionChanges);
     });
   },
 
