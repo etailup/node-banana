@@ -110,6 +110,7 @@ export interface CarouselImageItem {
   prompt: string;
   aspectRatio: AspectRatio;
   model: ModelType;
+  cdnUrl?: string; // Cloud mode: CDN URL for direct loading (no filesystem)
 }
 
 /**
@@ -120,6 +121,7 @@ export interface CarouselVideoItem {
   timestamp: number;
   prompt: string;
   model: string; // Model ID for video (not ModelType since external providers)
+  cdnUrl?: string; // Cloud mode: CDN URL for direct loading (no filesystem)
 }
 
 /**

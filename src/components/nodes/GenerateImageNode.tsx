@@ -308,7 +308,12 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
     regenerateNode(id);
   }, [id, regenerateNode]);
 
-  const loadImageById = useCallback(async (imageId: string) => {
+  const isCloud = useWorkflowStore((state) => state.isCloud);
+
+  const loadImageById = useCallback(async (imageId: string, cdnUrl?: string) => {
+    // Cloud mode: use CDN URL directly if available
+    if (cdnUrl) return cdnUrl;
+
     if (!generationsPath) {
       console.error("Generations path not configured");
       return null;
@@ -346,7 +351,7 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
     const imageItem = history[newIndex];
 
     setIsLoadingCarouselImage(true);
-    const image = await loadImageById(imageItem.id);
+    const image = await loadImageById(imageItem.id, imageItem.cdnUrl);
     setIsLoadingCarouselImage(false);
 
     if (image) {
@@ -366,7 +371,7 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
     const imageItem = history[newIndex];
 
     setIsLoadingCarouselImage(true);
-    const image = await loadImageById(imageItem.id);
+    const image = await loadImageById(imageItem.id, imageItem.cdnUrl);
     setIsLoadingCarouselImage(false);
 
     if (image) {

@@ -13,6 +13,17 @@ export default function EditorPage() {
     (state) => state.initializeAutoSave
   );
   const cleanupAutoSave = useWorkflowStore((state) => state.cleanupAutoSave);
+  const setIsCloud = useWorkflowStore((state) => state.setIsCloud);
+
+  // Detect cloud mode on mount (before any save/load operations)
+  useEffect(() => {
+    fetch("/api/env-status")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.isCloud) setIsCloud(true);
+      })
+      .catch(() => {});
+  }, [setIsCloud]);
 
   useEffect(() => {
     initializeAutoSave();

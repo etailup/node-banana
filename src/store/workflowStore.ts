@@ -33,6 +33,8 @@ import {
   OutputGalleryNodeData,
   VideoStitchNodeData,
   EaseCurveNodeData,
+  CarouselImageItem,
+  CarouselVideoItem,
 } from "@/types";
 import { useToast } from "@/components/Toast";
 import { calculateGenerationCost } from "@/utils/costCalculator";
@@ -150,6 +152,10 @@ interface WorkflowStore {
   addToGlobalHistory: (item: Omit<ImageHistoryItem, "id">) => void;
   clearGlobalHistory: () => void;
 
+  // Cloud mode
+  isCloud: boolean;
+  setIsCloud: (isCloud: boolean) => void;
+
   // Auto-save state
   workflowId: string | null;
   workflowName: string | null;
@@ -252,39 +258,80 @@ function trackSaveGeneration(
   get: () => WorkflowStore,
   updateNodeData: (nodeId: string, data: Partial<WorkflowNodeData>) => void
 ): void {
+  const { isCloud, workflowId } = get();
+
+  // Build request body — cloud mode uses workflowId instead of directoryPath
+  const requestBody: Record<string, unknown> = {
+    image: content.image,
+    video: content.video,
+    prompt,
+    imageId: tempId,
+  };
+  if (isCloud) {
+    requestBody.workflowId = workflowId;
+  } else {
+    requestBody.directoryPath = genPath;
+  }
+
   const syncPromise = fetch("/api/save-generation", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      directoryPath: genPath,
-      image: content.image,
-      video: content.video,
-      prompt,
-      imageId: tempId,
-    }),
+    body: JSON.stringify(requestBody),
   })
     .then((res) => res.json())
     .then((saveResult) => {
-      // Update history with actual saved ID for carousel loading
-      if (saveResult.success && saveResult.imageId && saveResult.imageId !== tempId) {
-        const currentNode = get().nodes.find((n) => n.id === nodeId);
-        if (currentNode) {
-          if (historyType === 'image') {
-            const currentData = currentNode.data as NanoBananaNodeData;
-            const updatedHistory = [...(currentData.imageHistory || [])];
-            const entryIndex = updatedHistory.findIndex((h) => h.id === tempId);
-            if (entryIndex !== -1) {
-              updatedHistory[entryIndex] = { ...updatedHistory[entryIndex], id: saveResult.imageId };
-              updateNodeData(nodeId, { imageHistory: updatedHistory });
-            }
-          } else {
-            const currentData = currentNode.data as GenerateVideoNodeData;
-            const updatedHistory = [...(currentData.videoHistory || [])];
-            const entryIndex = updatedHistory.findIndex((h) => h.id === tempId);
-            if (entryIndex !== -1) {
-              updatedHistory[entryIndex] = { ...updatedHistory[entryIndex], id: saveResult.imageId };
-              updateNodeData(nodeId, { videoHistory: updatedHistory });
-            }
+      if (!saveResult.success) return;
+
+      const currentNode = get().nodes.find((n) => n.id === nodeId);
+      if (!currentNode) return;
+
+      // Cloud mode: store cdnUrl on history entry for direct CDN loading
+      if (isCloud && saveResult.cdnUrl) {
+        if (historyType === 'image') {
+          const currentData = currentNode.data as NanoBananaNodeData;
+          const updatedHistory = [...(currentData.imageHistory || [])] as CarouselImageItem[];
+          const entryIndex = updatedHistory.findIndex((h) => h.id === tempId);
+          if (entryIndex !== -1) {
+            updatedHistory[entryIndex] = {
+              ...updatedHistory[entryIndex],
+              id: saveResult.imageId || tempId,
+              cdnUrl: saveResult.cdnUrl,
+            };
+            updateNodeData(nodeId, { imageHistory: updatedHistory });
+          }
+        } else {
+          const currentData = currentNode.data as GenerateVideoNodeData;
+          const updatedHistory = [...(currentData.videoHistory || [])] as CarouselVideoItem[];
+          const entryIndex = updatedHistory.findIndex((h) => h.id === tempId);
+          if (entryIndex !== -1) {
+            updatedHistory[entryIndex] = {
+              ...updatedHistory[entryIndex],
+              id: saveResult.imageId || tempId,
+              cdnUrl: saveResult.cdnUrl,
+            };
+            updateNodeData(nodeId, { videoHistory: updatedHistory });
+          }
+        }
+        return;
+      }
+
+      // Local mode: update history with actual saved ID for carousel loading
+      if (saveResult.imageId && saveResult.imageId !== tempId) {
+        if (historyType === 'image') {
+          const currentData = currentNode.data as NanoBananaNodeData;
+          const updatedHistory = [...(currentData.imageHistory || [])];
+          const entryIndex = updatedHistory.findIndex((h) => h.id === tempId);
+          if (entryIndex !== -1) {
+            updatedHistory[entryIndex] = { ...updatedHistory[entryIndex], id: saveResult.imageId };
+            updateNodeData(nodeId, { imageHistory: updatedHistory });
+          }
+        } else {
+          const currentData = currentNode.data as GenerateVideoNodeData;
+          const updatedHistory = [...(currentData.videoHistory || [])];
+          const entryIndex = updatedHistory.findIndex((h) => h.id === tempId);
+          if (entryIndex !== -1) {
+            updatedHistory[entryIndex] = { ...updatedHistory[entryIndex], id: saveResult.imageId };
+            updateNodeData(nodeId, { videoHistory: updatedHistory });
           }
         }
       }
@@ -458,6 +505,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   _abortController: null,  // Internal: for cancellation
   globalImageHistory: [],
 
+  // Cloud mode initial state
+  isCloud: false,
+
   // Auto-save initial state
   workflowId: null,
   workflowName: null,
@@ -491,6 +541,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   // AI change snapshot initial state
   previousWorkflowSnapshot: null,
   manualChangeCount: 0,
+
+  setIsCloud: (isCloud: boolean) => {
+    set({ isCloud });
+  },
 
   setEdgeStyle: (style: EdgeStyle) => {
     set({ edgeStyle: style });
@@ -3304,8 +3358,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     const directoryPath = workflowPath || savedConfig?.directoryPath;
 
     // Hydrate images if we have a directory path and the workflow has image refs
+    // Skip hydration on cloud — images use CDN URLs and display directly
     let hydratedWorkflow = workflow;
-    if (directoryPath) {
+    if (directoryPath && !get().isCloud) {
       try {
         hydratedWorkflow = await hydrateWorkflowImages(workflow, directoryPath);
       } catch (error) {
@@ -3449,9 +3504,15 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       saveDirectoryPath,
       useExternalImageStorage,
       imageRefBasePath,
+      isCloud,
     } = get();
 
-    if (!workflowId || !workflowName || !saveDirectoryPath) {
+    // Cloud mode: only need workflowId and workflowName
+    // Local mode: also need saveDirectoryPath
+    if (!workflowId || !workflowName) {
+      return false;
+    }
+    if (!isCloud && !saveDirectoryPath) {
       return false;
     }
 
@@ -3514,9 +3575,31 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         groups: groups && Object.keys(groups).length > 0 ? groups : undefined,
       };
 
-      // If external image storage is enabled, externalize images before saving
+      // Cloud mode: save directly to Supabase (images already CDN URLs, no externalization)
+      if (isCloud) {
+        const response = await fetch("/api/workflow", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workflowId, workflow }),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          set({
+            lastSavedAt: Date.now(),
+            hasUnsavedChanges: false,
+          });
+          return true;
+        } else {
+          useToast.getState().show(`Cloud save failed: ${result.error}`, "error");
+          return false;
+        }
+      }
+
+      // Local mode: externalize images and save to filesystem
       if (useExternalImageStorage) {
-        workflow = await externalizeWorkflowImages(workflow, saveDirectoryPath);
+        workflow = await externalizeWorkflowImages(workflow, saveDirectoryPath!);
       }
 
       const response = await fetch("/api/workflow", {
@@ -3586,7 +3669,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         saveSaveConfig({
           workflowId,
           name: workflowName,
-          directoryPath: saveDirectoryPath,
+          directoryPath: saveDirectoryPath!,
           generationsPath: get().generationsPath,
           lastSavedAt: timestamp,
           useExternalImageStorage,
@@ -3615,14 +3698,14 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
     autoSaveIntervalId = setInterval(async () => {
       const state = get();
-      if (
-        state.autoSaveEnabled &&
+      // Cloud mode: skip saveDirectoryPath check (not needed)
+      const canAutoSave = state.autoSaveEnabled &&
         state.hasUnsavedChanges &&
         state.workflowId &&
         state.workflowName &&
-        state.saveDirectoryPath &&
-        !state.isSaving
-      ) {
+        !state.isSaving &&
+        (state.isCloud || state.saveDirectoryPath);
+      if (canAutoSave) {
         await state.saveToFile();
       }
     }, 90 * 1000); // 90 seconds

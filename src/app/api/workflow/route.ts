@@ -2,15 +2,47 @@ import { NextRequest, NextResponse } from "next/server";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { logger } from "@/utils/logger";
+import { isCloudMode, getAuthenticatedUserId, upsertEditorWorkflow } from "@/lib/cloud/editorStorage";
 
 export const maxDuration = 300; // 5 minute timeout for large workflow files
 
-// POST: Save workflow to file
+// POST: Save workflow to file (local) or Supabase (cloud)
 export async function POST(request: NextRequest) {
   let directoryPath: string | undefined;
   let filename: string | undefined;
   try {
     const body = await request.json();
+
+    // Cloud mode: save to Supabase
+    if (isCloudMode()) {
+      const userId = await getAuthenticatedUserId();
+      if (!userId) {
+        return NextResponse.json(
+          { success: false, error: "Authentication required" },
+          { status: 401 }
+        );
+      }
+
+      const { workflowId, workflow } = body;
+      if (!workflowId || !workflow) {
+        return NextResponse.json(
+          { success: false, error: "Missing workflowId or workflow" },
+          { status: 400 }
+        );
+      }
+
+      const name = workflow.name || "Untitled";
+      await upsertEditorWorkflow(workflowId, userId, name, workflow);
+
+      logger.info('file.save', 'Workflow saved to cloud', {
+        workflowId,
+        nodeCount: workflow?.nodes?.length,
+      });
+
+      return NextResponse.json({ success: true, isCloud: true });
+    }
+
+    // Local mode: save to filesystem
     directoryPath = body.directoryPath;
     filename = body.filename;
     const workflow = body.workflow;
@@ -105,8 +137,13 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET: Validate directory path
+// GET: Validate directory path (local) or return cloud status
 export async function GET(request: NextRequest) {
+  // Cloud mode: no directory to validate
+  if (isCloudMode()) {
+    return NextResponse.json({ success: true, isCloud: true });
+  }
+
   const directoryPath = request.nextUrl.searchParams.get("path");
 
   logger.info('file.load', 'Directory validation request received', {

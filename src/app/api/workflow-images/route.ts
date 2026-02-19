@@ -2,19 +2,62 @@ import { NextRequest, NextResponse } from "next/server";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { logger } from "@/utils/logger";
+import { isCloudMode, getAuthenticatedUserId, uploadEditorAsset } from "@/lib/cloud/editorStorage";
 
 export const maxDuration = 300; // 5 minute timeout for large image operations
 
 const IMAGES_FOLDER = "inputs";
 const LEGACY_IMAGES_FOLDER = ".images"; // For backward compatibility
 
-// POST: Save an image to the workflow's inputs or generations folder
+// POST: Save an image to R2 (cloud) or filesystem (local)
 export async function POST(request: NextRequest) {
   let workflowPath: string | undefined;
   let imageId: string | undefined;
   let folder: string | undefined;
   try {
     const body = await request.json();
+
+    // Cloud mode: upload to R2
+    if (isCloudMode()) {
+      const userId = await getAuthenticatedUserId();
+      if (!userId) {
+        return NextResponse.json(
+          { success: false, error: "Authentication required" },
+          { status: 401 }
+        );
+      }
+
+      const { workflowId, imageId: cloudImageId, imageData, folder: cloudFolder } = body;
+      if (!workflowId || !cloudImageId || !imageData) {
+        return NextResponse.json(
+          { success: false, error: "Missing required fields (workflowId, imageId, imageData)" },
+          { status: 400 }
+        );
+      }
+
+      const targetFolder = (cloudFolder === "generations" ? "generations" : "inputs") as "inputs" | "generations";
+
+      // Detect content type from data URL
+      const ctMatch = imageData.match(/^data:([\w/+-]+);base64,/);
+      const contentType = ctMatch ? ctMatch[1] : "image/png";
+
+      const cdnUrl = await uploadEditorAsset(workflowId, cloudImageId, imageData, targetFolder, contentType);
+
+      logger.info('file.save', 'Workflow image uploaded to R2', {
+        workflowId,
+        imageId: cloudImageId,
+        cdnUrl,
+      });
+
+      return NextResponse.json({
+        success: true,
+        imageId: cloudImageId,
+        cdnUrl,
+        isCloud: true,
+      });
+    }
+
+    // Local mode: save to filesystem
     workflowPath = body.workflowPath;
     imageId = body.imageId;
     folder = body.folder || IMAGES_FOLDER; // Default to "inputs"
@@ -117,8 +160,13 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET: Load an image from the workflow's folders (inputs, generations, or legacy .images)
+// GET: Load an image from filesystem (local) or return cloud status
 export async function GET(request: NextRequest) {
+  // Cloud mode: images are loaded directly via CDN URLs, no hydration needed
+  if (isCloudMode()) {
+    return NextResponse.json({ success: false, isCloud: true, error: "Use CDN URLs on cloud" });
+  }
+
   const workflowPath = request.nextUrl.searchParams.get("workflowPath");
   const imageId = request.nextUrl.searchParams.get("imageId");
   const folder = request.nextUrl.searchParams.get("folder"); // Optional hint for which folder to check first

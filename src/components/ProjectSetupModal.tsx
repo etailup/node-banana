@@ -432,7 +432,7 @@ export function ProjectSetupModal({
 
             {isCloud && (
               <p className="text-xs text-neutral-500">
-                Workflows are saved in your browser. Images are embedded as base64.
+                Workflows are saved to the cloud. Images are stored on CDN.
               </p>
             )}
 

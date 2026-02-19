@@ -13,6 +13,8 @@ export function ImageInputNode({ id, data, selected }: NodeProps<ImageInputNodeT
   const nodeData = data;
   const commentNavigation = useCommentNavigation(id);
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
+  const isCloud = useWorkflowStore((state) => state.isCloud);
+  const workflowId = useWorkflowStore((state) => state.workflowId);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = useCallback(
@@ -35,17 +37,57 @@ export function ImageInputNode({ id, data, selected }: NodeProps<ImageInputNodeT
         const base64 = event.target?.result as string;
         const img = new Image();
         img.onload = () => {
-          updateNodeData(id, {
-            image: base64,
-            filename: file.name,
-            dimensions: { width: img.width, height: img.height },
-          });
+          // Cloud mode: upload to R2 immediately, store CDN URL instead of base64
+          if (isCloud && workflowId) {
+            const imageId = `img-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
+            fetch("/api/workflow-images", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                workflowId,
+                imageId,
+                imageData: base64,
+                folder: "inputs",
+              }),
+            })
+              .then((res) => res.json())
+              .then((result) => {
+                if (result.success && result.cdnUrl) {
+                  updateNodeData(id, {
+                    image: result.cdnUrl,
+                    filename: file.name,
+                    dimensions: { width: img.width, height: img.height },
+                  });
+                } else {
+                  // Fallback: store base64 if upload fails
+                  updateNodeData(id, {
+                    image: base64,
+                    filename: file.name,
+                    dimensions: { width: img.width, height: img.height },
+                  });
+                }
+              })
+              .catch(() => {
+                // Fallback: store base64 if upload fails
+                updateNodeData(id, {
+                  image: base64,
+                  filename: file.name,
+                  dimensions: { width: img.width, height: img.height },
+                });
+              });
+          } else {
+            updateNodeData(id, {
+              image: base64,
+              filename: file.name,
+              dimensions: { width: img.width, height: img.height },
+            });
+          }
         };
         img.src = base64;
       };
       reader.readAsDataURL(file);
     },
-    [id, updateNodeData]
+    [id, updateNodeData, isCloud, workflowId]
   );
 
   const handleDrop = useCallback(
