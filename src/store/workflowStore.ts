@@ -941,6 +941,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           case "easeCurve":
             await executeEaseCurve(executionCtx);
             break;
+          case "videoTrim":
+            await executeVideoTrim(executionCtx);
+            break;
           case "videoFrameGrab":
             await executeVideoFrameGrab(executionCtx);
             break;
