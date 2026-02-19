@@ -9,6 +9,7 @@
 
 import type {
   AnnotationNodeData,
+  ArrayNodeData,
   PromptConstructorNodeData,
   PromptNodeData,
   OutputNodeData,
@@ -16,6 +17,7 @@ import type {
   WorkflowNode,
 } from "@/types";
 import type { NodeExecutionContext } from "./types";
+import { parseTextToArray } from "@/utils/arrayParser";
 
 /**
  * Annotation node: receives upstream image as source, passes through if no annotations.
@@ -54,6 +56,39 @@ export async function executePrompt(ctx: NodeExecutionContext): Promise<void> {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[Workflow] Prompt node ${node.id} failed:`, message);
+    updateNodeData(node.id, { error: message });
+  }
+}
+
+/**
+ * Array node: splits connected text into itemized text outputs.
+ */
+export async function executeArray(ctx: NodeExecutionContext): Promise<void> {
+  const { node, getConnectedInputs, updateNodeData, getFreshNode } = ctx;
+
+  try {
+    const freshNode = getFreshNode(node.id);
+    const nodeData = (freshNode?.data || node.data) as ArrayNodeData;
+    const { text: connectedText } = getConnectedInputs(node.id);
+    const inputText = connectedText ?? nodeData.inputText ?? "";
+
+    const parsed = parseTextToArray(inputText, {
+      splitMode: nodeData.splitMode,
+      delimiter: nodeData.delimiter,
+      regexPattern: nodeData.regexPattern,
+      trimItems: nodeData.trimItems,
+      removeEmpty: nodeData.removeEmpty,
+    });
+
+    updateNodeData(node.id, {
+      inputText,
+      outputItems: parsed.items,
+      outputText: JSON.stringify(parsed.items),
+      error: parsed.error,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[Workflow] Array node ${node.id} failed:`, message);
     updateNodeData(node.id, { error: message });
   }
 }

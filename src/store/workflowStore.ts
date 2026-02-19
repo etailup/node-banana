@@ -60,6 +60,7 @@ import {
 import { getConnectedInputsPure, validateWorkflowPure } from "./utils/connectedInputs";
 import {
   executeAnnotation,
+  executeArray,
   executePrompt,
   executePromptConstructor,
   executeOutput,
@@ -478,11 +479,53 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   onConnect: (connection: Connection) => {
     set((state) => ({
       edges: addEdge(
-        {
-          ...connection,
-          id: `edge-${connection.source}-${connection.target}-${connection.sourceHandle || "default"}-${connection.targetHandle || "default"}`,
-          data: { createdAt: Date.now() },
-        },
+        (() => {
+          const sourceNode = state.nodes.find((n) => n.id === connection.source);
+          const baseData: Record<string, unknown> = { createdAt: Date.now() };
+
+          // Array node uses a single output handle; assign each edge a stable item index.
+          if (sourceNode?.type === "array" && (connection.sourceHandle || "text") === "text") {
+            const sourceData = sourceNode.data as Record<string, unknown>;
+            const selectedIndex = sourceData.selectedOutputIndex;
+            const outputItems = Array.isArray(sourceData.outputItems) ? sourceData.outputItems : [];
+            const outputCount = outputItems.length;
+
+            if (
+              typeof selectedIndex === "number" &&
+              Number.isInteger(selectedIndex) &&
+              selectedIndex >= 0 &&
+              (outputCount === 0 || selectedIndex < outputCount)
+            ) {
+              baseData.arrayItemIndex = selectedIndex;
+            } else if (outputCount > 0) {
+              const existingArrayEdges = state.edges.filter(
+                (e) => e.source === connection.source && (e.sourceHandle || "text") === "text"
+              );
+
+              const lastEdge = existingArrayEdges.reduce<typeof existingArrayEdges[number] | null>((latest, edge) => {
+                if (!latest) return edge;
+                const latestTime = (latest.data as Record<string, unknown> | undefined)?.createdAt;
+                const edgeTime = (edge.data as Record<string, unknown> | undefined)?.createdAt;
+                return (typeof edgeTime === "number" && typeof latestTime === "number" && edgeTime > latestTime) ? edge : latest;
+              }, null);
+
+              const lastIndex = (lastEdge?.data as Record<string, unknown> | undefined)?.arrayItemIndex;
+              const startIndex = typeof lastIndex === "number" && Number.isInteger(lastIndex) && lastIndex >= 0
+                ? lastIndex + 1
+                : existingArrayEdges.length;
+
+              baseData.arrayItemIndex = startIndex % outputCount;
+            } else {
+              baseData.arrayItemIndex = 0;
+            }
+          }
+
+          return {
+            ...connection,
+            id: `edge-${connection.source}-${connection.target}-${connection.sourceHandle || "default"}-${connection.targetHandle || "default"}`,
+            data: baseData,
+          };
+        })(),
         state.edges
       ),
       hasUnsavedChanges: true,
@@ -493,12 +536,53 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   addEdgeWithType: (connection: Connection, edgeType: string) => {
     set((state) => ({
       edges: addEdge(
-        {
-          ...connection,
-          id: `edge-${connection.source}-${connection.target}-${connection.sourceHandle || "default"}-${connection.targetHandle || "default"}`,
-          type: edgeType,
-          data: { createdAt: Date.now() },
-        },
+        (() => {
+          const sourceNode = state.nodes.find((n) => n.id === connection.source);
+          const baseData: Record<string, unknown> = { createdAt: Date.now() };
+
+          if (sourceNode?.type === "array" && (connection.sourceHandle || "text") === "text") {
+            const sourceData = sourceNode.data as Record<string, unknown>;
+            const selectedIndex = sourceData.selectedOutputIndex;
+            const outputItems = Array.isArray(sourceData.outputItems) ? sourceData.outputItems : [];
+            const outputCount = outputItems.length;
+
+            if (
+              typeof selectedIndex === "number" &&
+              Number.isInteger(selectedIndex) &&
+              selectedIndex >= 0 &&
+              (outputCount === 0 || selectedIndex < outputCount)
+            ) {
+              baseData.arrayItemIndex = selectedIndex;
+            } else if (outputCount > 0) {
+              const existingArrayEdges = state.edges.filter(
+                (e) => e.source === connection.source && (e.sourceHandle || "text") === "text"
+              );
+
+              const lastEdge = existingArrayEdges.reduce<typeof existingArrayEdges[number] | null>((latest, edge) => {
+                if (!latest) return edge;
+                const latestTime = (latest.data as Record<string, unknown> | undefined)?.createdAt;
+                const edgeTime = (edge.data as Record<string, unknown> | undefined)?.createdAt;
+                return (typeof edgeTime === "number" && typeof latestTime === "number" && edgeTime > latestTime) ? edge : latest;
+              }, null);
+
+              const lastIndex = (lastEdge?.data as Record<string, unknown> | undefined)?.arrayItemIndex;
+              const startIndex = typeof lastIndex === "number" && Number.isInteger(lastIndex) && lastIndex >= 0
+                ? lastIndex + 1
+                : existingArrayEdges.length;
+
+              baseData.arrayItemIndex = startIndex % outputCount;
+            } else {
+              baseData.arrayItemIndex = 0;
+            }
+          }
+
+          return {
+            ...connection,
+            id: `edge-${connection.source}-${connection.target}-${connection.sourceHandle || "default"}-${connection.targetHandle || "default"}`,
+            type: edgeType,
+            data: baseData,
+          };
+        })(),
         state.edges
       ),
       hasUnsavedChanges: true,
@@ -881,6 +965,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           case "prompt":
             await executePrompt(executionCtx);
             break;
+          case "array":
+            await executeArray(executionCtx);
+            break;
           case "promptConstructor":
             await executePromptConstructor(executionCtx);
             break;
@@ -1042,6 +1129,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
       if (node.type === "nanoBanana") {
         await executeNanoBanana(executionCtx, regenOptions);
+      } else if (node.type === "array") {
+        await executeArray(executionCtx);
       } else if (node.type === "llmGenerate") {
         await executeLlmGenerate(executionCtx, regenOptions);
       } else if (node.type === "generateVideo") {
@@ -1167,6 +1256,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           break;
         case "prompt":
           await executePrompt(executionCtx);
+          break;
+        case "array":
+          await executeArray(executionCtx);
           break;
         case "promptConstructor":
           await executePromptConstructor(executionCtx);

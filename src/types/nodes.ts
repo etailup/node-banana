@@ -27,6 +27,7 @@ export type NodeType =
   | "audioInput"
   | "annotation"
   | "prompt"
+  | "array"
   | "promptConstructor"
   | "nanoBanana"
   | "generateVideo"
@@ -71,6 +72,24 @@ export interface AudioInputNodeData extends BaseNodeData {
 export interface PromptNodeData extends BaseNodeData {
   prompt: string;
   variableName?: string; // Optional variable name for use in PromptConstructor templates
+}
+
+export type ArraySplitMode = "delimiter" | "newline" | "regex";
+
+/**
+ * Array node - converts one text input into ordered text items.
+ */
+export interface ArrayNodeData extends BaseNodeData {
+  inputText: string | null;
+  splitMode: ArraySplitMode;
+  delimiter: string;
+  regexPattern: string;
+  trimItems: boolean;
+  removeEmpty: boolean;
+  selectedOutputIndex: number | null;
+  outputItems: string[];
+  outputText: string | null; // JSON array string for the primary text output
+  error: string | null;
 }
 
 /**
@@ -315,6 +334,7 @@ export type WorkflowNodeData =
   | AudioInputNodeData
   | AnnotationNodeData
   | PromptNodeData
+  | ArrayNodeData
   | PromptConstructorNodeData
   | NanoBananaNodeData
   | GenerateVideoNodeData
