@@ -1228,6 +1228,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         case "llmGenerate":
           await executeLlmGenerate(executionCtx, regenOptions);
           break;
+        case "generateAudio":
+          await executeGenerateAudio(executionCtx, regenOptions);
+          break;
         case "splitGrid":
           await executeSplitGrid(executionCtx);
           break;

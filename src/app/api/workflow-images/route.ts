@@ -98,9 +98,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Sanitize imageId to prevent path traversal
+    const safeImageId = path.basename(imageId);
+    if (safeImageId !== imageId || imageId.includes('..')) {
+      return NextResponse.json(
+        { success: false, error: "Invalid imageId" },
+        { status: 400 }
+      );
+    }
+
     // Extract MIME type and determine file extension
     const { extension } = getMimeAndExtension(imageData);
-    const filename = `${imageId}.${extension}`;
+    const filename = `${safeImageId}.${extension}`;
     const filePath = path.join(targetFolder, filename);
 
     // Extract base64 data and convert to buffer

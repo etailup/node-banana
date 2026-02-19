@@ -31,9 +31,9 @@ export function VideoTrimNode({ id, data, selected }: NodeProps<VideoTrimNodeTyp
   // Track whether user wants to see source or output video
   const [showOutput, setShowOutput] = useState(false);
 
-  // Ref for hidden video element used to detect source duration
-  const durationVideoRef = useRef<HTMLVideoElement>(null);
-  const prevSourceVideoRef = useRef<string | null>(null);
+  // Keep a ref to endTime so the metadata callback reads fresh state
+  const endTimeRef = useRef(nodeData.endTime);
+  endTimeRef.current = nodeData.endTime;
 
   // Check encoder support on mount
   useEffect(() => {
@@ -59,46 +59,59 @@ export function VideoTrimNode({ id, data, selected }: NodeProps<VideoTrimNodeTyp
 
   // When source video changes, load metadata to detect duration
   useEffect(() => {
-    if (!sourceVideoUrl || sourceVideoUrl === prevSourceVideoRef.current) return;
-    prevSourceVideoRef.current = sourceVideoUrl;
+    if (!sourceVideoUrl) return;
+
+    let cancelled = false;
+    const abortController = new AbortController();
+    let blobUrl: string | null = null;
 
     const video = document.createElement("video");
     video.preload = "metadata";
     video.onloadedmetadata = () => {
+      if (cancelled) return;
       const dur = video.duration;
       if (Number.isFinite(dur) && dur > 0) {
         updateNodeData(id, {
           duration: dur,
           // Only auto-set endTime if it hasn't been set yet (still at default 0)
-          endTime: nodeData.endTime === 0 ? dur : nodeData.endTime,
+          endTime: endTimeRef.current === 0 ? dur : endTimeRef.current,
         });
       }
-      // Cleanup
-      const blobWasCreated = video.src.startsWith("blob:");
-      if (blobWasCreated) {
-        URL.revokeObjectURL(video.src);
-      }
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      blobUrl = null;
     };
     video.onerror = () => {
-      if (video.src.startsWith("blob:")) {
-        URL.revokeObjectURL(video.src);
-      }
+      if (cancelled) return;
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      blobUrl = null;
     };
 
     // If the source is a data URL, create a blob URL for metadata loading efficiency
     if (sourceVideoUrl.startsWith("data:")) {
-      fetch(sourceVideoUrl)
+      fetch(sourceVideoUrl, { signal: abortController.signal })
         .then((r) => r.blob())
         .then((blob) => {
-          video.src = URL.createObjectURL(blob);
+          if (cancelled) return;
+          blobUrl = URL.createObjectURL(blob);
+          video.src = blobUrl;
         })
         .catch(() => {
+          if (cancelled) return;
           video.src = sourceVideoUrl;
         });
     } else {
       video.src = sourceVideoUrl;
     }
-  }, [sourceVideoUrl, id, updateNodeData, nodeData.endTime]);
+
+    return () => {
+      cancelled = true;
+      abortController.abort();
+      video.onloadedmetadata = null;
+      video.onerror = null;
+      video.src = "";
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
+  }, [sourceVideoUrl, id, updateNodeData]);
 
   // Auto-switch to output when trimming completes
   const prevOutputVideoRef = useRef(nodeData.outputVideo);
@@ -207,7 +220,7 @@ export function VideoTrimNode({ id, data, selected }: NodeProps<VideoTrimNodeTyp
             Your browser doesn&apos;t support video encoding.
           </span>
           <a
-            href="https://discord.gg/placeholder"
+            href="https://discord.com/invite/89Nr6EKkTf"
             target="_blank"
             rel="noopener noreferrer"
             className="text-[10px] text-blue-400 hover:text-blue-300 underline"

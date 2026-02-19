@@ -76,6 +76,15 @@ export function AudioInputNode({ id, data, selected }: NodeProps<AudioInputNodeT
             duration: audio.duration,
           });
         };
+        audio.onerror = () => {
+          // Still load the file even if metadata extraction fails
+          updateNodeData(id, {
+            audioFile: base64,
+            filename: file.name,
+            format: file.type,
+            duration: null,
+          });
+        };
       };
       reader.readAsDataURL(file);
     },

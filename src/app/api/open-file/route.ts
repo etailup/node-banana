@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
                 break;
             case "win32":
                 command = "explorer";
-                args = [`/select,${normalizedPath}`];
+                args = [`/select,"${normalizedPath}"`];
                 break;
             case "linux":
                 // Linux has no universal "reveal in folder" — open parent directory

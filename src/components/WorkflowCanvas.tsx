@@ -870,9 +870,8 @@ export function WorkflowCanvas() {
           targetHandleId = "audio";
           sourceHandleIdForNewNode = "audio";
         } else if (nodeType === "generateAudio") {
-          // GenerateAudio outputs audio
+          // GenerateAudio outputs audio (no audio input to wire to)
           sourceHandleIdForNewNode = "audio";
-          targetHandleId = "text";
         } else if (nodeType === "videoStitch") {
           // VideoStitch accepts audio
           targetHandleId = "audio";
@@ -1736,7 +1735,7 @@ export function WorkflowCanvas() {
               case "videoFrameGrab":
                 return "#38bdf8"; // sky-400 (image from video)
               case "glbViewer":
-                return "#38bdf8"; // sky-400 (3D viewport)
+                return "#0ea5e9"; // sky-500 (3D viewport)
               default:
                 return "#94a3b8";
             }

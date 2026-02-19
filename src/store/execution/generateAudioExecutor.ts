@@ -90,6 +90,8 @@ export async function executeGenerateAudio(
     mediaType: "audio" as const,
   };
 
+  let errorHandled = false;
+
   try {
     const response = await fetch("/api/generate", {
       method: "POST",
@@ -112,6 +114,7 @@ export async function executeGenerateAudio(
         status: "error",
         error: errorMessage,
       });
+      errorHandled = true;
       throw new Error(errorMessage);
     }
 
@@ -183,6 +186,7 @@ export async function executeGenerateAudio(
         status: "error",
         error: result.error || "Audio generation failed",
       });
+      errorHandled = true;
       throw new Error(result.error || "Audio generation failed");
     }
   } catch (error) {
@@ -199,10 +203,12 @@ export async function executeGenerateAudio(
       errorMessage = error.message;
     }
 
-    updateNodeData(node.id, {
-      status: "error",
-      error: errorMessage,
-    });
+    if (!errorHandled) {
+      updateNodeData(node.id, {
+        status: "error",
+        error: errorMessage,
+      });
+    }
     throw new Error(errorMessage);
   }
 }

@@ -280,8 +280,9 @@ export async function generateWithReplicate(
   // Determine MIME type from response
   const contentType = mediaResponse.headers.get("content-type") || "image/png";
   const isVideo = contentType.startsWith("video/");
+  const isConcreteMedia = contentType.startsWith("audio/") || contentType.startsWith("video/") || contentType.startsWith("image/");
   const isAudio = contentType.startsWith("audio/") ||
-    input.model.capabilities.some(c => c.includes("audio"));
+    (!isConcreteMedia && input.model.capabilities.some(c => c.includes("audio")));
 
   const mediaArrayBuffer = await mediaResponse.arrayBuffer();
   const mediaSizeBytes = mediaArrayBuffer.byteLength;

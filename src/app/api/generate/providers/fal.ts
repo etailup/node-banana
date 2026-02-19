@@ -495,23 +495,6 @@ export async function generateWithFalQueue(
         };
       }
 
-      // Validate URL before fetching (SSRF protection)
-      const mediaUrlCheck = validateMediaUrl(mediaUrl);
-      if (!mediaUrlCheck.valid) {
-        return { success: false, error: `Invalid media URL: ${mediaUrlCheck.error}` };
-      }
-
-      // Fetch the media and convert to base64
-      console.log(`[API:${requestId}] Fetching output from: ${mediaUrl.substring(0, 80)}...`);
-      const mediaResponse = await fetch(mediaUrl);
-
-      if (!mediaResponse.ok) {
-        return {
-          success: false,
-          error: `Failed to fetch output: ${mediaResponse.status}`,
-        };
-      }
-
       const is3DModel = input.model.capabilities.some(c => c.includes("3d"));
       const isVideoModel = input.model.capabilities.some(c => c.includes("video"));
       const isAudioModel = input.model.capabilities.some(c => c.includes("audio"));
@@ -528,6 +511,23 @@ export async function generateWithFalQueue(
               url: mediaUrl,
             },
           ],
+        };
+      }
+
+      // Validate URL before fetching (SSRF protection)
+      const mediaUrlCheck = validateMediaUrl(mediaUrl);
+      if (!mediaUrlCheck.valid) {
+        return { success: false, error: `Invalid media URL: ${mediaUrlCheck.error}` };
+      }
+
+      // Fetch the media and convert to base64
+      console.log(`[API:${requestId}] Fetching output from: ${mediaUrl.substring(0, 80)}...`);
+      const mediaResponse = await fetch(mediaUrl);
+
+      if (!mediaResponse.ok) {
+        return {
+          success: false,
+          error: `Failed to fetch output: ${mediaResponse.status}`,
         };
       }
 

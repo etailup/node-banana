@@ -76,6 +76,7 @@ vi.mock("@/hooks/useAudioVisualization", () => ({
 }));
 
 // Mock fetch
+const originalFetch = global.fetch;
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
@@ -127,6 +128,7 @@ describe("GenerateAudioNode", () => {
   });
 
   afterEach(() => {
+    global.fetch = originalFetch;
     vi.restoreAllMocks();
   });
 

@@ -369,7 +369,9 @@ export async function executeVideoFrameGrab(ctx: NodeExecutionContext): Promise<
     const video = document.createElement("video");
     video.crossOrigin = "anonymous";
     video.preload = "auto";
+    let blobUrl: string | null = null;
 
+    try {
     const outputImage = await new Promise<string>((resolve, reject) => {
       video.onloadedmetadata = () => {
         // For "first" frame, seek to 0.001 (not exactly 0 to ensure a decoded frame)
@@ -407,7 +409,8 @@ export async function executeVideoFrameGrab(ctx: NodeExecutionContext): Promise<
         fetch(videoUrl)
           .then((r) => r.blob())
           .then((blob) => {
-            video.src = URL.createObjectURL(blob);
+            blobUrl = URL.createObjectURL(blob);
+            video.src = blobUrl;
           })
           .catch(() => {
             video.src = videoUrl;
@@ -417,16 +420,16 @@ export async function executeVideoFrameGrab(ctx: NodeExecutionContext): Promise<
       }
     });
 
-    // Cleanup blob URL if we created one
-    if (video.src.startsWith("blob:")) {
-      URL.revokeObjectURL(video.src);
-    }
-
     updateNodeData(node.id, {
       outputImage,
       status: "complete",
       error: null,
     });
+    } finally {
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
+    }
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Frame extraction failed";
     updateNodeData(node.id, {

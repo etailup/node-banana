@@ -2661,12 +2661,6 @@ describe("/api/generate route", () => {
         ok: true,
         json: () => Promise.resolve({ model_glb: { url: "https://fal.media/hunyuan3d-output.glb" } }),
       });
-      // Media fetch (needed to reach is3DModel check)
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        headers: new Headers({ "content-type": "model/gltf-binary" }),
-        arrayBuffer: () => Promise.resolve(new ArrayBuffer(4096)),
-      });
 
       const request = createMockPostRequest(
         {
@@ -2712,12 +2706,6 @@ describe("/api/generate route", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ model_urls: { glb: { url: "https://fal.media/hunyuan3d-v2-output.glb" } } }),
-      });
-      // Media fetch (needed to reach is3DModel check)
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        headers: new Headers({ "content-type": "model/gltf-binary" }),
-        arrayBuffer: () => Promise.resolve(new ArrayBuffer(4096)),
       });
 
       const request = createMockPostRequest(

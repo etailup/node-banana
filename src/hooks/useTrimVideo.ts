@@ -13,73 +13,18 @@ import {
   Mp4OutputFormat,
   getFirstEncodableAudioCodec,
 } from 'mediabunny';
-import type { Rotation } from 'mediabunny';
 import { createAvcEncodingConfig, AVC_LEVEL_4_0, AVC_LEVEL_5_1 } from '@/lib/video-encoding';
+import {
+  DEFAULT_BITRATE,
+  MAX_OUTPUT_FPS,
+  FALLBACK_WIDTH,
+  FALLBACK_HEIGHT,
+  BASELINE_PIXEL_LIMIT,
+  probeVideoMetadata,
+} from '@/lib/video-probing';
 
 // Re-export encoder support check from useStitchVideos (same encoder)
 export { checkEncoderSupport } from './useStitchVideos';
-
-const DEFAULT_BITRATE = 8_000_000; // 8 Mbps
-const MAX_OUTPUT_FPS = 60;
-const FALLBACK_WIDTH = 1920;
-const FALLBACK_HEIGHT = 1080;
-const BASELINE_PIXEL_LIMIT = 1920 * 1080;
-
-const ensureEvenDimension = (value: number): number => {
-  if (!Number.isFinite(value) || value <= 0) {
-    return 0;
-  }
-  const even = value % 2 === 0 ? value : value - 1;
-  return even > 0 ? even : 2;
-};
-
-const normalizeRotation = (value: unknown): Rotation => {
-  return value === 0 || value === 90 || value === 180 || value === 270 ? value : 0;
-};
-
-const probeVideoMetadata = async (
-  blob: Blob
-): Promise<{ width: number; height: number; rotation: Rotation; bitrate: number }> => {
-  const source = new BlobSource(blob);
-  const input = new Input({
-    source,
-    formats: ALL_FORMATS,
-  });
-  try {
-    const videoTracks = await input.getVideoTracks();
-    if (videoTracks.length === 0) {
-      throw new Error('No video tracks found while probing dimensions.');
-    }
-    const track = videoTracks[0];
-    const widthCandidate =
-      (typeof track.displayWidth === 'number' && track.displayWidth > 0
-        ? track.displayWidth
-        : track.codedWidth) ?? FALLBACK_WIDTH;
-    const heightCandidate =
-      (typeof track.displayHeight === 'number' && track.displayHeight > 0
-        ? track.displayHeight
-        : track.codedHeight) ?? FALLBACK_HEIGHT;
-
-    let bitrate = 0;
-    try {
-      const packetStats = await track.computePacketStats();
-      if (packetStats?.averageBitrate && Number.isFinite(packetStats.averageBitrate)) {
-        bitrate = packetStats.averageBitrate;
-      }
-    } catch (e) {
-      console.warn('Failed to compute packet stats for bitrate', e);
-    }
-
-    return {
-      width: ensureEvenDimension(widthCandidate),
-      height: ensureEvenDimension(heightCandidate),
-      rotation: normalizeRotation(track.rotation),
-      bitrate,
-    };
-  } finally {
-    input.dispose();
-  }
-};
 
 export interface TrimProgress {
   status: 'idle' | 'processing' | 'complete' | 'error';
@@ -258,6 +203,15 @@ export async function trimVideoAsync(
       await output.start();
       outputStarted = true;
 
+      // Feed audio early so the muxer can interleave audio packets with video frames.
+      // Writing audio after all video causes broken interleaving (Discord won't play audio).
+      if (audioSource && pendingAudioBuffer) {
+        updateProgress('processing', 'Encoding audio track...', 14);
+        await audioSource.add(pendingAudioBuffer);
+        await audioSource.close();
+        audioSource = null;
+      }
+
       updateProgress('processing', 'Processing video frames...', 15);
 
       // Create sink for video frames in the trim range
@@ -306,14 +260,6 @@ export async function trimVideoAsync(
             15 + frameProgress * 70
           );
         }
-      }
-
-      // Write audio after video frames
-      if (audioSource && pendingAudioBuffer) {
-        updateProgress('processing', 'Encoding audio track...', 87);
-        await audioSource.add(pendingAudioBuffer);
-        await audioSource.close();
-        audioSource = null;
       }
 
       updateProgress('processing', 'Finalizing output...', 92);

@@ -717,11 +717,8 @@ export async function generateWithKie(
   let isVideo = false;
   let isAudio = false;
 
-  // Detect audio from model capabilities
+  // Used as fallback when content-type is ambiguous
   const isAudioModel = input.model.capabilities.some(c => c.includes("audio"));
-  if (isAudioModel) {
-    isAudio = true;
-  }
 
   console.log(`[API:${requestId}] Kie poll result data:`, JSON.stringify(data).substring(0, 500));
 
@@ -813,13 +810,17 @@ export async function generateWithKie(
     return { success: false, error: `Media too large: ${(mediaContentLength / (1024 * 1024)).toFixed(0)}MB > 500MB limit` };
   }
 
-  const contentType = mediaResponse.headers.get("content-type") || (isVideo ? "video/mp4" : isAudio ? "audio/mpeg" : "image/png");
-  if (contentType.startsWith("video/")) {
+  const rawContentType = mediaResponse.headers.get("content-type") || "";
+  const isConcreteMedia = rawContentType.startsWith("audio/") || rawContentType.startsWith("video/") || rawContentType.startsWith("image/");
+  // Content-type wins; fall back to URL/capability detection only when ambiguous
+  if (rawContentType.startsWith("video/")) {
     isVideo = true;
-  }
-  if (contentType.startsWith("audio/")) {
+  } else if (rawContentType.startsWith("audio/")) {
+    isAudio = true;
+  } else if (!isConcreteMedia && !isVideo && !isAudio && isAudioModel) {
     isAudio = true;
   }
+  const contentType = rawContentType || (isVideo ? "video/mp4" : isAudio ? "audio/mpeg" : "image/png");
 
   const mediaArrayBuffer = await mediaResponse.arrayBuffer();
   if (mediaArrayBuffer.byteLength > MAX_MEDIA_SIZE) {
