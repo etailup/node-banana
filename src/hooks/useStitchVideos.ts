@@ -39,7 +39,7 @@ const normalizeRotation = (value: unknown): Rotation => {
 
 const probeVideoMetadata = async (
   blob: Blob
-): Promise<{ width: number; height: number; rotation: Rotation; bitrate: number }> => {
+): Promise<{ width: number; height: number; rotation: Rotation; bitrate: number; duration: number }> => {
   const source = new BlobSource(blob);
   const input = new Input({
     source,
@@ -71,11 +71,23 @@ const probeVideoMetadata = async (
       console.warn('Failed to compute packet stats for bitrate', e);
     }
 
+    // Probe duration
+    let duration = 0;
+    try {
+      const d = await input.computeDuration();
+      if (Number.isFinite(d) && d > 0) {
+        duration = d;
+      }
+    } catch (e) {
+      console.warn('Failed to compute duration', e);
+    }
+
     return {
       width: ensureEvenDimension(widthCandidate),
       height: ensureEvenDimension(heightCandidate),
       rotation: normalizeRotation(track.rotation),
       bitrate,
+      duration,
     };
   } finally {
     input.dispose();
@@ -84,18 +96,20 @@ const probeVideoMetadata = async (
 
 const determineEncodeParameters = async (
   blobs: Blob[]
-): Promise<{ width: number; height: number; rotation: Rotation; maxSourceBitrate: number }> => {
+): Promise<{ width: number; height: number; rotation: Rotation; maxSourceBitrate: number; totalDuration: number }> => {
   let maxWidth = 0;
   let maxHeight = 0;
   let maxSourceBitrate = 0;
+  let totalDuration = 0;
   let rotation: Rotation | null = null;
 
   for (let i = 0; i < blobs.length; i++) {
     try {
-      const { width, height, rotation: trackRotation, bitrate } = await probeVideoMetadata(blobs[i]);
+      const { width, height, rotation: trackRotation, bitrate, duration } = await probeVideoMetadata(blobs[i]);
       maxWidth = Math.max(maxWidth, width);
       maxHeight = Math.max(maxHeight, height);
       maxSourceBitrate = Math.max(maxSourceBitrate, bitrate);
+      totalDuration += duration;
       if (rotation === null) {
         rotation = trackRotation;
       } else if (trackRotation !== rotation) {
@@ -114,6 +128,7 @@ const determineEncodeParameters = async (
       height: FALLBACK_HEIGHT,
       rotation: rotation ?? (0 as Rotation),
       maxSourceBitrate,
+      totalDuration,
     };
   }
 
@@ -122,6 +137,7 @@ const determineEncodeParameters = async (
     height: ensureEvenDimension(maxHeight),
     rotation: rotation ?? (0 as Rotation),
     maxSourceBitrate,
+    totalDuration,
   };
 };
 
@@ -225,6 +241,7 @@ export async function stitchVideosAsync(
       height: probedHeight,
       rotation: aggregateRotation,
       maxSourceBitrate,
+      totalDuration: probedVideoDuration,
     } = await determineEncodeParameters(videoBlobs);
 
     const safeWidth = probedWidth > 0 ? probedWidth : FALLBACK_WIDTH;
@@ -311,6 +328,18 @@ export async function stitchVideosAsync(
 
     await output.start();
     outputStarted = true;
+
+    // Feed audio early so the muxer can interleave audio packets with video frames.
+    // Writing audio after all video causes broken interleaving (Discord won't play audio).
+    if (audioSource && pendingAudioBuffer) {
+      updateProgress('processing', 'Encoding audio track...', 12);
+      const trimTarget = probedVideoDuration > 0 ? probedVideoDuration : audioData!.duration;
+      const trimmedBuffer = trimAudioBuffer(pendingAudioBuffer, trimTarget);
+      await audioSource.add(trimmedBuffer);
+      await audioSource.close();
+      audioSource = null;
+      pendingAudioBuffer = null;
+    }
 
     try {
     // Track the highest timestamp we've written to ensure monotonicity
@@ -412,17 +441,6 @@ export async function stitchVideosAsync(
       } finally {
         input.dispose();
       }
-    }
-
-    // Phase 2: Apply audio, trimmed to match the stitched video duration
-    if (audioSource && pendingAudioBuffer) {
-      updateProgress('processing', 'Encoding audio track...', 92);
-
-      const videoDuration = highestWrittenTimestamp + frameInterval;
-      const trimmedBuffer = trimAudioBuffer(pendingAudioBuffer, videoDuration);
-      await audioSource.add(trimmedBuffer);
-      await audioSource.close();
-      audioSource = null; // Already closed
     }
 
     // Flush encoder before finalizing container
