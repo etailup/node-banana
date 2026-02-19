@@ -131,6 +131,13 @@ export async function POST(request: NextRequest) {
 
     // Route to appropriate provider
     if (provider === "replicate") {
+      if (!selectedModel?.modelId || !selectedModel?.displayName) {
+        return NextResponse.json<GenerateResponse>(
+          { success: false, error: "selectedModel with modelId and displayName is required for Replicate" },
+          { status: 400 }
+        );
+      }
+
       // User-provided key takes precedence over env variable
       const replicateApiKey = request.headers.get("X-Replicate-API-Key") || process.env.REPLICATE_API_KEY;
       if (!replicateApiKey) {
@@ -167,8 +174,8 @@ export async function POST(request: NextRequest) {
       // Build generation input
       const genInput: GenerationInput = {
         model: {
-          id: selectedModel!.modelId,
-          name: selectedModel!.displayName,
+          id: selectedModel.modelId,
+          name: selectedModel.displayName,
           provider: "replicate",
           capabilities: capabilitiesForMediaType(mediaType),
           description: null,
@@ -204,6 +211,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (provider === "fal") {
+      if (!selectedModel?.modelId || !selectedModel?.displayName) {
+        return NextResponse.json<GenerateResponse>(
+          { success: false, error: "selectedModel with modelId and displayName is required for fal.ai" },
+          { status: 400 }
+        );
+      }
+
       // User-provided key takes precedence over env variable
       const falApiKey = request.headers.get("X-Fal-API-Key") || process.env.FAL_API_KEY || null;
 
@@ -235,8 +249,8 @@ export async function POST(request: NextRequest) {
       // Build generation input
       const genInput: GenerationInput = {
         model: {
-          id: selectedModel!.modelId,
-          name: selectedModel!.displayName,
+          id: selectedModel.modelId,
+          name: selectedModel.displayName,
           provider: "fal",
           capabilities: capabilitiesForMediaType(mediaType),
           description: null,
@@ -272,6 +286,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (provider === "kie") {
+      if (!selectedModel?.modelId || !selectedModel?.displayName) {
+        return NextResponse.json<GenerateResponse>(
+          { success: false, error: "selectedModel with modelId and displayName is required for Kie.ai" },
+          { status: 400 }
+        );
+      }
+
       // User-provided key takes precedence over env variable
       const kieApiKey = request.headers.get("X-Kie-Key") || process.env.KIE_API_KEY;
       if (!kieApiKey) {
@@ -307,8 +328,8 @@ export async function POST(request: NextRequest) {
       // Build generation input
       const genInput: GenerationInput = {
         model: {
-          id: selectedModel!.modelId,
-          name: selectedModel!.displayName,
+          id: selectedModel.modelId,
+          name: selectedModel.displayName,
           provider: "kie",
           capabilities: capabilitiesForMediaType(mediaType),
           description: null,
@@ -344,6 +365,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (provider === "wavespeed") {
+      if (!selectedModel?.modelId || !selectedModel?.displayName) {
+        return NextResponse.json<GenerateResponse>(
+          { success: false, error: "selectedModel with modelId and displayName is required for WaveSpeed" },
+          { status: 400 }
+        );
+      }
+
       // User-provided key takes precedence over env variable
       const wavespeedApiKey = request.headers.get("X-WaveSpeed-Key") || process.env.WAVESPEED_API_KEY;
       if (!wavespeedApiKey) {
@@ -379,8 +407,8 @@ export async function POST(request: NextRequest) {
       // Build generation input
       const genInput: GenerationInput = {
         model: {
-          id: selectedModel!.modelId,
-          name: selectedModel!.displayName,
+          id: selectedModel.modelId,
+          name: selectedModel.displayName,
           provider: "wavespeed",
           capabilities: capabilitiesForMediaType(mediaType),
           description: null,

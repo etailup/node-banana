@@ -21,7 +21,8 @@ import { executeGenerateVideo } from "./generateVideoExecutor";
 import { executeGenerate3D } from "./generate3dExecutor";
 import { executeLlmGenerate } from "./llmGenerateExecutor";
 import { executeSplitGrid } from "./splitGridExecutor";
-import { executeVideoStitch, executeEaseCurve, executeVideoTrim } from "./videoProcessingExecutors";
+import { executeVideoStitch, executeEaseCurve, executeVideoTrim, executeVideoFrameGrab } from "./videoProcessingExecutors";
+import { executeGenerateAudio } from "./generateAudioExecutor";
 
 export interface ExecuteNodeOptions {
   /** When true, executors that support it will fall back to stored inputs. */
@@ -95,6 +96,12 @@ export async function executeNode(
       break;
     case "glbViewer":
       await executeGlbViewer(ctx);
+      break;
+    case "generateAudio":
+      await executeGenerateAudio(ctx, regenOpts);
+      break;
+    case "videoFrameGrab":
+      await executeVideoFrameGrab(ctx);
       break;
   }
 }
