@@ -127,13 +127,15 @@ export function Header() {
   const handleProjectSave = async (id: string, name: string, path: string) => {
     setWorkflowMetadata(id, name, path); // generationsPath is auto-derived
     setShowProjectModal(false);
-    // Small delay to let state update
-    setTimeout(() => {
-      saveToFile().catch((error) => {
-        console.error("Failed to save project:", error);
-        alert("Failed to save project. Please try again.");
-      });
-    }, 50);
+    // Only save to file if we have a directory path (not on cloud deployments)
+    if (path) {
+      setTimeout(() => {
+        saveToFile().catch((error) => {
+          console.error("Failed to save project:", error);
+          alert("Failed to save project. Please try again.");
+        });
+      }, 50);
+    }
   };
 
   const handleOpenDirectory = async () => {

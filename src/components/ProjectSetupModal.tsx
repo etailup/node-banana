@@ -172,7 +172,13 @@ export function ProjectSetupModal({
       // Fetch env status
       fetch("/api/env-status")
         .then((res) => res.json())
-        .then((data: EnvStatusResponse) => setEnvStatus(data))
+        .then((data: EnvStatusResponse) => {
+          setEnvStatus(data);
+          // On cloud deployments, force base64 embedding (no filesystem)
+          if (data.isCloud && mode === "new") {
+            setExternalStorage(false);
+          }
+        })
         .catch(() => setEnvStatus(null));
     }
   }, [isOpen, mode, workflowName, saveDirectoryPath, useExternalImageStorage, providerSettings]);
@@ -206,49 +212,56 @@ export function ProjectSetupModal({
     }
   };
 
+  const isCloud = envStatus?.isCloud ?? false;
+
   const handleSaveProject = async () => {
     if (!name.trim()) {
       setError("Project name is required");
       return;
     }
 
-    if (!directoryPath.trim()) {
-      setError("Project directory is required");
-      return;
-    }
+    // On cloud deployments, directory is not required
+    if (!isCloud) {
+      if (!directoryPath.trim()) {
+        setError("Project directory is required");
+        return;
+      }
 
-    const trimmedPath = directoryPath.trim();
-    if (!(trimmedPath.startsWith("/") || /^[A-Za-z]:[\\\/]/.test(trimmedPath) || trimmedPath.startsWith("\\\\"))) {
-      setError("Project directory must be an absolute path (starting with /, a drive letter, or a UNC path)");
-      return;
+      const trimmedPath = directoryPath.trim();
+      if (!(trimmedPath.startsWith("/") || /^[A-Za-z]:[\\\/]/.test(trimmedPath) || trimmedPath.startsWith("\\\\"))) {
+        setError("Project directory must be an absolute path (starting with /, a drive letter, or a UNC path)");
+        return;
+      }
     }
 
     setIsValidating(true);
     setError(null);
 
     try {
-      // Validate project directory exists
-      const response = await fetch(
-        `/api/workflow?path=${encodeURIComponent(directoryPath.trim())}`
-      );
-      const result = await response.json();
+      // Skip directory validation on cloud deployments
+      if (!isCloud) {
+        const response = await fetch(
+          `/api/workflow?path=${encodeURIComponent(directoryPath.trim())}`
+        );
+        const result = await response.json();
 
-      if (!result.exists) {
-        setError("Project directory does not exist");
-        setIsValidating(false);
-        return;
-      }
+        if (!result.exists) {
+          setError("Project directory does not exist");
+          setIsValidating(false);
+          return;
+        }
 
-      if (!result.isDirectory) {
-        setError("Project path is not a directory");
-        setIsValidating(false);
-        return;
+        if (!result.isDirectory) {
+          setError("Project path is not a directory");
+          setIsValidating(false);
+          return;
+        }
       }
 
       const id = mode === "new" ? generateWorkflowId() : useWorkflowStore.getState().workflowId || generateWorkflowId();
-      // Update external storage setting
-      setUseExternalImageStorage(externalStorage);
-      onSave(id, name.trim(), directoryPath.trim());
+      // Update external storage setting (always embedded on cloud)
+      setUseExternalImageStorage(isCloud ? false : externalStorage);
+      onSave(id, name.trim(), isCloud ? "" : directoryPath.trim());
       setIsValidating(false);
     } catch (err) {
       setError(
@@ -370,48 +383,58 @@ export function ProjectSetupModal({
               />
             </div>
 
-            <div>
-              <label className="block text-sm text-neutral-400 mb-1">
-                Project Directory
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={directoryPath}
-                  onChange={(e) => setDirectoryPath(e.target.value)}
-                  placeholder="/Users/username/projects/my-project"
-                  className="flex-1 px-3 py-2 bg-neutral-900 border border-neutral-600 rounded text-neutral-100 text-sm focus:outline-none focus:border-neutral-500"
-                />
-                <button
-                  type="button"
-                  onClick={handleBrowse}
-                  disabled={isBrowsing}
-                  className="px-3 py-2 bg-neutral-700 hover:bg-neutral-600 disabled:bg-neutral-700 disabled:opacity-50 text-neutral-200 text-sm rounded transition-colors"
-                >
-                  {isBrowsing ? "..." : "Browse"}
-                </button>
-              </div>
-              <p className="text-xs text-neutral-500 mt-1">
-                Workflow files and images will be saved here. Subfolders for inputs and generations will be auto-created.
-              </p>
-            </div>
-
-            <div className="pt-2 border-t border-neutral-700">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={!externalStorage}
-                  onChange={(e) => setExternalStorage(!e.target.checked)}
-                  className="w-4 h-4 rounded border-neutral-600 bg-neutral-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-neutral-800"
-                />
-                <div>
-                  <span className="text-sm text-neutral-200">Embed images as base64</span>
-                  <p className="text-xs text-neutral-500">
-                    Embeds all images in workflow, larger workflow files. Can hit memory limits on very large workflows.
-                  </p>
+            {!isCloud && (
+              <div>
+                <label className="block text-sm text-neutral-400 mb-1">
+                  Project Directory
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={directoryPath}
+                    onChange={(e) => setDirectoryPath(e.target.value)}
+                    placeholder="/Users/username/projects/my-project"
+                    className="flex-1 px-3 py-2 bg-neutral-900 border border-neutral-600 rounded text-neutral-100 text-sm focus:outline-none focus:border-neutral-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleBrowse}
+                    disabled={isBrowsing}
+                    className="px-3 py-2 bg-neutral-700 hover:bg-neutral-600 disabled:bg-neutral-700 disabled:opacity-50 text-neutral-200 text-sm rounded transition-colors"
+                  >
+                    {isBrowsing ? "..." : "Browse"}
+                  </button>
                 </div>
-              </label>
-            </div>
+                <p className="text-xs text-neutral-500 mt-1">
+                  Workflow files and images will be saved here. Subfolders for inputs and generations will be auto-created.
+                </p>
+              </div>
+            )}
+
+            {!isCloud && (
+              <div className="pt-2 border-t border-neutral-700">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!externalStorage}
+                    onChange={(e) => setExternalStorage(!e.target.checked)}
+                    className="w-4 h-4 rounded border-neutral-600 bg-neutral-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-neutral-800"
+                  />
+                  <div>
+                    <span className="text-sm text-neutral-200">Embed images as base64</span>
+                    <p className="text-xs text-neutral-500">
+                      Embeds all images in workflow, larger workflow files. Can hit memory limits on very large workflows.
+                    </p>
+                  </div>
+                </label>
+              </div>
+            )}
+
+            {isCloud && (
+              <p className="text-xs text-neutral-500">
+                Workflows are saved in your browser. Images are embedded as base64.
+              </p>
+            )}
 
             {error && <p className="text-sm text-red-400">{error}</p>}
           </div>
