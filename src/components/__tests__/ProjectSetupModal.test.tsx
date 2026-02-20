@@ -339,7 +339,7 @@ describe("ProjectSetupModal", () => {
       expect(onSave).not.toHaveBeenCalled();
     });
 
-    it("should show error when directory does not exist", async () => {
+    it("should allow creating project in a new subfolder path", async () => {
       mockFetch.mockImplementation((url: string) => {
         if (url === "/api/env-status") {
           return Promise.resolve({
@@ -379,9 +379,13 @@ describe("ProjectSetupModal", () => {
       fireEvent.click(screen.getByText("Create"));
 
       await waitFor(() => {
-        expect(screen.getByText("Project directory does not exist")).toBeInTheDocument();
+        expect(onSave).toHaveBeenCalledTimes(1);
       });
-      expect(onSave).not.toHaveBeenCalled();
+      expect(onSave).toHaveBeenCalledWith(
+        expect.any(String),
+        "My Project",
+        "/nonexistent/path"
+      );
     });
 
     it("should show error when path is not absolute", async () => {
