@@ -6,6 +6,7 @@ import { BaseNode } from "./BaseNode";
 import { useCommentNavigation } from "@/hooks/useCommentNavigation";
 import { useWorkflowStore } from "@/store/workflowStore";
 import { ArrayNodeData } from "@/types";
+import { getConnectedInputsPure } from "@/store/utils/connectedInputs";
 import { parseTextToArray } from "@/utils/arrayParser";
 
 type ArrayNodeType = Node<ArrayNodeData, "array">;
@@ -24,26 +25,27 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const addNode = useWorkflowStore((state) => state.addNode);
   const onConnect = useWorkflowStore((state) => state.onConnect);
-  const hasIncomingTextConnection = useWorkflowStore((state) =>
-    state.edges.some((edge) => {
-      if (edge.target !== id) return false;
-      const handle = edge.targetHandle || "text";
-      return handle === "text" || handle.startsWith("text-") || handle.includes("prompt");
-    })
-  );
-  const connectedText = useWorkflowStore((state) => {
-    const hasIncoming = state.edges.some((edge) => {
-      if (edge.target !== id) return false;
-      const handle = edge.targetHandle || "text";
-      return handle === "text" || handle.startsWith("text-") || handle.includes("prompt");
-    });
-    if (!hasIncoming) return null;
-    return state.getConnectedInputs(id).text;
-  });
+  const nodes = useWorkflowStore((state) => state.nodes);
+  const edges = useWorkflowStore((state) => state.edges);
   const { setNodes, getNodes } = useReactFlow();
   const lastSyncedInputRef = useRef<string | null>(null);
   const lastDerivedWriteRef = useRef<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const hasIncomingTextConnection = useMemo(
+    () =>
+      edges.some((edge) => {
+        if (edge.target !== id) return false;
+        const handle = edge.targetHandle || "text";
+        return handle === "text" || handle.startsWith("text-") || handle.includes("prompt");
+      }),
+    [edges, id]
+  );
+
+  const connectedText = useMemo(() => {
+    if (!hasIncomingTextConnection) return null;
+    return getConnectedInputsPure(id, nodes, edges).text;
+  }, [edges, hasIncomingTextConnection, id, nodes]);
 
   // Pull upstream text into this node whenever the connected input changes.
   useEffect(() => {
