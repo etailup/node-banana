@@ -14,8 +14,11 @@ import {
   NanoBananaNodeData,
   GenerateVideoNodeData,
   Generate3DNodeData,
+  GenerateAudioNodeData,
   VideoStitchNodeData,
   EaseCurveNodeData,
+  VideoTrimNodeData,
+  VideoFrameGrabNodeData,
   PromptNodeData,
   ArrayNodeData,
   PromptConstructorNodeData,
@@ -74,10 +77,14 @@ function getSourceOutput(
     return { type: "3d", value: g3dData.output3dUrl };
   } else if (sourceNode.type === "generateVideo") {
     return { type: "video", value: (sourceNode.data as GenerateVideoNodeData).outputVideo };
+  } else if (sourceNode.type === "generateAudio") {
+    return { type: "audio", value: (sourceNode.data as GenerateAudioNodeData).outputAudio };
   } else if (sourceNode.type === "videoStitch") {
     return { type: "video", value: (sourceNode.data as VideoStitchNodeData).outputVideo };
   } else if (sourceNode.type === "easeCurve") {
     return { type: "video", value: (sourceNode.data as EaseCurveNodeData).outputVideo };
+  } else if (sourceNode.type === "videoTrim") {
+    return { type: "video", value: (sourceNode.data as VideoTrimNodeData).outputVideo };
   } else if (sourceNode.type === "prompt") {
     return { type: "text", value: (sourceNode.data as PromptNodeData).prompt };
   } else if (sourceNode.type === "array") {
@@ -98,6 +105,8 @@ function getSourceOutput(
     return { type: "text", value: pcData.outputText ?? pcData.template ?? null };
   } else if (sourceNode.type === "llmGenerate") {
     return { type: "text", value: (sourceNode.data as LLMGenerateNodeData).outputText };
+  } else if (sourceNode.type === "videoFrameGrab") {
+    return { type: "image", value: (sourceNode.data as VideoFrameGrabNodeData).outputImage };
   } else if (sourceNode.type === "glbViewer") {
     return { type: "image", value: (sourceNode.data as GLBViewerNodeData).capturedImage };
   }
@@ -181,7 +190,9 @@ export function getConnectedInputsPure(
       } else if (type === "audio") {
         audio.push(value);
       } else if (type === "text" || isTextHandle(handleId)) {
-        text = value;
+        // Defensive: ensure text values are always strings
+        // (Guards against corrupted node data during parallel execution)
+        text = typeof value === 'string' ? value : String(value);
       } else if (isImageHandle(handleId) || !handleId) {
         images.push(value);
       }

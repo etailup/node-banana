@@ -12,12 +12,14 @@ import type {
   ArrayNodeData,
   PromptConstructorNodeData,
   PromptNodeData,
+  LLMGenerateNodeData,
   OutputNodeData,
   OutputGalleryNodeData,
   WorkflowNode,
 } from "@/types";
 import type { NodeExecutionContext } from "./types";
 import { parseTextToArray } from "@/utils/arrayParser";
+import { parseVarTags } from "@/utils/parseVarTags";
 
 /**
  * Annotation node: receives upstream image as source, passes through if no annotations.
@@ -107,18 +109,42 @@ export async function executePromptConstructor(ctx: NodeExecutionContext): Promi
     const edges = getEdges();
     const nodes = getNodes();
 
-    // Find connected prompt nodes via text edges
-    const connectedPromptNodes = edges
+    // Find all connected text nodes
+    const connectedTextNodes = edges
       .filter((e) => e.target === node.id && e.targetHandle === "text")
       .map((e) => nodes.find((n) => n.id === e.source))
-      .filter((n): n is WorkflowNode => n !== undefined && n.type === "prompt");
+      .filter((n): n is WorkflowNode => n !== undefined);
 
-    // Build variable map from connected prompt nodes
+    // Build variable map: named variables from Prompt nodes take precedence
     const variableMap: Record<string, string> = {};
-    connectedPromptNodes.forEach((promptNode) => {
-      const promptData = promptNode.data as PromptNodeData;
-      if (promptData.variableName) {
-        variableMap[promptData.variableName] = promptData.prompt;
+    connectedTextNodes.forEach((srcNode) => {
+      if (srcNode.type === "prompt") {
+        const promptData = srcNode.data as PromptNodeData;
+        if (promptData.variableName) {
+          variableMap[promptData.variableName] = promptData.prompt;
+        }
+      }
+    });
+
+    // Parse inline <var> tags from all connected text nodes
+    connectedTextNodes.forEach((srcNode) => {
+      let text: string | null = null;
+      if (srcNode.type === "prompt") {
+        text = (srcNode.data as PromptNodeData).prompt || null;
+      } else if (srcNode.type === "llmGenerate") {
+        text = (srcNode.data as LLMGenerateNodeData).outputText || null;
+      } else if (srcNode.type === "promptConstructor") {
+        const pcData = srcNode.data as PromptConstructorNodeData;
+        text = pcData.outputText ?? pcData.template ?? null;
+      }
+
+      if (text) {
+        const parsed = parseVarTags(text);
+        parsed.forEach(({ name, value }) => {
+          if (variableMap[name] === undefined) {
+            variableMap[name] = value;
+          }
+        });
       }
     });
 
@@ -156,9 +182,40 @@ export async function executePromptConstructor(ctx: NodeExecutionContext): Promi
  */
 export async function executeOutput(ctx: NodeExecutionContext): Promise<void> {
   const { node, getConnectedInputs, updateNodeData, saveDirectoryPath } = ctx;
-  const { images, videos } = getConnectedInputs(node.id);
+  const { images, videos, audio } = getConnectedInputs(node.id);
 
-  // Check videos array first (typed data from source)
+  // Check audio array first
+  if (audio.length > 0) {
+    const audioContent = audio[0];
+    updateNodeData(node.id, {
+      audio: audioContent,
+      image: null,
+      video: null,
+      contentType: "audio",
+    });
+
+    // Save to /outputs directory if we have a project path
+    if (saveDirectoryPath) {
+      const outputNodeData = node.data as OutputNodeData;
+      const outputsPath = `${saveDirectoryPath}/outputs`;
+
+      fetch("/api/save-generation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          directoryPath: outputsPath,
+          audio: audioContent,
+          customFilename: outputNodeData.outputFilename || undefined,
+          createDirectory: true,
+        }),
+      }).catch((err) => {
+        console.error("Failed to save output:", err);
+      });
+    }
+    return;
+  }
+
+  // Check videos array (typed data from source)
   if (videos.length > 0) {
     const videoContent = videos[0];
     updateNodeData(node.id, {
