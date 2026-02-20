@@ -203,12 +203,13 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
         <div className="grid grid-cols-[auto_1fr] gap-2 items-center">
           <label className="text-[11px] text-neutral-400">Split</label>
           <select
-            value={nodeData.splitMode === "newline" ? "newline" : "delimiter"}
+            value={nodeData.splitMode}
             onChange={handleBasicModeChange}
             className="nodrag nopan bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-[11px] text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-600"
           >
             <option value="delimiter">Delimiter</option>
             <option value="newline">Newline</option>
+            <option value="regex">Regex (Advanced)</option>
           </select>
         </div>
 
@@ -219,6 +220,18 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
               value={nodeData.delimiter}
               onChange={(e) => updateNodeData(id, { delimiter: e.target.value })}
               placeholder="*"
+              className="nodrag nopan bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-[11px] text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-600"
+            />
+          </div>
+        )}
+
+        {nodeData.splitMode === "regex" && (
+          <div className="grid grid-cols-[auto_1fr] gap-2 items-center">
+            <label className="text-[11px] text-neutral-400">By</label>
+            <input
+              value={nodeData.regexPattern}
+              onChange={(e) => updateNodeData(id, { regexPattern: e.target.value })}
+              placeholder="/\\n+/"
               className="nodrag nopan bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-[11px] text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-600"
             />
           </div>
@@ -236,32 +249,6 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
 
           {showAdvanced && (
             <div className="px-2 pb-2 pt-1 flex flex-col gap-2 border-t border-neutral-700">
-              <label className="flex items-center gap-1.5 text-[11px] text-neutral-300">
-                <input
-                  type="checkbox"
-                  checked={nodeData.splitMode === "regex"}
-                  onChange={(e) =>
-                    updateNodeData(id, {
-                      splitMode: e.target.checked ? "regex" : "delimiter",
-                    })
-                  }
-                  className="nodrag nopan w-3 h-3"
-                />
-                Use regex split
-              </label>
-
-              {nodeData.splitMode === "regex" && (
-                <div className="grid grid-cols-[auto_1fr] gap-2 items-center">
-                  <label className="text-[11px] text-neutral-400">Pattern</label>
-                  <input
-                    value={nodeData.regexPattern}
-                    onChange={(e) => updateNodeData(id, { regexPattern: e.target.value })}
-                    placeholder="/\\n+/"
-                    className="nodrag nopan bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-[11px] text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-600"
-                  />
-                </div>
-              )}
-
               <div className="flex items-center gap-3">
                 <label className="flex items-center gap-1.5 text-[11px] text-neutral-300">
                   <input
