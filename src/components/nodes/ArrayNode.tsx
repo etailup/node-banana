@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Handle, Node, NodeProps, Position, useReactFlow } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
 import { useCommentNavigation } from "@/hooks/useCommentNavigation";
@@ -24,25 +24,38 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const addNode = useWorkflowStore((state) => state.addNode);
   const onConnect = useWorkflowStore((state) => state.onConnect);
-  const nodes = useWorkflowStore((state) => state.nodes);
-  const getConnectedInputs = useWorkflowStore((state) => state.getConnectedInputs);
-  const edges = useWorkflowStore((state) => state.edges);
-  const { setNodes } = useReactFlow();
-  const lastSyncedInputRef = useRef<string | null>(null);
-  const lastDerivedWriteRef = useRef<string | null>(null);
-
-  const hasIncomingTextConnection = useMemo(() => {
-    return edges.some((edge) => {
+  const hasIncomingTextConnection = useWorkflowStore((state) =>
+    state.edges.some((edge) => {
+      if (edge.target !== id) return false;
+      const handle = edge.targetHandle || "text";
+      return handle === "text" || handle.startsWith("text-") || handle.includes("prompt");
+    })
+  );
+  const connectedText = useWorkflowStore((state) => {
+    const hasIncoming = state.edges.some((edge) => {
       if (edge.target !== id) return false;
       const handle = edge.targetHandle || "text";
       return handle === "text" || handle.startsWith("text-") || handle.includes("prompt");
     });
-  }, [edges, id]);
+    if (!hasIncoming) return null;
+    return state.getConnectedInputs(id).text;
+  });
+  const { setNodes, getNodes } = useReactFlow();
+  const lastSyncedInputRef = useRef<string | null>(null);
+  const lastDerivedWriteRef = useRef<string | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Pull upstream text into this node whenever the connected input changes.
   useEffect(() => {
-    if (!hasIncomingTextConnection) return;
-    const { text } = getConnectedInputs(id);
+    if (!hasIncomingTextConnection) {
+      // Array node has no manual input field; clear stale upstream text on disconnect.
+      if (nodeData.inputText !== null && nodeData.inputText !== "") {
+        lastSyncedInputRef.current = null;
+        updateNodeData(id, { inputText: null });
+      }
+      return;
+    }
+    const text = connectedText;
     if (
       text !== null &&
       text !== nodeData.inputText &&
@@ -51,7 +64,7 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
       lastSyncedInputRef.current = text;
       updateNodeData(id, { inputText: text });
     }
-  }, [hasIncomingTextConnection, getConnectedInputs, id, nodeData.inputText, updateNodeData]);
+  }, [connectedText, hasIncomingTextConnection, id, nodeData.inputText, updateNodeData]);
 
   const parsed = useMemo(() => {
     return parseTextToArray(nodeData.inputText, {
@@ -83,20 +96,14 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
     if (lastDerivedWriteRef.current === writeSignature) return;
     lastDerivedWriteRef.current = writeSignature;
 
-    if (
-      parsed.error !== nodeData.error ||
-      nextOutputText !== (nodeData.outputText ?? "[]") ||
-      !arraysEqual(parsed.items, nodeData.outputItems || [])
-    ) {
-      updateNodeData(id, {
-        outputItems: parsed.items,
-        outputText: nextOutputText,
-        error: parsed.error,
-      });
-    }
+    updateNodeData(id, {
+      outputItems: parsed.items,
+      outputText: nextOutputText,
+      error: parsed.error,
+    });
   }, [id, nodeData.error, nodeData.outputItems, nodeData.outputText, parsed.error, parsed.items, updateNodeData]);
 
-  const handleModeChange = useCallback(
+  const handleBasicModeChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       updateNodeData(id, { splitMode: e.target.value as ArrayNodeData["splitMode"] });
     },
@@ -109,7 +116,7 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
     const items = previewItems;
     if (items.length === 0) return;
 
-    const sourceNode = nodes.find((n) => n.id === id);
+    const sourceNode = getNodes().find((n) => n.id === id);
     if (!sourceNode) return;
 
     const sourceWidth = (sourceNode.style?.width as number) || 360;
@@ -137,7 +144,7 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
     });
 
     updateNodeData(id, { selectedOutputIndex: previousSelected });
-  }, [addNode, id, nodeData.selectedOutputIndex, nodes, onConnect, previewItems, updateNodeData]);
+  }, [addNode, getNodes, id, nodeData.selectedOutputIndex, onConnect, previewItems, updateNodeData]);
 
   // Reset selection if it no longer points to a valid parsed item.
   useEffect(() => {
@@ -196,13 +203,12 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
         <div className="grid grid-cols-[auto_1fr] gap-2 items-center">
           <label className="text-[11px] text-neutral-400">Split</label>
           <select
-            value={nodeData.splitMode}
-            onChange={handleModeChange}
+            value={nodeData.splitMode === "newline" ? "newline" : "delimiter"}
+            onChange={handleBasicModeChange}
             className="nodrag nopan bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-[11px] text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-600"
           >
             <option value="delimiter">Delimiter</option>
             <option value="newline">Newline</option>
-            <option value="regex">Regex</option>
           </select>
         </div>
 
@@ -218,37 +224,66 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
           </div>
         )}
 
-        {nodeData.splitMode === "regex" && (
-          <div className="grid grid-cols-[auto_1fr] gap-2 items-center">
-            <label className="text-[11px] text-neutral-400">Pattern</label>
-            <input
-              value={nodeData.regexPattern}
-              onChange={(e) => updateNodeData(id, { regexPattern: e.target.value })}
-              placeholder="/\\n+/"
-              className="nodrag nopan bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-[11px] text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-600"
-            />
-          </div>
-        )}
+        <div className="border border-neutral-700 rounded">
+          <button
+            type="button"
+            onClick={() => setShowAdvanced((v) => !v)}
+            className="nodrag nopan w-full flex items-center justify-between px-2 py-1 text-[11px] text-neutral-300 hover:bg-neutral-800/50"
+          >
+            <span>Advanced</span>
+            <span className="text-[10px] text-neutral-500">{showAdvanced ? "Hide" : "Show"}</span>
+          </button>
 
-        <div className="flex items-center gap-3">
-          <label className="flex items-center gap-1.5 text-[11px] text-neutral-300">
-            <input
-              type="checkbox"
-              checked={nodeData.trimItems}
-              onChange={(e) => updateNodeData(id, { trimItems: e.target.checked })}
-              className="nodrag nopan w-3 h-3"
-            />
-            Trim
-          </label>
-          <label className="flex items-center gap-1.5 text-[11px] text-neutral-300">
-            <input
-              type="checkbox"
-              checked={nodeData.removeEmpty}
-              onChange={(e) => updateNodeData(id, { removeEmpty: e.target.checked })}
-              className="nodrag nopan w-3 h-3"
-            />
-            Remove empty
-          </label>
+          {showAdvanced && (
+            <div className="px-2 pb-2 pt-1 flex flex-col gap-2 border-t border-neutral-700">
+              <label className="flex items-center gap-1.5 text-[11px] text-neutral-300">
+                <input
+                  type="checkbox"
+                  checked={nodeData.splitMode === "regex"}
+                  onChange={(e) =>
+                    updateNodeData(id, {
+                      splitMode: e.target.checked ? "regex" : "delimiter",
+                    })
+                  }
+                  className="nodrag nopan w-3 h-3"
+                />
+                Use regex split
+              </label>
+
+              {nodeData.splitMode === "regex" && (
+                <div className="grid grid-cols-[auto_1fr] gap-2 items-center">
+                  <label className="text-[11px] text-neutral-400">Pattern</label>
+                  <input
+                    value={nodeData.regexPattern}
+                    onChange={(e) => updateNodeData(id, { regexPattern: e.target.value })}
+                    placeholder="/\\n+/"
+                    className="nodrag nopan bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-[11px] text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-600"
+                  />
+                </div>
+              )}
+
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-1.5 text-[11px] text-neutral-300">
+                  <input
+                    type="checkbox"
+                    checked={nodeData.trimItems}
+                    onChange={(e) => updateNodeData(id, { trimItems: e.target.checked })}
+                    className="nodrag nopan w-3 h-3"
+                  />
+                  Trim
+                </label>
+                <label className="flex items-center gap-1.5 text-[11px] text-neutral-300">
+                  <input
+                    type="checkbox"
+                    checked={nodeData.removeEmpty}
+                    onChange={(e) => updateNodeData(id, { removeEmpty: e.target.checked })}
+                    className="nodrag nopan w-3 h-3"
+                  />
+                  Remove empty
+                </label>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="text-[10px] uppercase tracking-wide text-neutral-500">
