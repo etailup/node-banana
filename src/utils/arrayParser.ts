@@ -13,6 +13,8 @@ export interface ParseArrayResult {
   error: string | null;
 }
 
+const MAX_REGEX_PATTERN_LENGTH = 100;
+
 function parseRegexPattern(pattern: string): RegExp {
   // Supports `/pattern/flags` and plain `pattern`.
   const slashFormat = pattern.match(/^\/(.+)\/([a-z]*)$/i);
@@ -39,6 +41,11 @@ export function parseTextToArray(
     } else if (options.splitMode === "regex") {
       if (!options.regexPattern) {
         rawItems = [source];
+      } else if (options.regexPattern.length > MAX_REGEX_PATTERN_LENGTH) {
+        return {
+          items: [],
+          error: `Regex pattern too long (max ${MAX_REGEX_PATTERN_LENGTH} characters)`,
+        };
       } else {
         rawItems = source.split(parseRegexPattern(options.regexPattern));
       }
@@ -67,4 +74,3 @@ export function parseTextToArray(
 
   return { items, error: null };
 }
-

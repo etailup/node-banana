@@ -64,5 +64,17 @@ describe("parseTextToArray", () => {
     expect(result.items).toEqual([]);
     expect(result.error).toBeTruthy();
   });
-});
 
+  it("returns error when regex pattern is too long", () => {
+    const result = parseTextToArray("a,b,c", {
+      splitMode: "regex",
+      delimiter: "*",
+      regexPattern: "a".repeat(101),
+      trimItems: true,
+      removeEmpty: true,
+    });
+
+    expect(result.items).toEqual([]);
+    expect(result.error).toContain("Regex pattern too long");
+  });
+});

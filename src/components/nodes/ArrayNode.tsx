@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Handle, Node, NodeProps, Position, useReactFlow } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
 import { useCommentNavigation } from "@/hooks/useCommentNavigation";
@@ -28,6 +28,8 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
   const getConnectedInputs = useWorkflowStore((state) => state.getConnectedInputs);
   const edges = useWorkflowStore((state) => state.edges);
   const { setNodes } = useReactFlow();
+  const lastSyncedInputRef = useRef<string | null>(null);
+  const lastDerivedWriteRef = useRef<string | null>(null);
 
   const hasIncomingTextConnection = useMemo(() => {
     return edges.some((edge) => {
@@ -41,7 +43,12 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
   useEffect(() => {
     if (!hasIncomingTextConnection) return;
     const { text } = getConnectedInputs(id);
-    if (text !== null && text !== nodeData.inputText) {
+    if (
+      text !== null &&
+      text !== nodeData.inputText &&
+      text !== lastSyncedInputRef.current
+    ) {
+      lastSyncedInputRef.current = text;
       updateNodeData(id, { inputText: text });
     }
   }, [hasIncomingTextConnection, getConnectedInputs, id, nodeData.inputText, updateNodeData]);
@@ -66,6 +73,16 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
   // Keep derived outputs in node data so execution/edges always read the latest values.
   useEffect(() => {
     const nextOutputText = JSON.stringify(parsed.items);
+    const writeSignature = `${parsed.error ?? ""}::${nextOutputText}`;
+    const needsSync =
+      parsed.error !== nodeData.error ||
+      nextOutputText !== (nodeData.outputText ?? "[]") ||
+      !arraysEqual(parsed.items, nodeData.outputItems || []);
+
+    if (!needsSync) return;
+    if (lastDerivedWriteRef.current === writeSignature) return;
+    lastDerivedWriteRef.current = writeSignature;
+
     if (
       parsed.error !== nodeData.error ||
       nextOutputText !== (nodeData.outputText ?? "[]") ||

@@ -98,6 +98,57 @@ function saveLogSession(): void {
 
 export type EdgeStyle = "angular" | "curved";
 
+function buildConnectionEdgeData(
+  connection: Connection,
+  nodes: WorkflowNode[],
+  edges: WorkflowEdge[]
+): Record<string, unknown> {
+  const baseData: Record<string, unknown> = { createdAt: Date.now() };
+  const sourceNode = nodes.find((n) => n.id === connection.source);
+
+  // Array node uses a single output handle; assign each edge a stable item index.
+  if (sourceNode?.type === "array" && (connection.sourceHandle || "text") === "text") {
+    const sourceData = sourceNode.data as Record<string, unknown>;
+    const selectedIndex = sourceData.selectedOutputIndex;
+    const outputItems = Array.isArray(sourceData.outputItems) ? sourceData.outputItems : [];
+    const outputCount = outputItems.length;
+
+    if (
+      typeof selectedIndex === "number" &&
+      Number.isInteger(selectedIndex) &&
+      selectedIndex >= 0 &&
+      (outputCount === 0 || selectedIndex < outputCount)
+    ) {
+      baseData.arrayItemIndex = selectedIndex;
+      return baseData;
+    }
+
+    if (outputCount > 0) {
+      const existingArrayEdges = edges.filter(
+        (e) => e.source === connection.source && (e.sourceHandle || "text") === "text"
+      );
+
+      const lastEdge = existingArrayEdges.reduce<WorkflowEdge | null>((latest, edge) => {
+        if (!latest) return edge;
+        const latestTime = (latest.data as Record<string, unknown> | undefined)?.createdAt;
+        const edgeTime = (edge.data as Record<string, unknown> | undefined)?.createdAt;
+        return (typeof edgeTime === "number" && typeof latestTime === "number" && edgeTime > latestTime) ? edge : latest;
+      }, null);
+
+      const lastIndex = (lastEdge?.data as Record<string, unknown> | undefined)?.arrayItemIndex;
+      const startIndex = typeof lastIndex === "number" && Number.isInteger(lastIndex) && lastIndex >= 0
+        ? lastIndex + 1
+        : existingArrayEdges.length;
+
+      baseData.arrayItemIndex = startIndex % outputCount;
+    } else {
+      baseData.arrayItemIndex = 0;
+    }
+  }
+
+  return baseData;
+}
+
 // Workflow file format
 export interface WorkflowFile {
   version: 1;
@@ -484,46 +535,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     set((state) => ({
       edges: addEdge(
         (() => {
-          const sourceNode = state.nodes.find((n) => n.id === connection.source);
-          const baseData: Record<string, unknown> = { createdAt: Date.now() };
-
-          // Array node uses a single output handle; assign each edge a stable item index.
-          if (sourceNode?.type === "array" && (connection.sourceHandle || "text") === "text") {
-            const sourceData = sourceNode.data as Record<string, unknown>;
-            const selectedIndex = sourceData.selectedOutputIndex;
-            const outputItems = Array.isArray(sourceData.outputItems) ? sourceData.outputItems : [];
-            const outputCount = outputItems.length;
-
-            if (
-              typeof selectedIndex === "number" &&
-              Number.isInteger(selectedIndex) &&
-              selectedIndex >= 0 &&
-              (outputCount === 0 || selectedIndex < outputCount)
-            ) {
-              baseData.arrayItemIndex = selectedIndex;
-            } else if (outputCount > 0) {
-              const existingArrayEdges = state.edges.filter(
-                (e) => e.source === connection.source && (e.sourceHandle || "text") === "text"
-              );
-
-              const lastEdge = existingArrayEdges.reduce<typeof existingArrayEdges[number] | null>((latest, edge) => {
-                if (!latest) return edge;
-                const latestTime = (latest.data as Record<string, unknown> | undefined)?.createdAt;
-                const edgeTime = (edge.data as Record<string, unknown> | undefined)?.createdAt;
-                return (typeof edgeTime === "number" && typeof latestTime === "number" && edgeTime > latestTime) ? edge : latest;
-              }, null);
-
-              const lastIndex = (lastEdge?.data as Record<string, unknown> | undefined)?.arrayItemIndex;
-              const startIndex = typeof lastIndex === "number" && Number.isInteger(lastIndex) && lastIndex >= 0
-                ? lastIndex + 1
-                : existingArrayEdges.length;
-
-              baseData.arrayItemIndex = startIndex % outputCount;
-            } else {
-              baseData.arrayItemIndex = 0;
-            }
-          }
-
+          const baseData = buildConnectionEdgeData(connection, state.nodes, state.edges);
           return {
             ...connection,
             id: `edge-${connection.source}-${connection.target}-${connection.sourceHandle || "default"}-${connection.targetHandle || "default"}`,
@@ -541,45 +553,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     set((state) => ({
       edges: addEdge(
         (() => {
-          const sourceNode = state.nodes.find((n) => n.id === connection.source);
-          const baseData: Record<string, unknown> = { createdAt: Date.now() };
-
-          if (sourceNode?.type === "array" && (connection.sourceHandle || "text") === "text") {
-            const sourceData = sourceNode.data as Record<string, unknown>;
-            const selectedIndex = sourceData.selectedOutputIndex;
-            const outputItems = Array.isArray(sourceData.outputItems) ? sourceData.outputItems : [];
-            const outputCount = outputItems.length;
-
-            if (
-              typeof selectedIndex === "number" &&
-              Number.isInteger(selectedIndex) &&
-              selectedIndex >= 0 &&
-              (outputCount === 0 || selectedIndex < outputCount)
-            ) {
-              baseData.arrayItemIndex = selectedIndex;
-            } else if (outputCount > 0) {
-              const existingArrayEdges = state.edges.filter(
-                (e) => e.source === connection.source && (e.sourceHandle || "text") === "text"
-              );
-
-              const lastEdge = existingArrayEdges.reduce<typeof existingArrayEdges[number] | null>((latest, edge) => {
-                if (!latest) return edge;
-                const latestTime = (latest.data as Record<string, unknown> | undefined)?.createdAt;
-                const edgeTime = (edge.data as Record<string, unknown> | undefined)?.createdAt;
-                return (typeof edgeTime === "number" && typeof latestTime === "number" && edgeTime > latestTime) ? edge : latest;
-              }, null);
-
-              const lastIndex = (lastEdge?.data as Record<string, unknown> | undefined)?.arrayItemIndex;
-              const startIndex = typeof lastIndex === "number" && Number.isInteger(lastIndex) && lastIndex >= 0
-                ? lastIndex + 1
-                : existingArrayEdges.length;
-
-              baseData.arrayItemIndex = startIndex % outputCount;
-            } else {
-              baseData.arrayItemIndex = 0;
-            }
-          }
-
+          const baseData = buildConnectionEdgeData(connection, state.nodes, state.edges);
           return {
             ...connection,
             id: `edge-${connection.source}-${connection.target}-${connection.sourceHandle || "default"}-${connection.targetHandle || "default"}`,
