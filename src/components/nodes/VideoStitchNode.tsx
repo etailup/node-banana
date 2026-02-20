@@ -123,7 +123,7 @@ export function VideoStitchNode({ id, data, selected }: NodeProps<VideoStitchNod
 
   // Stable key that only changes when clip edges or video data actually change
   const clipKey = useMemo(
-    () => orderedClips.map((c) => `${c.edgeId}:${c.videoData ? "1" : "0"}`).join(","),
+    () => orderedClips.map((c) => `${c.edgeId}:${c.videoData ? c.videoData.slice(-20) : "0"}`).join(","),
     [orderedClips]
   );
 
@@ -135,6 +135,7 @@ export function VideoStitchNode({ id, data, selected }: NodeProps<VideoStitchNod
     let cancelled = false;
 
     const extractThumbnails = async () => {
+      thumbnailsRef.current = new Map();
       const newThumbnails = new Map<string, string>();
 
       for (const clip of orderedClips) {
