@@ -102,6 +102,7 @@ export interface WorkflowFile {
   version: 1;
   id?: string;  // Optional for backward compatibility with old/shared workflows
   name: string;
+  directoryPath?: string;  // Embedded save path so image hydration works on import
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
   edgeStyle: EdgeStyle;
@@ -1470,8 +1471,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     const configs = loadSaveConfigs();
     const savedConfig = workflow.id ? configs[workflow.id] : null;
 
-    // Determine the workflow directory path (passed in or from saved config)
-    const directoryPath = workflowPath || savedConfig?.directoryPath;
+    // Determine the workflow directory path (passed in, from saved config, or embedded in workflow)
+    const directoryPath = workflowPath || savedConfig?.directoryPath || workflow.directoryPath;
 
     // Hydrate images if we have a directory path and the workflow has image refs
     let hydratedWorkflow = workflow;
@@ -1666,6 +1667,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         version: 1,
         id: workflowId,
         name: workflowName,
+        directoryPath: saveDirectoryPath,
         nodes: currentNodes,
         edges,
         edgeStyle,
