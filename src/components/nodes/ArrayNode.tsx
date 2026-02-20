@@ -106,7 +106,7 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
   const previewItems = parsed.items;
 
   const handleAutoRouteToPrompts = useCallback(() => {
-    const items = nodeData.outputItems || [];
+    const items = previewItems;
     if (items.length === 0) return;
 
     const sourceNode = nodes.find((n) => n.id === id);
@@ -137,7 +137,7 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
     });
 
     updateNodeData(id, { selectedOutputIndex: previousSelected });
-  }, [addNode, id, nodeData.outputItems, nodeData.selectedOutputIndex, nodes, onConnect, updateNodeData]);
+  }, [addNode, id, nodeData.selectedOutputIndex, nodes, onConnect, previewItems, updateNodeData]);
 
   // Reset selection if it no longer points to a valid parsed item.
   useEffect(() => {
