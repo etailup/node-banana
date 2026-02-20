@@ -1437,6 +1437,26 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       return node;
     }) as WorkflowNode[];
 
+    // Migrate legacy indexed handle IDs on edges targeting nanoBanana nodes.
+    // GenerateImageNode always renders "image"/"text" handles (not "image-0"/"text-0"),
+    // so edges saved with the old indexed format cause React Flow error #008.
+    const nanoBananaNodeIds = new Set(
+      workflow.nodes.filter((n) => n.type === "nanoBanana").map((n) => n.id)
+    );
+    workflow.edges = workflow.edges.map((edge) => {
+      if (!nanoBananaNodeIds.has(edge.target)) return edge;
+      const th = edge.targetHandle;
+      if (th === "image-0" || th === "text-0") {
+        const baseHandle = th === "image-0" ? "image" : "text";
+        return {
+          ...edge,
+          targetHandle: baseHandle,
+          id: `edge-${edge.source}-${edge.target}-${edge.sourceHandle || "default"}-${baseHandle}`,
+        };
+      }
+      return edge;
+    });
+
     // Look up saved config from localStorage (only if workflow has an ID)
     const configs = loadSaveConfigs();
     const savedConfig = workflow.id ? configs[workflow.id] : null;
