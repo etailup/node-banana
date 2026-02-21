@@ -126,7 +126,6 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
     const baseY = sourceNode.position.y;
     const promptHeight = 220;
     const verticalGap = 24;
-    const previousSelected = nodeData.selectedOutputIndex ?? null;
 
     items.forEach((item, index) => {
       const promptNodeId = addNode(
@@ -135,18 +134,19 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
         { prompt: item }
       );
 
-      // Force each generated edge to bind to the matching array item index.
-      updateNodeData(id, { selectedOutputIndex: index });
-      onConnect({
-        source: id,
-        sourceHandle: "text",
-        target: promptNodeId,
-        targetHandle: "text",
-      });
+      // Pass the array item index directly as an edge data override
+      // instead of mutating selectedOutputIndex in a loop.
+      onConnect(
+        {
+          source: id,
+          sourceHandle: "text",
+          target: promptNodeId,
+          targetHandle: "text",
+        },
+        { arrayItemIndex: index }
+      );
     });
-
-    updateNodeData(id, { selectedOutputIndex: previousSelected });
-  }, [addNode, getNodes, id, nodeData.selectedOutputIndex, onConnect, previewItems, updateNodeData]);
+  }, [addNode, getNodes, id, onConnect, previewItems]);
 
   // Reset selection if it no longer points to a valid parsed item.
   useEffect(() => {

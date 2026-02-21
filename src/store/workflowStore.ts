@@ -185,8 +185,8 @@ interface WorkflowStore {
 
   // Edge operations
   onEdgesChange: (changes: EdgeChange<WorkflowEdge>[]) => void;
-  onConnect: (connection: Connection) => void;
-  addEdgeWithType: (connection: Connection, edgeType: string) => void;
+  onConnect: (connection: Connection, edgeDataOverrides?: Record<string, unknown>) => void;
+  addEdgeWithType: (connection: Connection, edgeType: string, edgeDataOverrides?: Record<string, unknown>) => void;
   removeEdge: (edgeId: string) => void;
   toggleEdgePause: (edgeId: string) => void;
 
@@ -532,7 +532,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     }
   },
 
-  onConnect: (connection: Connection) => {
+  onConnect: (connection: Connection, edgeDataOverrides?: Record<string, unknown>) => {
     set((state) => ({
       edges: addEdge(
         (() => {
@@ -540,7 +540,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
           return {
             ...connection,
             id: `edge-${connection.source}-${connection.target}-${connection.sourceHandle || "default"}-${connection.targetHandle || "default"}`,
-            data: baseData,
+            data: edgeDataOverrides ? { ...baseData, ...edgeDataOverrides } : baseData,
           };
         })(),
         state.edges
@@ -550,7 +550,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     get().incrementManualChangeCount();
   },
 
-  addEdgeWithType: (connection: Connection, edgeType: string) => {
+  addEdgeWithType: (connection: Connection, edgeType: string, edgeDataOverrides?: Record<string, unknown>) => {
     set((state) => ({
       edges: addEdge(
         (() => {
@@ -559,7 +559,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
             ...connection,
             id: `edge-${connection.source}-${connection.target}-${connection.sourceHandle || "default"}-${connection.targetHandle || "default"}`,
             type: edgeType,
-            data: baseData,
+            data: edgeDataOverrides ? { ...baseData, ...edgeDataOverrides } : baseData,
           };
         })(),
         state.edges
