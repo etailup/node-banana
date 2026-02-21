@@ -533,39 +533,36 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   },
 
   onConnect: (connection: Connection, edgeDataOverrides?: Record<string, unknown>) => {
-    set((state) => ({
-      edges: addEdge(
-        (() => {
-          const baseData = buildConnectionEdgeData(connection, state.nodes, state.edges);
-          return {
-            ...connection,
-            id: `edge-${connection.source}-${connection.target}-${connection.sourceHandle || "default"}-${connection.targetHandle || "default"}`,
-            data: edgeDataOverrides ? { ...baseData, ...edgeDataOverrides } : baseData,
-          };
-        })(),
-        state.edges
-      ),
-      hasUnsavedChanges: true,
-    }));
+    set((state) => {
+      const baseData = buildConnectionEdgeData(connection, state.nodes, state.edges);
+      const newEdge = {
+        ...connection,
+        id: `edge-${connection.source}-${connection.target}-${connection.sourceHandle || "default"}-${connection.targetHandle || "default"}`,
+        data: edgeDataOverrides ? { ...baseData, ...edgeDataOverrides } : baseData,
+      };
+      // Cast needed: React Flow's Edge<T> types data as T | undefined, but addEdge expects data to be defined
+      return {
+        edges: addEdge(newEdge, state.edges as never) as WorkflowEdge[],
+        hasUnsavedChanges: true,
+      };
+    });
     get().incrementManualChangeCount();
   },
 
   addEdgeWithType: (connection: Connection, edgeType: string, edgeDataOverrides?: Record<string, unknown>) => {
-    set((state) => ({
-      edges: addEdge(
-        (() => {
-          const baseData = buildConnectionEdgeData(connection, state.nodes, state.edges);
-          return {
-            ...connection,
-            id: `edge-${connection.source}-${connection.target}-${connection.sourceHandle || "default"}-${connection.targetHandle || "default"}`,
-            type: edgeType,
-            data: edgeDataOverrides ? { ...baseData, ...edgeDataOverrides } : baseData,
-          };
-        })(),
-        state.edges
-      ),
-      hasUnsavedChanges: true,
-    }));
+    set((state) => {
+      const baseData = buildConnectionEdgeData(connection, state.nodes, state.edges);
+      const newEdge = {
+        ...connection,
+        id: `edge-${connection.source}-${connection.target}-${connection.sourceHandle || "default"}-${connection.targetHandle || "default"}`,
+        type: edgeType,
+        data: edgeDataOverrides ? { ...baseData, ...edgeDataOverrides } : baseData,
+      };
+      return {
+        edges: addEdge(newEdge, state.edges as never) as WorkflowEdge[],
+        hasUnsavedChanges: true,
+      };
+    });
   },
 
   removeEdge: (edgeId: string) => {
