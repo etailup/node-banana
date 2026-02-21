@@ -27,6 +27,20 @@ global.fetch = mockFetch;
 const mockConfirm = vi.fn(() => true);
 global.confirm = mockConfirm;
 
+// Ensure localStorage is always available in this test environment
+const localStorageMock = {
+  getItem: vi.fn(() => null),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+  key: vi.fn(() => null),
+  length: 0,
+};
+Object.defineProperty(globalThis, "localStorage", {
+  value: localStorageMock,
+  configurable: true,
+});
+
 // Default provider settings
 const defaultProviderSettings: ProviderSettings = {
   providers: {
@@ -339,7 +353,7 @@ describe("ProjectSetupModal", () => {
       expect(onSave).not.toHaveBeenCalled();
     });
 
-    it("should allow creating project in a new subfolder path", async () => {
+    it("should allow save when directory does not exist yet", async () => {
       mockFetch.mockImplementation((url: string) => {
         if (url === "/api/env-status") {
           return Promise.resolve({
@@ -379,13 +393,12 @@ describe("ProjectSetupModal", () => {
       fireEvent.click(screen.getByText("Create"));
 
       await waitFor(() => {
-        expect(onSave).toHaveBeenCalledTimes(1);
+        expect(onSave).toHaveBeenCalledWith(
+          "mock-workflow-id",
+          "My Project",
+          "/nonexistent/path/My Project"
+        );
       });
-      expect(onSave).toHaveBeenCalledWith(
-        expect.any(String),
-        "My Project",
-        "/nonexistent/path"
-      );
     });
 
     it("should show error when path is not absolute", async () => {
@@ -513,7 +526,7 @@ describe("ProjectSetupModal", () => {
         expect(onSave).toHaveBeenCalledWith(
           "mock-workflow-id",
           "My New Project",
-          "/path/to/project"
+          "/path/to/project/My New Project"
         );
       });
     });
