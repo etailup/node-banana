@@ -7,6 +7,7 @@ import { useCommentNavigation } from "@/hooks/useCommentNavigation";
 import { useWorkflowStore } from "@/store/workflowStore";
 import { VideoTrimNodeData } from "@/types";
 import { checkEncoderSupport } from "@/hooks/useStitchVideos";
+import { useVideoBlobUrl } from "@/hooks/useVideoBlobUrl";
 
 type VideoTrimNodeType = Node<VideoTrimNodeData, "videoTrim">;
 
@@ -154,6 +155,7 @@ export function VideoTrimNode({ id, data, selected }: NodeProps<VideoTrimNodeTyp
 
   // Which video URL to show in preview
   const previewUrl = showOutput && nodeData.outputVideo ? nodeData.outputVideo : sourceVideoUrl;
+  const previewBlobUrl = useVideoBlobUrl(previewUrl);
 
   // Compute slider thumb position percentages for the visual range highlight
   const startPct = duration > 0 ? (startTime / duration) * 100 : 0;
@@ -285,7 +287,7 @@ export function VideoTrimNode({ id, data, selected }: NodeProps<VideoTrimNodeTyp
           {previewUrl ? (
             <video
               key={previewUrl}
-              src={previewUrl}
+              src={previewBlobUrl ?? undefined}
               controls
               playsInline
               muted

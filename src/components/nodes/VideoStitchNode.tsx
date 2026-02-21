@@ -7,6 +7,7 @@ import { useCommentNavigation } from "@/hooks/useCommentNavigation";
 import { useWorkflowStore } from "@/store/workflowStore";
 import { VideoStitchNodeData } from "@/types";
 import { checkEncoderSupport } from "@/hooks/useStitchVideos";
+import { useVideoBlobUrl } from "@/hooks/useVideoBlobUrl";
 
 type VideoStitchNodeType = Node<VideoStitchNodeData, "videoStitch">;
 
@@ -20,6 +21,7 @@ export function VideoStitchNode({ id, data, selected }: NodeProps<VideoStitchNod
   const regenerateNode = useWorkflowStore((state) => state.regenerateNode);
   const isRunning = useWorkflowStore((state) => state.isRunning);
   const removeEdge = useWorkflowStore((state) => state.removeEdge);
+  const videoBlobUrl = useVideoBlobUrl(nodeData.outputVideo ?? null);
 
   // Check encoder support on mount
   useEffect(() => {
@@ -549,7 +551,7 @@ export function VideoStitchNode({ id, data, selected }: NodeProps<VideoStitchNod
         {nodeData.outputVideo && nodeData.status !== "loading" && (
           <div className="relative flex-1 min-h-0">
             <video
-              src={nodeData.outputVideo}
+              src={videoBlobUrl ?? undefined}
               controls
               autoPlay
               loop
