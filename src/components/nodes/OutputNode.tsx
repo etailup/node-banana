@@ -15,9 +15,12 @@ export function OutputNode({ id, data, selected }: NodeProps<OutputNodeType>) {
   const commentNavigation = useCommentNavigation(id);
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const regenerateNode = useWorkflowStore((state) => state.regenerateNode);
-  const edges = useWorkflowStore((state) => state.edges);
+  const connectedEdgeCount = useWorkflowStore(
+    (state) => state.edges.filter((edge) => edge.target === id).length
+  );
+  const isRunning = useWorkflowStore((state) => state.isRunning);
   const [showLightbox, setShowLightbox] = useState(false);
-  const previousEdgeCountRef = useRef<number>(0);
+  const previousEdgeCountRef = useRef<number | null>(null);
 
   // Determine if content is audio
   const isAudio = useMemo(() => {
@@ -46,25 +49,18 @@ export function OutputNode({ id, data, selected }: NodeProps<OutputNodeType>) {
 
   const videoBlobUrl = useVideoBlobUrl(isVideo ? contentSrc ?? null : null);
 
-  // Initialize edge count ref on mount
+  // Auto-trigger execution when a new connection is made
   useEffect(() => {
-    const connectedEdges = edges.filter((edge) => edge.target === id);
-    previousEdgeCountRef.current = connectedEdges.length;
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Auto-trigger execution when connected
-  useEffect(() => {
-    const connectedEdges = edges.filter((edge) => edge.target === id);
-    const currentEdgeCount = connectedEdges.length;
-
-    // Only trigger if we gained a new connection (not on initial mount or disconnect)
-    if (currentEdgeCount > previousEdgeCountRef.current) {
-      // Auto-run when a new connection is made
+    if (previousEdgeCountRef.current === null) {
+      // First run — just record the baseline, don't trigger
+      previousEdgeCountRef.current = connectedEdgeCount;
+      return;
+    }
+    if (connectedEdgeCount > previousEdgeCountRef.current) {
       regenerateNode(id);
     }
-
-    previousEdgeCountRef.current = currentEdgeCount;
-  }, [edges, id, regenerateNode]);
+    previousEdgeCountRef.current = connectedEdgeCount;
+  }, [connectedEdgeCount, id, regenerateNode]);
 
   // Handle Run button click
   const handleRun = useCallback(() => {
@@ -120,6 +116,7 @@ export function OutputNode({ id, data, selected }: NodeProps<OutputNodeType>) {
         onCustomTitleChange={(title) => updateNodeData(id, { customTitle: title || undefined })}
         onCommentChange={(comment) => updateNodeData(id, { comment: comment || undefined })}
         onRun={handleRun}
+        isExecuting={isRunning}
         selected={selected}
         className="min-w-[200px]"
         commentNavigation={commentNavigation ?? undefined}
