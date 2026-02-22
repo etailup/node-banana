@@ -281,6 +281,10 @@ export function WorkflowCanvas() {
 
 
   // Check if a node was dropped into a group and add it to that group
+  const handleNodeDragStart = useCallback(() => {
+    useWorkflowStore.temporal.getState().pause();
+  }, []);
+
   const handleNodeDragStop = useCallback(
     (_event: React.MouseEvent, node: Node) => {
       // Skip if it's a group node
@@ -313,6 +317,11 @@ export function WorkflowCanvas() {
       if (targetGroupId !== currentGroupId) {
         setNodeGroupId(node.id, targetGroupId);
       }
+
+      // Resume undo tracking after drag and capture final position
+      const temporal = useWorkflowStore.temporal.getState();
+      temporal.resume();
+      useWorkflowStore.getState()._nudgeForSnapshot();
     },
     [groups, nodes, setNodeGroupId]
   );
@@ -1081,6 +1090,39 @@ export function WorkflowCanvas() {
       return;
     }
 
+    // Handle undo (Ctrl/Cmd + Z, but NOT Ctrl/Cmd + Shift + Z)
+    if ((event.ctrlKey || event.metaKey) && (event.key === "z" || event.key === "Z") && !event.shiftKey) {
+      event.preventDefault();
+      const { undo, pastStates } = useWorkflowStore.temporal.getState();
+      if (pastStates.length > 0) {
+        undo();
+        useWorkflowStore.setState({ hasUnsavedChanges: true });
+      }
+      return;
+    }
+
+    // Handle redo (Ctrl/Cmd + Shift + Z)
+    if ((event.ctrlKey || event.metaKey) && (event.key === "z" || event.key === "Z") && event.shiftKey) {
+      event.preventDefault();
+      const { redo, futureStates } = useWorkflowStore.temporal.getState();
+      if (futureStates.length > 0) {
+        redo();
+        useWorkflowStore.setState({ hasUnsavedChanges: true });
+      }
+      return;
+    }
+
+    // Handle redo alt (Ctrl + Y — Windows convention)
+    if ((event.ctrlKey || event.metaKey) && event.key === "y") {
+      event.preventDefault();
+      const { redo, futureStates } = useWorkflowStore.temporal.getState();
+      if (futureStates.length > 0) {
+        redo();
+        useWorkflowStore.setState({ hasUnsavedChanges: true });
+      }
+      return;
+    }
+
     // Handle copy (Ctrl/Cmd + C)
     if ((event.ctrlKey || event.metaKey) && event.key === "c") {
       event.preventDefault();
@@ -1643,6 +1685,7 @@ export function WorkflowCanvas() {
         onEdgesChange={onEdgesChange}
         onConnect={handleConnect}
         onConnectEnd={handleConnectEnd}
+        onNodeDragStart={handleNodeDragStart}
         onNodeDragStop={handleNodeDragStop}
         onSelectionChange={handleSelectionChange}
         nodeTypes={nodeTypes}

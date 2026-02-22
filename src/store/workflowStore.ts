@@ -1,5 +1,6 @@
-import { create } from "zustand";
+import { create, StateCreator } from "zustand";
 import { useShallow } from "zustand/shallow";
+import { temporal, TemporalState } from "zundo";
 import {
   Connection,
   EdgeChange,
@@ -43,6 +44,7 @@ import {
   getCanvasNavigationSettings,
   saveCanvasNavigationSettings,
 } from "./utils/localStorage";
+import { partializeForUndo, undoStateEquality } from "./undoUtils";
 import {
   createDefaultNodeData,
   defaultNodeDimensions,
@@ -333,7 +335,13 @@ interface WorkflowStore {
 
   // Canvas navigation settings actions
   updateCanvasNavigationSettings: (settings: CanvasNavigationSettings) => void;
+
+  // Undo/Redo helper actions
+  _nudgeForSnapshot: () => void;
 }
+
+// Extend with TemporalState for undo/redo functionality
+export type WorkflowStoreWithTemporal = WorkflowStore & TemporalState<WorkflowStore>;
 
 let nodeIdCounter = 0;
 let groupIdCounter = 0;
@@ -369,7 +377,8 @@ async function waitForPendingImageSyncs(timeout: number = 60000): Promise<void> 
 export { generateWorkflowId, saveGenerateImageDefaults, saveNanoBananaDefaults } from "./utils/localStorage";
 export { GROUP_COLORS } from "./utils/nodeDefaults";
 
-export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
+// Store implementation with temporal middleware for undo/redo
+const workflowStoreImpl: StateCreator<WorkflowStore, [["temporal", unknown]], []> = (set, get) => ({
   nodes: [],
   edges: [],
   edgeStyle: "curved" as EdgeStyle,
@@ -2111,7 +2120,23 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     set({ canvasNavigationSettings: settings });
     saveCanvasNavigationSettings(settings);
   },
-}));
+
+  // Undo/Redo helper actions
+  _nudgeForSnapshot: () => {
+    set((state) => ({ nodes: state.nodes }));
+  },
+});
+
+export const useWorkflowStore = create<WorkflowStore>()(
+  temporal(
+    workflowStoreImpl,
+    {
+      partialize: partializeForUndo as any,
+      limit: 20,
+      equality: undoStateEquality as any,
+    }
+  )
+);
 
 /**
  * Stable hook for provider API keys.
