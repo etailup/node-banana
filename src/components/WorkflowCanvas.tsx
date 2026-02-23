@@ -18,6 +18,7 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { useWorkflowStore, WorkflowFile } from "@/store/workflowStore";
+import { undoWithMedia, redoWithMedia } from "@/store/undoUtils";
 import { useToast } from "@/components/Toast";
 import dynamic from "next/dynamic";
 import {
@@ -1093,33 +1094,21 @@ export function WorkflowCanvas() {
     // Handle undo (Ctrl/Cmd + Z, but NOT Ctrl/Cmd + Shift + Z)
     if ((event.ctrlKey || event.metaKey) && (event.key === "z" || event.key === "Z") && !event.shiftKey) {
       event.preventDefault();
-      const { undo, pastStates } = useWorkflowStore.temporal.getState();
-      if (pastStates.length > 0) {
-        undo();
-        useWorkflowStore.setState({ hasUnsavedChanges: true });
-      }
+      undoWithMedia(useWorkflowStore);
       return;
     }
 
     // Handle redo (Ctrl/Cmd + Shift + Z)
     if ((event.ctrlKey || event.metaKey) && (event.key === "z" || event.key === "Z") && event.shiftKey) {
       event.preventDefault();
-      const { redo, futureStates } = useWorkflowStore.temporal.getState();
-      if (futureStates.length > 0) {
-        redo();
-        useWorkflowStore.setState({ hasUnsavedChanges: true });
-      }
+      redoWithMedia(useWorkflowStore);
       return;
     }
 
     // Handle redo alt (Ctrl + Y — Windows convention)
     if ((event.ctrlKey || event.metaKey) && event.key === "y") {
       event.preventDefault();
-      const { redo, futureStates } = useWorkflowStore.temporal.getState();
-      if (futureStates.length > 0) {
-        redo();
-        useWorkflowStore.setState({ hasUnsavedChanges: true });
-      }
+      redoWithMedia(useWorkflowStore);
       return;
     }
 

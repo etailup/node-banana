@@ -1,11 +1,36 @@
-import { describe, it, expect } from "vitest";
-import { stripBinaryData, undoStateEquality, partializeForUndo, BINARY_DATA_KEYS } from "../undoUtils";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { stripBinaryData, undoStateEquality, partializeForUndo, BINARY_TO_REF, undoWithMedia, redoWithMedia } from "../undoUtils";
 import type { WorkflowNode, WorkflowEdge, NodeGroup } from "@/types";
 import type { EdgeStyle } from "../workflowStore";
 
+// Mock imageStorage to avoid real file I/O
+vi.mock("@/utils/imageStorage", () => ({
+  hydrateWorkflowImages: vi.fn(async (workflow: any) => workflow),
+}));
+
 describe("undoUtils", () => {
+  describe("BINARY_TO_REF", () => {
+    it("maps all ref-backed binary fields", () => {
+      expect(BINARY_TO_REF).toEqual({
+        image: "imageRef",
+        outputImage: "outputImageRef",
+        sourceImage: "sourceImageRef",
+        inputImages: "inputImageRefs",
+        outputVideo: "outputVideoRef",
+        outputAudio: "outputAudioRef",
+      });
+    });
+
+    it("does not include fields without refs (imageA, imageB, etc.)", () => {
+      const noRefFields = ["imageA", "imageB", "capturedImage", "video", "images", "audioFile", "glbUrl", "output3dUrl"];
+      for (const field of noRefFields) {
+        expect(BINARY_TO_REF).not.toHaveProperty(field);
+      }
+    });
+  });
+
   describe("stripBinaryData", () => {
-    it("strips image fields from node data", () => {
+    it("strips binary fields that have corresponding refs", () => {
       const nodes: WorkflowNode[] = [
         {
           id: "node-1",
@@ -13,8 +38,6 @@ describe("undoUtils", () => {
           position: { x: 0, y: 0 },
           data: {
             image: "data:image/png;base64,ABC123",
-            outputImage: "data:image/png;base64,DEF456",
-            sourceImage: "data:image/png;base64,GHI789",
             imageRef: "img_001",
             prompt: "test prompt",
           },
@@ -24,80 +47,128 @@ describe("undoUtils", () => {
       const stripped = stripBinaryData(nodes);
 
       expect(stripped[0].data).not.toHaveProperty("image");
-      expect(stripped[0].data).not.toHaveProperty("outputImage");
-      expect(stripped[0].data).not.toHaveProperty("sourceImage");
       expect(stripped[0].data).toHaveProperty("imageRef", "img_001");
       expect(stripped[0].data).toHaveProperty("prompt", "test prompt");
     });
 
-    it("strips video fields from node data", () => {
+    it("keeps binary fields that have NO refs", () => {
       const nodes: WorkflowNode[] = [
+        {
+          id: "node-1",
+          type: "imageInput",
+          position: { x: 0, y: 0 },
+          data: {
+            image: "data:image/png;base64,ABC123",
+            // No imageRef → keep image in snapshot
+            prompt: "test prompt",
+          },
+        },
+      ];
+
+      const stripped = stripBinaryData(nodes);
+
+      expect(stripped[0].data).toHaveProperty("image", "data:image/png;base64,ABC123");
+      expect(stripped[0].data).toHaveProperty("prompt", "test prompt");
+    });
+
+    it("strips outputImage and sourceImage when refs exist", () => {
+      const nodes: WorkflowNode[] = [
+        {
+          id: "node-1",
+          type: "annotation",
+          position: { x: 0, y: 0 },
+          data: {
+            outputImage: "data:image/png;base64,OUT123",
+            outputImageRef: "img_out_001",
+            sourceImage: "data:image/png;base64,SRC123",
+            sourceImageRef: "img_src_001",
+            prompt: "test",
+          },
+        },
+      ];
+
+      const stripped = stripBinaryData(nodes);
+
+      expect(stripped[0].data).not.toHaveProperty("outputImage");
+      expect(stripped[0].data).not.toHaveProperty("sourceImage");
+      expect(stripped[0].data).toHaveProperty("outputImageRef", "img_out_001");
+      expect(stripped[0].data).toHaveProperty("sourceImageRef", "img_src_001");
+    });
+
+    it("strips outputVideo when ref exists", () => {
+      const nodes = [
         {
           id: "node-1",
           type: "generateVideo",
           position: { x: 0, y: 0 },
           data: {
             outputVideo: "data:video/mp4;base64,VIDEO123",
-            video: "data:video/mp4;base64,VIDEO456",
             outputVideoRef: "vid_001",
             model: "test-model",
           },
         },
-      ];
+      ] as unknown as WorkflowNode[];
 
       const stripped = stripBinaryData(nodes);
 
       expect(stripped[0].data).not.toHaveProperty("outputVideo");
-      expect(stripped[0].data).not.toHaveProperty("video");
       expect(stripped[0].data).toHaveProperty("outputVideoRef", "vid_001");
       expect(stripped[0].data).toHaveProperty("model", "test-model");
     });
 
-    it("strips audio fields from node data", () => {
-      const nodes: WorkflowNode[] = [
+    it("strips outputAudio when ref exists", () => {
+      const nodes = [
         {
           id: "node-1",
-          type: "audioInput",
+          type: "generateAudio",
           position: { x: 0, y: 0 },
           data: {
-            audioFile: "data:audio/mp3;base64,AUDIO123",
             outputAudio: "data:audio/mp3;base64,AUDIO456",
-            audio: "data:audio/mp3;base64,AUDIO789",
+            outputAudioRef: "aud_001",
             fileName: "test.mp3",
           },
         },
-      ];
+      ] as unknown as WorkflowNode[];
 
       const stripped = stripBinaryData(nodes);
 
-      expect(stripped[0].data).not.toHaveProperty("audioFile");
       expect(stripped[0].data).not.toHaveProperty("outputAudio");
-      expect(stripped[0].data).not.toHaveProperty("audio");
+      expect(stripped[0].data).toHaveProperty("outputAudioRef", "aud_001");
       expect(stripped[0].data).toHaveProperty("fileName", "test.mp3");
     });
 
-    it("strips 3D model fields from node data", () => {
+    it("keeps fields without refs: imageA, imageB, capturedImage, video, glbUrl, etc.", () => {
       const nodes: WorkflowNode[] = [
         {
           id: "node-1",
-          type: "glbViewer",
+          type: "imageCompare",
           position: { x: 0, y: 0 },
           data: {
-            glbUrl: "data:model/gltf-binary;base64,GLB123",
-            output3dUrl: "data:model/gltf-binary;base64,GLB456",
-            modelName: "test.glb",
+            imageA: "data:image/png;base64,IMGA",
+            imageB: "data:image/png;base64,IMGB",
+            capturedImage: "data:image/png;base64,CAP",
+            video: "data:video/mp4;base64,VID",
+            glbUrl: "data:model/gltf-binary;base64,GLB",
+            output3dUrl: "data:model/gltf-binary;base64,GLB2",
+            audioFile: "data:audio/mp3;base64,AUD",
+            images: ["data:image/png;base64,IMG1"],
           },
         },
       ];
 
       const stripped = stripBinaryData(nodes);
 
-      expect(stripped[0].data).not.toHaveProperty("glbUrl");
-      expect(stripped[0].data).not.toHaveProperty("output3dUrl");
-      expect(stripped[0].data).toHaveProperty("modelName", "test.glb");
+      expect(stripped[0].data).toHaveProperty("imageA", "data:image/png;base64,IMGA");
+      expect(stripped[0].data).toHaveProperty("imageB", "data:image/png;base64,IMGB");
+      expect(stripped[0].data).toHaveProperty("capturedImage", "data:image/png;base64,CAP");
+      expect(stripped[0].data).toHaveProperty("video", "data:video/mp4;base64,VID");
+      expect(stripped[0].data).toHaveProperty("glbUrl", "data:model/gltf-binary;base64,GLB");
+      expect(stripped[0].data).toHaveProperty("output3dUrl", "data:model/gltf-binary;base64,GLB2");
+      expect(stripped[0].data).toHaveProperty("audioFile", "data:audio/mp3;base64,AUD");
+      expect(stripped[0].data).toHaveProperty("images");
     });
 
-    it("strips history arrays from node data", () => {
+    it("preserves carousel history arrays (metadata only)", () => {
       const nodes: WorkflowNode[] = [
         {
           id: "node-1",
@@ -105,14 +176,14 @@ describe("undoUtils", () => {
           position: { x: 0, y: 0 },
           data: {
             imageHistory: [
-              { timestamp: "2024-01-01", image: "data:image/png;base64,IMG1" },
-              { timestamp: "2024-01-02", image: "data:image/png;base64,IMG2" },
+              { timestamp: "2024-01-01", imageRef: "img_001" },
+              { timestamp: "2024-01-02", imageRef: "img_002" },
             ],
             videoHistory: [
-              { timestamp: "2024-01-01", video: "data:video/mp4;base64,VID1" },
+              { timestamp: "2024-01-01", videoRef: "vid_001" },
             ],
             audioHistory: [
-              { timestamp: "2024-01-01", audio: "data:audio/mp3;base64,AUD1" },
+              { timestamp: "2024-01-01", audioRef: "aud_001" },
             ],
             prompt: "test prompt",
           },
@@ -121,62 +192,10 @@ describe("undoUtils", () => {
 
       const stripped = stripBinaryData(nodes);
 
-      expect(stripped[0].data).not.toHaveProperty("imageHistory");
-      expect(stripped[0].data).not.toHaveProperty("videoHistory");
-      expect(stripped[0].data).not.toHaveProperty("audioHistory");
+      expect(stripped[0].data).toHaveProperty("imageHistory");
+      expect(stripped[0].data).toHaveProperty("videoHistory");
+      expect(stripped[0].data).toHaveProperty("audioHistory");
       expect(stripped[0].data).toHaveProperty("prompt", "test prompt");
-    });
-
-    it("strips thumbnail fields from node data", () => {
-      const nodes: WorkflowNode[] = [
-        {
-          id: "node-1",
-          type: "videoStitch",
-          position: { x: 0, y: 0 },
-          data: {
-            thumbnail: "data:image/png;base64,THUMB123",
-            thumbnails: ["data:image/png;base64,THUMB1", "data:image/png;base64,THUMB2"],
-            clips: [],
-          },
-        },
-      ];
-
-      const stripped = stripBinaryData(nodes);
-
-      expect(stripped[0].data).not.toHaveProperty("thumbnail");
-      expect(stripped[0].data).not.toHaveProperty("thumbnails");
-      expect(stripped[0].data).toHaveProperty("clips");
-    });
-
-    it("preserves non-binary fields", () => {
-      const nodes: WorkflowNode[] = [
-        {
-          id: "node-1",
-          type: "nanoBanana",
-          position: { x: 100, y: 200 },
-          data: {
-            image: "data:image/png;base64,ABC123",
-            prompt: "test prompt",
-            model: "gemini-2.5-flash-image",
-            aspectRatio: "1:1",
-            selectedModel: { provider: "gemini", modelId: "test" },
-            seed: 12345,
-            steps: 20,
-            guidanceScale: 7.5,
-          },
-        },
-      ];
-
-      const stripped = stripBinaryData(nodes);
-
-      expect(stripped[0].data).not.toHaveProperty("image");
-      expect(stripped[0].data).toHaveProperty("prompt", "test prompt");
-      expect(stripped[0].data).toHaveProperty("model", "gemini-2.5-flash-image");
-      expect(stripped[0].data).toHaveProperty("aspectRatio", "1:1");
-      expect(stripped[0].data).toHaveProperty("selectedModel");
-      expect(stripped[0].data).toHaveProperty("seed", 12345);
-      expect(stripped[0].data).toHaveProperty("steps", 20);
-      expect(stripped[0].data).toHaveProperty("guidanceScale", 7.5);
     });
 
     it("preserves ref fields", () => {
@@ -208,6 +227,38 @@ describe("undoUtils", () => {
       expect(stripped[0].data).toHaveProperty("outputAudioRef", "aud_001");
     });
 
+    it("preserves non-binary fields", () => {
+      const nodes: WorkflowNode[] = [
+        {
+          id: "node-1",
+          type: "nanoBanana",
+          position: { x: 100, y: 200 },
+          data: {
+            image: "data:image/png;base64,ABC123",
+            imageRef: "img_001",
+            prompt: "test prompt",
+            model: "gemini-2.5-flash-image",
+            aspectRatio: "1:1",
+            selectedModel: { provider: "gemini", modelId: "test" },
+            seed: 12345,
+            steps: 20,
+            guidanceScale: 7.5,
+          },
+        },
+      ];
+
+      const stripped = stripBinaryData(nodes);
+
+      expect(stripped[0].data).not.toHaveProperty("image");
+      expect(stripped[0].data).toHaveProperty("prompt", "test prompt");
+      expect(stripped[0].data).toHaveProperty("model", "gemini-2.5-flash-image");
+      expect(stripped[0].data).toHaveProperty("aspectRatio", "1:1");
+      expect(stripped[0].data).toHaveProperty("selectedModel");
+      expect(stripped[0].data).toHaveProperty("seed", 12345);
+      expect(stripped[0].data).toHaveProperty("steps", 20);
+      expect(stripped[0].data).toHaveProperty("guidanceScale", 7.5);
+    });
+
     it("does not mutate original nodes", () => {
       const nodes: WorkflowNode[] = [
         {
@@ -216,6 +267,7 @@ describe("undoUtils", () => {
           position: { x: 0, y: 0 },
           data: {
             image: "data:image/png;base64,ABC123",
+            imageRef: "img_001",
             prompt: "test",
           },
         },
@@ -254,6 +306,38 @@ describe("undoUtils", () => {
         prompt: "test prompt",
         variableName: "myPrompt",
       });
+    });
+
+    it("handles mixed nodes: some with refs, some without", () => {
+      const nodes: WorkflowNode[] = [
+        {
+          id: "node-1",
+          type: "imageInput",
+          position: { x: 0, y: 0 },
+          data: {
+            image: "data:image/png;base64,SAVED",
+            imageRef: "img_001", // Has ref → strip
+          },
+        },
+        {
+          id: "node-2",
+          type: "imageInput",
+          position: { x: 100, y: 0 },
+          data: {
+            image: "data:image/png;base64,UNSAVED",
+            // No imageRef → keep
+          },
+        },
+      ];
+
+      const stripped = stripBinaryData(nodes);
+
+      // Node 1: stripped (has ref)
+      expect(stripped[0].data).not.toHaveProperty("image");
+      expect(stripped[0].data).toHaveProperty("imageRef", "img_001");
+
+      // Node 2: kept (no ref)
+      expect(stripped[1].data).toHaveProperty("image", "data:image/png;base64,UNSAVED");
     });
   });
 
@@ -386,7 +470,7 @@ describe("undoUtils", () => {
       expect(result).not.toHaveProperty("hasUnsavedChanges");
     });
 
-    it("returned nodes have binary data stripped", () => {
+    it("returned nodes have recoverable binary data stripped", () => {
       const mockState = {
         nodes: [
           {
@@ -412,43 +496,119 @@ describe("undoUtils", () => {
       expect(result.nodes[0].data).toHaveProperty("imageRef", "img_001");
       expect(result.nodes[0].data).toHaveProperty("prompt", "test");
     });
+
+    it("returned nodes keep unrecoverable binary data", () => {
+      const mockState = {
+        nodes: [
+          {
+            id: "node-1",
+            type: "imageInput" as const,
+            position: { x: 0, y: 0 },
+            data: {
+              image: "data:image/png;base64,UNSAVED",
+              // No imageRef
+              prompt: "test",
+            },
+          },
+        ],
+        edges: [],
+        edgeStyle: "curved" as EdgeStyle,
+        groups: {},
+        isRunning: false,
+      };
+
+      const result = partializeForUndo(mockState);
+
+      expect(result.nodes[0].data).toHaveProperty("image", "data:image/png;base64,UNSAVED");
+      expect(result.nodes[0].data).toHaveProperty("prompt", "test");
+    });
   });
 
-  describe("BINARY_DATA_KEYS", () => {
-    it("contains all expected binary field names", () => {
-      const expectedKeys = [
-        // Image fields
-        "image",
-        "outputImage",
-        "sourceImage",
-        "inputImages",
-        "images",
-        "imageA",
-        "imageB",
-        "capturedImage",
-        // Video fields
-        "outputVideo",
-        "video",
-        // Audio fields
-        "audioFile",
-        "outputAudio",
-        "audio",
-        // 3D fields
-        "glbUrl",
-        "output3dUrl",
-        // History arrays
-        "imageHistory",
-        "videoHistory",
-        "audioHistory",
-        "globalImageHistory",
-        // Thumbnail fields
-        "thumbnail",
-        "thumbnails",
-      ];
+  describe("undoWithMedia", () => {
+    it("calls undo when pastStates is non-empty", () => {
+      const undo = vi.fn();
+      const pause = vi.fn();
+      const resume = vi.fn();
+      const mockStore = {
+        getState: vi.fn(() => ({ nodes: [], edges: [], saveDirectoryPath: null })),
+        setState: vi.fn(),
+        temporal: {
+          getState: vi.fn(() => ({
+            pastStates: [{}],
+            undo,
+            pause,
+            resume,
+          })),
+        },
+      } as any;
 
-      expectedKeys.forEach((key) => {
-        expect(BINARY_DATA_KEYS.has(key)).toBe(true);
-      });
+      undoWithMedia(mockStore);
+
+      expect(undo).toHaveBeenCalled();
+      expect(mockStore.setState).toHaveBeenCalledWith({ hasUnsavedChanges: true });
+    });
+
+    it("does nothing when pastStates is empty", () => {
+      const undo = vi.fn();
+      const mockStore = {
+        getState: vi.fn(),
+        setState: vi.fn(),
+        temporal: {
+          getState: vi.fn(() => ({
+            pastStates: [],
+            undo,
+          })),
+        },
+      } as any;
+
+      undoWithMedia(mockStore);
+
+      expect(undo).not.toHaveBeenCalled();
+      expect(mockStore.setState).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("redoWithMedia", () => {
+    it("calls redo when futureStates is non-empty", () => {
+      const redo = vi.fn();
+      const pause = vi.fn();
+      const resume = vi.fn();
+      const mockStore = {
+        getState: vi.fn(() => ({ nodes: [], edges: [], saveDirectoryPath: null })),
+        setState: vi.fn(),
+        temporal: {
+          getState: vi.fn(() => ({
+            futureStates: [{}],
+            redo,
+            pause,
+            resume,
+          })),
+        },
+      } as any;
+
+      redoWithMedia(mockStore);
+
+      expect(redo).toHaveBeenCalled();
+      expect(mockStore.setState).toHaveBeenCalledWith({ hasUnsavedChanges: true });
+    });
+
+    it("does nothing when futureStates is empty", () => {
+      const redo = vi.fn();
+      const mockStore = {
+        getState: vi.fn(),
+        setState: vi.fn(),
+        temporal: {
+          getState: vi.fn(() => ({
+            futureStates: [],
+            redo,
+          })),
+        },
+      } as any;
+
+      redoWithMedia(mockStore);
+
+      expect(redo).not.toHaveBeenCalled();
+      expect(mockStore.setState).not.toHaveBeenCalled();
     });
   });
 });
