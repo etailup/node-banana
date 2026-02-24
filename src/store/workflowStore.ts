@@ -1541,8 +1541,8 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
     const configs = loadSaveConfigs();
     const savedConfig = workflow.id ? configs[workflow.id] : null;
 
-    // Determine the workflow directory path (passed in, from saved config, or embedded in workflow)
-    const directoryPath = workflowPath || savedConfig?.directoryPath || workflow.directoryPath;
+    // Determine the workflow directory path (passed in or from saved config)
+    const directoryPath = workflowPath || savedConfig?.directoryPath || null;
 
     // Hydrate images if we have a directory path and the workflow has image refs
     let hydratedWorkflow = workflow;
@@ -1737,7 +1737,6 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
         version: 1,
         id: workflowId,
         name: workflowName,
-        directoryPath: saveDirectoryPath,
         nodes: currentNodes,
         edges,
         edgeStyle,
