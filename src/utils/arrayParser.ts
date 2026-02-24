@@ -45,6 +45,9 @@ function isUnsafePattern(pattern: string): boolean {
         if (hadQuantifier) return true; // nested quantifier!
         // Mark parent depth as having a quantifier
         quantifierAtDepth[depth] = true;
+      } else if (hadQuantifier) {
+        // Group contained quantifier but isn't followed by one - propagate to parent
+        quantifierAtDepth[depth] = true;
       }
     } else if ((ch === '+' || ch === '*') && depth > 0) {
       quantifierAtDepth[depth] = true;
