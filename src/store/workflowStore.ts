@@ -1845,7 +1845,7 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
       return false;
     }
 
-    const { saveDirectoryPath, workflowId: prevId, workflowName: prevName } = get();
+    const { saveDirectoryPath, workflowId: prevId, workflowName: prevName, hasUnsavedChanges: prevUnsaved } = get();
     if (!saveDirectoryPath) {
       return false;
     }
@@ -1861,7 +1861,7 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
     const success = await get().saveToFile();
     if (!success) {
       // Rollback to previous identity on failure
-      set({ workflowId: prevId, workflowName: prevName });
+      set({ workflowId: prevId, workflowName: prevName, hasUnsavedChanges: prevUnsaved });
     }
     return success;
   },
