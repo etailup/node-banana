@@ -582,8 +582,16 @@ export function WorkflowCanvas() {
 
       const { clientX, clientY } = event as MouseEvent;
       const fromHandleId = connectionState.fromHandle?.id || null;
-      const fromHandleType = getHandleType(fromHandleId); // Use getHandleType for dynamic handles
+      let fromHandleType = getHandleType(fromHandleId); // Use getHandleType for dynamic handles
       const isFromSource = connectionState.fromHandle?.type === "source";
+
+      // Switch output handles have dynamic IDs — resolve type from node's inputType
+      if (!fromHandleType && connectionState.fromNode.type === "switch") {
+        const switchData = connectionState.fromNode.data as { inputType?: string | null };
+        if (switchData.inputType) {
+          fromHandleType = switchData.inputType as "image" | "text" | "video" | "audio" | "3d" | "easeCurve";
+        }
+      }
 
       // Helper to find a compatible handle on a node by type
       const findCompatibleHandle = (
