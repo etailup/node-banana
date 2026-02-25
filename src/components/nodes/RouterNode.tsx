@@ -56,6 +56,7 @@ export const RouterNode = memo(({ id, data, selected }: NodeProps<WorkflowNode>)
 
   return (
     <BaseNode
+      id={id}
       title="Router"
       customTitle={nodeData.customTitle}
       comment={nodeData.comment}

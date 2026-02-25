@@ -77,6 +77,7 @@ import {
   executeVideoTrim,
   executeVideoFrameGrab,
   executeGlbViewer,
+  executeRouter,
 } from "./execution";
 import type { NodeExecutionContext } from "./execution";
 export type { LevelGroup } from "./utils/executionUtils";
@@ -1008,6 +1009,9 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
           case "videoFrameGrab":
             await executeVideoFrameGrab(executionCtx);
             break;
+          case "router":
+            await executeRouter(executionCtx);
+            break;
         }
     }; // End of executeSingleNode helper
 
@@ -1325,6 +1329,9 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
           break;
         case "videoFrameGrab":
           await executeVideoFrameGrab(executionCtx);
+          break;
+        case "router":
+          await executeRouter(executionCtx);
           break;
       }
     };
