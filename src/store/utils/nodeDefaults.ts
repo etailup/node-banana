@@ -19,6 +19,7 @@ import {
   VideoTrimNodeData,
   VideoFrameGrabNodeData,
   RouterNodeData,
+  SwitchNodeData,
   GLBViewerNodeData,
   WorkflowNodeData,
   GroupColor,
@@ -51,6 +52,7 @@ export const defaultNodeDimensions: Record<NodeType, { width: number; height: nu
   videoTrim: { width: 360, height: 360 },
   videoFrameGrab: { width: 320, height: 320 },
   router: { width: 200, height: 80 },
+  switch: { width: 220, height: 120 },
   glbViewer: { width: 360, height: 380 },
 };
 
@@ -287,6 +289,13 @@ export const createDefaultNodeData = (type: NodeType): WorkflowNodeData => {
       } as VideoFrameGrabNodeData;
     case "router":
       return {} as RouterNodeData;
+    case "switch":
+      return {
+        inputType: null,
+        switches: [
+          { id: Math.random().toString(36).slice(2, 9), name: "Output 1", enabled: true }
+        ]
+      } as SwitchNodeData;
     case "glbViewer":
       return {
         glbUrl: null,

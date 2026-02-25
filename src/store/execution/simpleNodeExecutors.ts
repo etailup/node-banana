@@ -327,6 +327,17 @@ export async function executeRouter(ctx: NodeExecutionContext): Promise<void> {
 }
 
 /**
+ * Switch node: pure passthrough with toggle-controlled routing.
+ */
+export async function executeSwitch(ctx: NodeExecutionContext): Promise<void> {
+  // Switch is pure passthrough — data flows via edge traversal in getConnectedInputs.
+  // Disabled outputs are filtered during traversal.
+  ctx.updateNodeData(ctx.node.id, { status: "loading" });
+  await new Promise(resolve => setTimeout(resolve, 50));
+  ctx.updateNodeData(ctx.node.id, { status: "complete" });
+}
+
+/**
  * GLB Viewer node: receives 3D model URL from upstream, fetches and loads it.
  */
 export async function executeGlbViewer(ctx: NodeExecutionContext): Promise<void> {

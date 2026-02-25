@@ -32,6 +32,7 @@ const VALID_NODE_TYPES: NodeType[] = [
   "videoTrim",
   "videoFrameGrab",
   "router",
+  "switch",
   "glbViewer",
 ];
 
@@ -59,6 +60,7 @@ const DEFAULT_DIMENSIONS: Record<NodeType, { width: number; height: number }> = 
   videoTrim: { width: 360, height: 360 },
   videoFrameGrab: { width: 320, height: 320 },
   router: { width: 200, height: 80 },
+  switch: { width: 220, height: 120 },
   glbViewer: { width: 360, height: 380 },
 };
 
@@ -391,6 +393,8 @@ function createDefaultNodeData(type: NodeType): WorkflowNodeData {
       };
     case "router":
       return {};
+    case "switch":
+      return { inputType: null, switches: [{ id: "sw-1", name: "Output 1", enabled: true }] };
     case "glbViewer":
       return {
         glbUrl: null,

@@ -42,6 +42,7 @@ export type NodeType =
   | "videoTrim"
   | "videoFrameGrab"
   | "router"
+  | "switch"
   | "generate3d"
   | "glbViewer";
 
@@ -358,6 +359,18 @@ export interface RouterNodeData extends BaseNodeData {
 }
 
 /**
+ * Switch node - toggle-controlled routing with named outputs
+ */
+export interface SwitchNodeData extends BaseNodeData {
+  inputType: HandleType | null;  // Derived from connected input edge, null when disconnected
+  switches: Array<{
+    id: string;        // Unique identifier for handle mapping
+    name: string;      // User-editable label
+    enabled: boolean;  // Toggle state
+  }>;
+}
+
+/**
  * Split Grid node - splits image into grid cells for parallel processing
  */
 export interface SplitGridNodeData extends BaseNodeData {
@@ -416,6 +429,7 @@ export type WorkflowNodeData =
   | VideoTrimNodeData
   | VideoFrameGrabNodeData
   | RouterNodeData
+  | SwitchNodeData
   | GLBViewerNodeData;
 
 /**

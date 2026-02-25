@@ -18,4 +18,5 @@ export { EaseCurveNode } from "./EaseCurveNode";
 export { VideoTrimNode } from "./VideoTrimNode";
 export { VideoFrameGrabNode } from "./VideoFrameGrabNode";
 export { RouterNode } from "./RouterNode";
+export { SwitchNode } from "./SwitchNode";
 export { GroupNode } from "./GroupNode";
