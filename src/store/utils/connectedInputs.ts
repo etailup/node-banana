@@ -125,7 +125,8 @@ export function getConnectedInputsPure(
   nodeId: string,
   nodes: WorkflowNode[],
   edges: WorkflowEdge[],
-  visited?: Set<string>
+  visited?: Set<string>,
+  dimmedNodeIds?: Set<string>
 ): ConnectedInputs {
   const _visited = visited || new Set<string>();
   if (_visited.has(nodeId)) return { images: [], videos: [], audio: [], model3d: null, text: null, dynamicInputs: {}, easeCurve: null };
@@ -169,9 +170,12 @@ export function getConnectedInputsPure(
       const sourceNode = nodes.find((n) => n.id === edge.source);
       if (!sourceNode) return;
 
+      // Skip dimmed source nodes — their data should not flow downstream
+      if (dimmedNodeIds && dimmedNodeIds.has(sourceNode.id)) return;
+
       // Router passthrough — traverse upstream to find actual data source
       if (sourceNode.type === "router") {
-        const routerInputs = getConnectedInputsPure(sourceNode.id, nodes, edges, _visited);
+        const routerInputs = getConnectedInputsPure(sourceNode.id, nodes, edges, _visited, dimmedNodeIds);
         // Determine which type this edge carries based on the source handle
         const edgeType = edge.sourceHandle; // Will be "image", "text", "video", "audio", "3d", or "easeCurve"
 
@@ -204,7 +208,7 @@ export function getConnectedInputsPure(
         }
 
         // Enabled switch: recursively get upstream data (same pattern as router)
-        const switchInputs = getConnectedInputsPure(sourceNode.id, nodes, edges, _visited);
+        const switchInputs = getConnectedInputsPure(sourceNode.id, nodes, edges, _visited, dimmedNodeIds);
         const edgeType = switchData.inputType;
 
         if (edgeType === "image") {

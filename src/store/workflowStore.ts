@@ -848,8 +848,8 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
   },
 
   getConnectedInputs: (nodeId: string) => {
-    const { edges, nodes } = get();
-    return getConnectedInputsPure(nodeId, nodes, edges);
+    const { edges, nodes, dimmedNodeIds } = get();
+    return getConnectedInputsPure(nodeId, nodes, edges, undefined, dimmedNodeIds);
   },
 
   validateWorkflow: () => {
