@@ -320,16 +320,6 @@ export async function generateWithGeminiVideo(
   const videoSizeMB = (videoBuffer.byteLength / (1024 * 1024)).toFixed(2);
   console.log(`[API:${requestId}] Video downloaded: ${videoSizeMB}MB`);
 
-  // Convert to base64 data URL if small enough, otherwise return URL
-  const MAX_BASE64_SIZE = 20 * 1024 * 1024; // 20MB
-  if (videoBuffer.byteLength > MAX_BASE64_SIZE) {
-    console.log(`[API:${requestId}] Video too large for base64 (${videoSizeMB}MB), returning URL`);
-    return {
-      success: true,
-      outputs: [{ type: "video", data: "", url: videoUrl }],
-    };
-  }
-
   const base64Video = Buffer.from(videoBuffer).toString("base64");
   const dataUrl = `data:video/mp4;base64,${base64Video}`;
 
