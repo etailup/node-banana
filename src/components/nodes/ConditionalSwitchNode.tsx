@@ -376,7 +376,7 @@ export const ConditionalSwitchNode = memo(({ id, data, selected }: NodeProps<Wor
             )}
           </div>
 
-          <span className="text-[10px] text-neutral-300 ml-4">Default</span>
+          <span className="text-[10px] text-neutral-300 ml-4">Fallback</span>
         </div>
 
         {/* Add rule button — after Default so it doesn't displace handle alignment */}
