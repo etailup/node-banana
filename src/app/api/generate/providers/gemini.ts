@@ -272,7 +272,7 @@ export async function generateWithGeminiVideo(
 
   // Start video generation (async operation)
   const startTime = Date.now();
-  let operation = await ai.models.generateVideos(requestArgs as Parameters<typeof ai.models.generateVideos>[0]);
+  let operation = await ai.models.generateVideos(requestArgs as unknown as Parameters<typeof ai.models.generateVideos>[0]);
 
   // Poll for completion (10s intervals, 5min timeout)
   const POLL_INTERVAL = 10_000;
