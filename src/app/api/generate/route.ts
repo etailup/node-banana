@@ -13,7 +13,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GenerateRequest, GenerateResponse, ModelType, SelectedModel, ProviderType } from "@/types";
 import { GenerationInput, ModelCapability } from "@/lib/providers/types";
-import { generateWithGemini } from "./providers/gemini";
+import { generateWithGemini, generateWithGeminiVideo } from "./providers/gemini";
 import { generateWithReplicate } from "./providers/replicate";
 import { clearFalInputMappingCache as _clearFalInputMappingCache, generateWithFalQueue } from "./providers/fal";
 import { generateWithKie } from "./providers/kie";
@@ -95,6 +95,7 @@ export async function POST(request: NextRequest) {
       aspectRatio,
       resolution,
       useGoogleSearch,
+      useImageSearch,
       selectedModel,
       parameters,
       dynamicInputs,
@@ -477,6 +478,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if this is a Veo video model request
+    if (selectedModel?.modelId?.startsWith("veo-")) {
+      const result = await generateWithGeminiVideo(
+        requestId,
+        geminiApiKey,
+        selectedModel.modelId,
+        resolvedPrompt || "",
+        images || [],
+        parameters || {},
+      );
+
+      if (!result.success) {
+        return NextResponse.json<GenerateResponse>(
+          { success: false, error: result.error || "Video generation failed" },
+          { status: 500 }
+        );
+      }
+
+      const output = result.outputs?.[0];
+      if (!output?.data && !output?.url) {
+        return NextResponse.json<GenerateResponse>(
+          { success: false, error: "No output in video generation result" },
+          { status: 500 }
+        );
+      }
+
+      return buildMediaResponse(output);
+    }
+
     return await generateWithGemini(
       requestId,
       geminiApiKey,
@@ -485,7 +515,8 @@ export async function POST(request: NextRequest) {
       geminiModel,
       aspectRatio,
       resolution,
-      useGoogleSearch
+      useGoogleSearch,
+      useImageSearch
     );
   } catch (error) {
     // Extract error information

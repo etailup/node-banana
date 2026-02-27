@@ -173,7 +173,8 @@ export interface NanoBananaNodeData extends BaseNodeData {
   resolution: Resolution; // Only used by Nano Banana Pro
   model: ModelType;
   selectedModel?: SelectedModel; // Multi-provider model selection (optional for backward compat)
-  useGoogleSearch: boolean; // Only available for Nano Banana Pro
+  useGoogleSearch: boolean; // Only available for Nano Banana Pro and Nano Banana 2
+  useImageSearch: boolean; // Only available for Nano Banana 2
   parameters?: Record<string, unknown>; // Model-specific parameters for external providers
   inputSchema?: ModelInputDef[]; // Model's input schema for dynamic handles
   status: NodeStatus;
@@ -408,6 +409,7 @@ export interface SplitGridNodeData extends BaseNodeData {
     resolution: Resolution;
     model: ModelType;
     useGoogleSearch: boolean;
+    useImageSearch: boolean;
   };
   childNodeIds: Array<{
     imageInput: string;
@@ -482,6 +484,7 @@ export interface GenerateImageNodeDefaults {
   aspectRatio?: string;
   resolution?: string;
   useGoogleSearch?: boolean;
+  useImageSearch?: boolean;
 }
 
 export interface GenerateVideoNodeDefaults {
