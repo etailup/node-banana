@@ -401,8 +401,6 @@ function createDefaultNodeData(type: NodeType): WorkflowNodeData {
       return { inputType: null, switches: [{ id: "sw-1", name: "Output 1", enabled: true }] };
     case "conditionalSwitch":
       return {
-        customTitle: null,
-        comment: null,
         incomingText: null,
         rules: [
           {
