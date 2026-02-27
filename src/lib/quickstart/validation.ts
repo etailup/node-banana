@@ -399,6 +399,21 @@ function createDefaultNodeData(type: NodeType): WorkflowNodeData {
       return {};
     case "switch":
       return { inputType: null, switches: [{ id: "sw-1", name: "Output 1", enabled: true }] };
+    case "conditionalSwitch":
+      return {
+        customTitle: null,
+        comment: null,
+        incomingText: null,
+        rules: [
+          {
+            id: "rule-" + Math.random().toString(36).slice(2, 9),
+            value: "",
+            mode: "contains",
+            label: "Rule 1",
+            isMatched: false,
+          }
+        ]
+      };
     case "glbViewer":
       return {
         glbUrl: null,
