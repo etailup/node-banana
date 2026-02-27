@@ -89,6 +89,32 @@ import type { NodeExecutionContext } from "./execution";
 export type { LevelGroup } from "./utils/executionUtils";
 export { CONCURRENCY_SETTINGS_KEY } from "./utils/executionUtils";
 
+/**
+ * Evaluate conditional switch rules against incoming text, update node data, then execute.
+ */
+async function evaluateAndExecuteConditionalSwitch(
+  node: WorkflowNode,
+  executionCtx: NodeExecutionContext,
+  getConnectedInputs: (nodeId: string) => { text: string | null; images: string[]; videos: string[]; audio: string[]; model3d: string | null; dynamicInputs: Record<string, string | string[]>; easeCurve: { bezierHandles: [number, number, number, number]; easingPreset: string | null } | null },
+  updateNodeData: (nodeId: string, data: Partial<WorkflowNodeData>) => void,
+): Promise<void> {
+  const condInputs = getConnectedInputs(node.id);
+  const incomingText = condInputs.text;
+  const nodeData = node.data as { rules: Array<{ id: string; value: string; mode: string; label: string; isMatched: boolean }> };
+
+  const updatedRules = nodeData.rules.map(rule => {
+    const isMatched = evaluateRule(incomingText, rule.value, rule.mode as MatchMode);
+    return { ...rule, isMatched };
+  });
+
+  updateNodeData(node.id, {
+    incomingText,
+    rules: updatedRules,
+  });
+
+  await executeConditionalSwitch(executionCtx);
+}
+
 function saveLogSession(): void {
   const session = logger.getCurrentSession();
   if (session) {
@@ -1057,28 +1083,9 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
           case "switch":
             await executeSwitch(executionCtx);
             break;
-          case "conditionalSwitch": {
-            // Before executing, compute fresh match status from incoming text
-            const condInputs = get().getConnectedInputs(node.id);
-            const incomingText = condInputs.text;
-            const nodeData = node.data as { rules: Array<{ id: string; value: string; mode: string; label: string; isMatched: boolean }> };
-
-            // Evaluate each rule against incoming text
-            const updatedRules = nodeData.rules.map(rule => {
-              const isMatched = evaluateRule(incomingText, rule.value, rule.mode as MatchMode);
-              return { ...rule, isMatched };
-            });
-
-            // Update node data with fresh match status
-            get().updateNodeData(node.id, {
-              incomingText,
-              rules: updatedRules,
-            });
-
-            // Then execute the node (status flash)
-            await executeConditionalSwitch(executionCtx);
+          case "conditionalSwitch":
+            await evaluateAndExecuteConditionalSwitch(node, executionCtx, get().getConnectedInputs, get().updateNodeData);
             break;
-          }
         }
     }; // End of executeSingleNode helper
 
@@ -1403,28 +1410,9 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
         case "switch":
           await executeSwitch(executionCtx);
           break;
-        case "conditionalSwitch": {
-          // Before executing, compute fresh match status from incoming text
-          const condInputs = get().getConnectedInputs(node.id);
-          const incomingText = condInputs.text;
-          const nodeData = node.data as { rules: Array<{ id: string; value: string; mode: string; label: string; isMatched: boolean }> };
-
-          // Evaluate each rule against incoming text
-          const updatedRules = nodeData.rules.map(rule => {
-            const isMatched = evaluateRule(incomingText, rule.value, rule.mode as MatchMode);
-            return { ...rule, isMatched };
-          });
-
-          // Update node data with fresh match status
-          get().updateNodeData(node.id, {
-            incomingText,
-            rules: updatedRules,
-          });
-
-          // Then execute the node (status flash)
-          await executeConditionalSwitch(executionCtx);
+        case "conditionalSwitch":
+          await evaluateAndExecuteConditionalSwitch(node, executionCtx, get().getConnectedInputs, get().updateNodeData);
           break;
-        }
       }
     };
 
