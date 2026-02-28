@@ -29,6 +29,20 @@ function isVeoModel(modelId: string | undefined): boolean {
   return modelId.startsWith("veo-");
 }
 
+/** Build the hardcoded inputSchema for a Veo model, or undefined for non-Veo */
+function buildVeoInputSchema(modelId: string): ModelInputDef[] | undefined {
+  if (!isVeoModel(modelId)) return undefined;
+  const isI2V = modelId.includes("image-to-video");
+  const inputs: ModelInputDef[] = [
+    { name: "prompt", type: "text", required: true, label: "Prompt" },
+    { name: "negative_prompt", type: "text", required: false, label: "Neg. Prompt" },
+  ];
+  if (isI2V) {
+    inputs.unshift({ name: "image", type: "image", required: true, label: "Image" });
+  }
+  return inputs;
+}
+
 type GenerateVideoNodeType = Node<GenerateVideoNodeData, "generateVideo">;
 
 export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVideoNodeType>) {
@@ -114,21 +128,6 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
     fetchModels();
   }, [fetchModels]);
 
-  // Set inputSchema for Veo models (hardcoded, not fetched via ModelParameters)
-  const selectedModelId = nodeData.selectedModel?.modelId;
-  useEffect(() => {
-    if (!isVeoModel(selectedModelId)) return;
-    const isI2V = selectedModelId!.includes("image-to-video");
-    const inputs: ModelInputDef[] = [
-      { name: "prompt", type: "text", required: true, label: "Prompt" },
-      { name: "negative_prompt", type: "text", required: false, label: "Neg. Prompt" },
-    ];
-    if (isI2V) {
-      inputs.unshift({ name: "image", type: "image", required: true, label: "Image" });
-    }
-    updateNodeData(id, { inputSchema: inputs });
-  }, [id, selectedModelId, updateNodeData]);
-
   // Handle provider change
   const handleProviderChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -139,8 +138,8 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
         modelId: "",
         displayName: "Select model...",
       };
-      // Clear parameters when switching providers (different providers have different schemas)
-      updateNodeData(id, { selectedModel: newSelectedModel, parameters: {} });
+      // Clear parameters and schema when switching providers
+      updateNodeData(id, { selectedModel: newSelectedModel, parameters: {}, inputSchema: undefined });
     },
     [id, updateNodeData]
   );
@@ -157,7 +156,12 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
           displayName: model.name,
         };
         // Clear parameters when changing models (different models have different schemas)
-        updateNodeData(id, { selectedModel: newSelectedModel, parameters: {} });
+        // Set inputSchema immediately for Veo models so handles render in the same update
+        updateNodeData(id, {
+          selectedModel: newSelectedModel,
+          parameters: {},
+          inputSchema: buildVeoInputSchema(model.id),
+        });
       }
     },
     [id, currentProvider, externalModels, updateNodeData]
@@ -303,7 +307,12 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
       modelId: model.id,
       displayName: model.name,
     };
-    updateNodeData(id, { selectedModel: newSelectedModel, parameters: {} });
+    // Set inputSchema immediately for Veo models so handles render in the same update
+    updateNodeData(id, {
+      selectedModel: newSelectedModel,
+      parameters: {},
+      inputSchema: buildVeoInputSchema(model.id),
+    });
     setIsBrowseDialogOpen(false);
   }, [id, updateNodeData]);
 
