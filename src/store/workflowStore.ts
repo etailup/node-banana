@@ -110,6 +110,7 @@ async function evaluateAndExecuteConditionalSwitch(
   updateNodeData(node.id, {
     incomingText,
     rules: updatedRules,
+    evaluationPaused: false,
   });
 
   await executeConditionalSwitch(executionCtx);
@@ -533,7 +534,7 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
     if (node?.type === "switch" && "switches" in data) {
       get().recomputeDimmedNodes();
     }
-    if (node?.type === "conditionalSwitch" && "rules" in data) {
+    if (node?.type === "conditionalSwitch" && ("rules" in data || "evaluationPaused" in data)) {
       get().recomputeDimmedNodes();
     }
   },

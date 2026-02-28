@@ -232,25 +232,29 @@ export function getConnectedInputsPure(
       // Conditional Switch passthrough — traverse upstream if output is active (matched or default)
       if (sourceNode.type === "conditionalSwitch") {
         const condData = sourceNode.data as ConditionalSwitchNodeData;
-        const sourceHandle = edge.sourceHandle;
 
-        // Find matching rule or check if default
-        const rule = condData.rules.find(r => r.id === sourceHandle);
-        const isDefaultHandle = sourceHandle === "default";
+        // When evaluation is paused, all outputs are active (gate is open)
+        if (!condData.evaluationPaused) {
+          const sourceHandle = edge.sourceHandle;
 
-        // Determine if this output is active
-        let isActive = false;
-        if (rule) {
-          isActive = rule.isMatched;
-        } else if (isDefaultHandle) {
-          // Default is active when NO rules match
-          isActive = !condData.rules.some(r => r.isMatched);
+          // Find matching rule or check if default
+          const rule = condData.rules.find(r => r.id === sourceHandle);
+          const isDefaultHandle = sourceHandle === "default";
+
+          // Determine if this output is active
+          let isActive = false;
+          if (rule) {
+            isActive = rule.isMatched;
+          } else if (isDefaultHandle) {
+            // Default is active when NO rules match
+            isActive = !condData.rules.some(r => r.isMatched);
+          }
+
+          // Block non-active outputs (data does not flow through non-matching rules)
+          if (!isActive) return;
         }
 
-        // Block non-active outputs (data does not flow through non-matching rules)
-        if (!isActive) return;
-
-        // Active output: ConditionalSwitch is a gate — trigger downstream but don't pass data through
+        // Active output (or paused): ConditionalSwitch is a gate — trigger downstream but don't pass data through
         return;
       }
 

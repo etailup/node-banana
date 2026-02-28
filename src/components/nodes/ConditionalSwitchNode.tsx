@@ -25,6 +25,9 @@ export const ConditionalSwitchNode = memo(({ id, data, selected }: NodeProps<Wor
 
   // Evaluate all rules and update match status
   useEffect(() => {
+    // Skip re-evaluation when paused — prevents upstream text from re-setting isMatched
+    if (nodeData.evaluationPaused) return;
+
     const updatedRules = nodeData.rules.map(rule => ({
       ...rule,
       isMatched: evaluateRule(incomingText, rule.value, rule.mode)
@@ -44,7 +47,7 @@ export const ConditionalSwitchNode = memo(({ id, data, selected }: NodeProps<Wor
         rules: updatedRules
       });
     }
-  }, [incomingText, nodeData.rules, nodeData.incomingText, id, updateNodeData]);
+  }, [incomingText, nodeData.rules, nodeData.incomingText, nodeData.evaluationPaused, id, updateNodeData]);
 
   // Ref-based handle positioning — measure actual row DOM positions
   const ruleRowRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -98,24 +101,24 @@ export const ConditionalSwitchNode = memo(({ id, data, selected }: NodeProps<Wor
     updateNodeInternals(id);
   }, [ruleCount, id, minHeight, setNodes, updateNodeInternals]);
 
-  // Handle rule value change
+  // Handle rule value change (auto-unpauses evaluation)
   const handleRuleValueChange = useCallback(
     (ruleId: string, newValue: string) => {
       const updatedRules = nodeData.rules.map((rule) =>
         rule.id === ruleId ? { ...rule, value: newValue } : rule
       );
-      updateNodeData(id, { rules: updatedRules });
+      updateNodeData(id, { rules: updatedRules, evaluationPaused: false });
     },
     [id, nodeData.rules, updateNodeData]
   );
 
-  // Handle mode change
+  // Handle mode change (auto-unpauses evaluation)
   const handleModeChange = useCallback(
     (ruleId: string, newMode: MatchMode) => {
       const updatedRules = nodeData.rules.map((rule) =>
         rule.id === ruleId ? { ...rule, mode: newMode } : rule
       );
-      updateNodeData(id, { rules: updatedRules });
+      updateNodeData(id, { rules: updatedRules, evaluationPaused: false });
     },
     [id, nodeData.rules, updateNodeData]
   );
@@ -159,6 +162,22 @@ export const ConditionalSwitchNode = memo(({ id, data, selected }: NodeProps<Wor
     updateNodeData(id, { rules: [...nodeData.rules, newRule] });
   }, [id, nodeData.rules, updateNodeData]);
 
+  // Clear evaluation state — pauses re-evaluation, resets all matches, un-dims downstream
+  const handleClear = useCallback(() => {
+    const clearedRules = nodeData.rules.map(rule => ({
+      ...rule,
+      isMatched: false,
+    }));
+    updateNodeData(id, {
+      evaluationPaused: true,
+      incomingText: null,
+      rules: clearedRules,
+    });
+  }, [id, nodeData.rules, updateNodeData]);
+
+  // Show clear button when there's evaluation state to clear and not already paused
+  const showClearButton = !nodeData.evaluationPaused && nodeData.incomingText !== null;
+
   // Handle reorder (move up)
   const handleMoveUp = useCallback(
     (index: number) => {
@@ -181,8 +200,8 @@ export const ConditionalSwitchNode = memo(({ id, data, selected }: NodeProps<Wor
     [id, nodeData.rules, updateNodeData]
   );
 
-  // Check if default is matched (no rules matched)
-  const defaultMatched = !nodeData.rules.some(r => r.isMatched);
+  // Check if default is matched (no rules matched) — suppress when paused
+  const defaultMatched = !nodeData.evaluationPaused && !nodeData.rules.some(r => r.isMatched);
 
   return (
     <BaseNode
@@ -196,6 +215,22 @@ export const ConditionalSwitchNode = memo(({ id, data, selected }: NodeProps<Wor
       minWidth={260}
       minHeight={minHeight}
       className="bg-teal-950/80 border-teal-600"
+      headerButtons={showClearButton ? (
+        <div className="relative ml-2 shrink-0 group">
+          <button
+            onClick={handleClear}
+            className="nodrag nopan p-0.5 rounded transition-all duration-200 ease-in-out flex items-center overflow-hidden group-hover:pr-2 text-neutral-500 group-hover:text-neutral-200 border border-neutral-600"
+            title="Clear evaluation"
+          >
+            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            <span className="text-[9px] whitespace-nowrap max-w-0 group-hover:max-w-[60px] transition-all duration-200 ease-in-out overflow-hidden opacity-0 group-hover:opacity-100">
+              Clear
+            </span>
+          </button>
+        </div>
+      ) : undefined}
     >
       {/* Input handle (left) - text only, aligned with header */}
       <Handle
@@ -216,7 +251,9 @@ export const ConditionalSwitchNode = memo(({ id, data, selected }: NodeProps<Wor
       <div className="px-2 py-1">
         {/* Text preview — fixed height, above the handle-aligned area */}
         <div className="text-[10px] text-neutral-400 truncate h-5 flex items-center">
-          {incomingText ? (
+          {nodeData.evaluationPaused ? (
+            <span className="text-yellow-400">Evaluation paused</span>
+          ) : incomingText ? (
             <>Input: &quot;{incomingText.slice(0, 50)}{incomingText.length > 50 ? "..." : ""}&quot;</>
           ) : (
             "No input connected"

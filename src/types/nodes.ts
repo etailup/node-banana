@@ -394,6 +394,7 @@ export interface ConditionalSwitchRule {
 export interface ConditionalSwitchNodeData extends BaseNodeData {
   incomingText: string | null;  // Upstream text for evaluation and display
   rules: ConditionalSwitchRule[]; // User-defined rules
+  evaluationPaused?: boolean;   // When true, skips rule evaluation and downstream dimming
 }
 
 /**

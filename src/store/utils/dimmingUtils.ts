@@ -36,6 +36,9 @@ export function computeDimmedNodes(
       const condData = node.data as ConditionalSwitchNodeData;
       if (!condData.rules) return;
 
+      // When evaluation is paused, skip dimming entirely — all paths stay active
+      if (condData.evaluationPaused) return;
+
       // Non-matching rules: their downstream should be dimmed
       condData.rules.forEach(rule => {
         if (rule.isMatched) return; // Only process non-matching rules
@@ -83,20 +86,24 @@ export function computeDimmedNodes(
         }
       } else if (sourceNode?.type === "conditionalSwitch") {
         const condData = sourceNode.data as ConditionalSwitchNodeData;
-        const rule = condData.rules?.find(r => r.id === edge.sourceHandle);
-        const isDefaultHandle = edge.sourceHandle === "default";
 
-        // Check if this output is inactive
-        let isInactive = false;
-        if (rule) {
-          isInactive = !rule.isMatched;
-        } else if (isDefaultHandle) {
-          // Default is inactive when any rule matches
-          isInactive = condData.rules?.some(r => r.isMatched) ?? false;
-        }
+        // When evaluation is paused, outputs are not inactive
+        if (!condData.evaluationPaused) {
+          const rule = condData.rules?.find(r => r.id === edge.sourceHandle);
+          const isDefaultHandle = edge.sourceHandle === "default";
 
-        if (isInactive && edge.targetHandle) {
-          blockedTypes.add(edge.targetHandle);
+          // Check if this output is inactive
+          let isInactive = false;
+          if (rule) {
+            isInactive = !rule.isMatched;
+          } else if (isDefaultHandle) {
+            // Default is inactive when any rule matches
+            isInactive = condData.rules?.some(r => r.isMatched) ?? false;
+          }
+
+          if (isInactive && edge.targetHandle) {
+            blockedTypes.add(edge.targetHandle);
+          }
         }
       } else if (potentiallyDimmed.has(edge.source) && edge.targetHandle) {
         blockedTypes.add(edge.targetHandle);
@@ -114,22 +121,24 @@ export function computeDimmedNodes(
         const switchEntry = switchData.switches?.find(s => s.id === edge.sourceHandle);
         if (switchEntry && !switchEntry.enabled) return false;
       }
-      // Skip non-matching ConditionalSwitch outputs
+      // Skip non-matching ConditionalSwitch outputs (but not when paused — all outputs active)
       if (sourceNode?.type === "conditionalSwitch") {
         const condData = sourceNode.data as ConditionalSwitchNodeData;
-        const rule = condData.rules?.find(r => r.id === edge.sourceHandle);
-        const isDefaultHandle = edge.sourceHandle === "default";
+        if (!condData.evaluationPaused) {
+          const rule = condData.rules?.find(r => r.id === edge.sourceHandle);
+          const isDefaultHandle = edge.sourceHandle === "default";
 
-        // Check if this output is inactive
-        let isInactive = false;
-        if (rule) {
-          isInactive = !rule.isMatched;
-        } else if (isDefaultHandle) {
-          // Default is inactive when any rule matches
-          isInactive = condData.rules?.some(r => r.isMatched) ?? false;
+          // Check if this output is inactive
+          let isInactive = false;
+          if (rule) {
+            isInactive = !rule.isMatched;
+          } else if (isDefaultHandle) {
+            // Default is inactive when any rule matches
+            isInactive = condData.rules?.some(r => r.isMatched) ?? false;
+          }
+
+          if (isInactive) return false;
         }
-
-        if (isInactive) return false;
       }
       // Active input — only counts if it provides a blocked type
       return edge.targetHandle ? blockedTypes.has(edge.targetHandle) : false;
