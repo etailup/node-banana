@@ -18,6 +18,17 @@ import { useVideoBlobUrl } from "@/hooks/useVideoBlobUrl";
 // Video generation capabilities
 const VIDEO_CAPABILITIES: ModelCapability[] = ["text-to-video", "image-to-video"];
 
+// Hardcoded Veo parameter options (matches getGeminiVideoSchema in models/[modelId]/route.ts)
+const VEO_ASPECT_RATIOS = ["16:9", "9:16"] as const;
+const VEO_DURATIONS = ["4", "6", "8"] as const;
+const VEO_RESOLUTIONS = ["720p", "1080p", "4k"] as const;
+
+/** Returns true for Gemini-native Veo video models */
+function isVeoModel(modelId: string | undefined): boolean {
+  if (!modelId) return false;
+  return modelId.startsWith("veo-");
+}
+
 type GenerateVideoNodeType = Node<GenerateVideoNodeData, "generateVideo">;
 
 export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVideoNodeType>) {
@@ -34,7 +45,6 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
   const [isLoadingCarouselVideo, setIsLoadingCarouselVideo] = useState(false);
   const videoBlobUrl = useVideoBlobUrl(nodeData.outputVideo ?? null);
 
-  // Get the current selected provider (default to fal since Gemini doesn't do video)
   const currentProvider: ProviderType = nodeData.selectedModel?.provider || "fal";
 
   // Get enabled providers
@@ -147,6 +157,22 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
       updateNodeData(id, { parameters });
     },
     [id, updateNodeData]
+  );
+
+  // Update a single key in the parameters bag (used by hardcoded Veo controls)
+  const updateVeoParam = useCallback(
+    (key: string, value: unknown) => {
+      const current = nodeData.parameters || {};
+      // Remove the key if value is empty string (clear optional fields)
+      if (value === "") {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { [key]: _, ...rest } = current;
+        updateNodeData(id, { parameters: rest });
+      } else {
+        updateNodeData(id, { parameters: { ...current, [key]: value } });
+      }
+    },
+    [id, nodeData.parameters, updateNodeData]
   );
 
   // Handle inputs loaded from schema
@@ -717,7 +743,58 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
         )}
 
         {/* Model-specific parameters */}
-        {nodeData.selectedModel?.modelId && (
+        {nodeData.selectedModel?.modelId && isVeoModel(nodeData.selectedModel.modelId) ? (
+          // Hardcoded Veo parameters (matching GenerateImageNode pattern for Gemini models)
+          <div className="flex flex-col gap-1.5 shrink-0">
+            {/* Aspect ratio + Duration row */}
+            <div className="flex gap-1.5">
+              <select
+                value={(nodeData.parameters?.aspectRatio as string) || "16:9"}
+                onChange={(e) => updateVeoParam("aspectRatio", e.target.value)}
+                className="flex-1 text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300"
+              >
+                {VEO_ASPECT_RATIOS.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+              <select
+                value={(nodeData.parameters?.durationSeconds as string) || "8"}
+                onChange={(e) => updateVeoParam("durationSeconds", e.target.value)}
+                className="w-12 text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300"
+              >
+                {VEO_DURATIONS.map((d) => (
+                  <option key={d} value={d}>{d}s</option>
+                ))}
+              </select>
+              <select
+                value={(nodeData.parameters?.resolution as string) || "720p"}
+                onChange={(e) => updateVeoParam("resolution", e.target.value)}
+                className="w-14 text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300"
+              >
+                {VEO_RESOLUTIONS.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+            </div>
+            {/* Negative prompt */}
+            <input
+              type="text"
+              placeholder="Negative prompt..."
+              value={(nodeData.parameters?.negativePrompt as string) || ""}
+              onChange={(e) => updateVeoParam("negativePrompt", e.target.value)}
+              className="w-full text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300 placeholder:text-neutral-600"
+            />
+            {/* Seed */}
+            <input
+              type="number"
+              placeholder="Seed (optional)"
+              value={(nodeData.parameters?.seed as string) ?? ""}
+              onChange={(e) => updateVeoParam("seed", e.target.value === "" ? "" : Number(e.target.value))}
+              min={0}
+              className="w-full text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300 placeholder:text-neutral-600"
+            />
+          </div>
+        ) : nodeData.selectedModel?.modelId ? (
           <ModelParameters
             modelId={nodeData.selectedModel.modelId}
             provider={currentProvider}
@@ -726,7 +803,7 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
             onExpandChange={handleParametersExpandChange}
             onInputsLoaded={handleInputsLoaded}
           />
-        )}
+        ) : null}
       </div>
     </BaseNode>
 
