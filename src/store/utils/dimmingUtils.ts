@@ -111,7 +111,9 @@ export function computeDimmedNodes(
             blockedTypes.add(edge.targetHandle);
           }
         }
-      } else if (finalDimmed.has(edge.source) && edge.targetHandle) {
+      }
+      // Standalone: if source node itself is dimmed, block regardless of output state
+      if (finalDimmed.has(edge.source) && edge.targetHandle) {
         blockedTypes.add(edge.targetHandle);
       }
     });

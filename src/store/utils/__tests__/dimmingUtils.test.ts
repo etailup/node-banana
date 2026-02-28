@@ -237,6 +237,29 @@ describe("computeDimmedNodes", () => {
     });
   });
 
+  it("dims nodes downstream of a dimmed switch's enabled output", () => {
+    // ConditionalSwitch --[unmatched]--> gen1 --> Switch --[enabled]--> gen2
+    // gen1 is dimmed (unmatched output), Switch is dimmed (input from dimmed gen1),
+    // gen2 should be dimmed too even though the Switch output is enabled.
+    const nodes = [
+      makeConditionalSwitchNode("cs", [
+        { id: "rule1", isMatched: false },
+      ]),
+      makeNode("gen1", "nanoBanana"),
+      makeSwitchNode("sw", [{ id: "out1", enabled: true }]),
+      makeNode("gen2", "nanoBanana"),
+    ];
+    const edges = [
+      makeEdge("cs", "gen1", { sourceHandle: "rule1" }),
+      makeEdge("gen1", "sw"),
+      makeEdge("sw", "gen2", { sourceHandle: "out1" }),
+    ];
+    const dimmed = computeDimmedNodes(nodes, edges);
+    expect(dimmed.has("gen1")).toBe(true);
+    expect(dimmed.has("sw")).toBe(true);
+    expect(dimmed.has("gen2")).toBe(true);
+  });
+
   it("does not dim the switch node itself", () => {
     const nodes = [
       makeSwitchNode("sw", [{ id: "out1", enabled: false }]),
