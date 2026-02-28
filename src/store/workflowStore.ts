@@ -410,6 +410,37 @@ async function waitForPendingImageSyncs(timeout: number = 60000): Promise<void> 
 export { generateWorkflowId, saveGenerateImageDefaults, saveNanoBananaDefaults } from "./utils/localStorage";
 export { GROUP_COLORS } from "./utils/nodeDefaults";
 
+/** Node types whose output carries image data */
+const IMAGE_SOURCE_NODE_TYPES = new Set<string>([
+  "imageInput", "annotation", "nanoBanana", "glbViewer", "videoFrameGrab",
+]);
+
+/**
+ * After edges are removed, clear inputImages on any target node that no longer
+ * has an image-source edge. Prevents stale images from being sent to the API
+ * when useStoredFallback picks up old node data.
+ */
+function clearStaleInputImages(
+  removedEdges: WorkflowEdge[],
+  get: () => WorkflowStore
+): void {
+  if (removedEdges.length === 0) return;
+  const { edges, nodes, updateNodeData } = get();
+  const targetIds = new Set(removedEdges.map((e) => e.target));
+  for (const targetId of targetIds) {
+    const node = nodes.find((n) => n.id === targetId);
+    if (!node || !("inputImages" in (node.data as Record<string, unknown>))) continue;
+    const hasRemainingImageSource = edges.some((e) => {
+      if (e.target !== targetId) return false;
+      const src = nodes.find((n) => n.id === e.source);
+      return src ? IMAGE_SOURCE_NODE_TYPES.has(src.type ?? "") : false;
+    });
+    if (!hasRemainingImageSource) {
+      updateNodeData(targetId, { inputImages: [] });
+    }
+  }
+}
+
 const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
   nodes: [],
   edges: [],
@@ -575,12 +606,22 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
     const hasRemoveChange = changes.some((c) => c.type === "remove");
     const hasAddOrRemove = changes.some((c) => c.type === "add" || c.type === "remove");
 
+    // Capture removed edges before applyEdgeChanges removes them
+    let removedEdges: WorkflowEdge[] = [];
+    if (hasRemoveChange) {
+      const removeIds = new Set(
+        changes.filter((c) => c.type === "remove").map((c) => c.id)
+      );
+      removedEdges = get().edges.filter((e) => removeIds.has(e.id));
+    }
+
     set((state) => ({
       edges: applyEdgeChanges(changes, state.edges),
       ...(hasMeaningfulChange ? { hasUnsavedChanges: true } : {}),
     }));
 
     if (hasRemoveChange) {
+      clearStaleInputImages(removedEdges, get);
       get().incrementManualChangeCount();
     }
 
@@ -625,10 +666,12 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
   },
 
   removeEdge: (edgeId: string) => {
+    const removedEdge = get().edges.find((e) => e.id === edgeId);
     set((state) => ({
       edges: state.edges.filter((edge) => edge.id !== edgeId),
       hasUnsavedChanges: true,
     }));
+    if (removedEdge) clearStaleInputImages([removedEdge], get);
     get().incrementManualChangeCount();
   },
 
