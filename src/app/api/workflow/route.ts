@@ -3,6 +3,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { logger } from "@/utils/logger";
 import { isCloudMode, getAuthenticatedUserId, upsertEditorWorkflow } from "@/lib/cloud/editorStorage";
+import { validateWorkflowPath } from "@/utils/pathValidation";
 
 export const maxDuration = 300; // 5 minute timeout for large workflow files
 
@@ -67,7 +68,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate directory exists
+    // Validate path to prevent traversal attacks
+    const pathValidation = validateWorkflowPath(directoryPath);
+    if (!pathValidation.valid) {
+      logger.warn('file.error', 'Workflow save failed: invalid path', {
+        directoryPath,
+        error: pathValidation.error,
+      });
+      return NextResponse.json(
+        { success: false, error: pathValidation.error },
+        { status: 400 }
+      );
+    }
+
+    // Ensure project directory exists (supports saving into new subfolders)
     try {
       const stats = await fs.stat(directoryPath);
       if (!stats.isDirectory()) {
@@ -80,13 +94,35 @@ export async function POST(request: NextRequest) {
         );
       }
     } catch (dirError) {
-      logger.warn('file.error', 'Workflow save failed: directory does not exist', {
-        directoryPath,
-      });
-      return NextResponse.json(
-        { success: false, error: "Directory does not exist" },
-        { status: 400 }
-      );
+      const err = dirError as NodeJS.ErrnoException;
+      const isNotFound =
+        err?.code === "ENOENT" ||
+        (typeof err?.message === "string" &&
+          (err.message.includes("ENOENT") || err.message.includes("no such file or directory")));
+
+      if (!isNotFound) {
+        logger.warn('file.error', 'Workflow save failed: directory validation error', {
+          directoryPath,
+          error: dirError instanceof Error ? dirError.message : 'Unknown error',
+        });
+        return NextResponse.json(
+          { success: false, error: "Directory validation failed" },
+          { status: 400 }
+        );
+      }
+
+      try {
+        await fs.mkdir(directoryPath, { recursive: true });
+      } catch (mkdirError) {
+        logger.warn('file.error', 'Workflow save failed: could not create directory', {
+          directoryPath,
+          error: mkdirError instanceof Error ? mkdirError.message : 'Unknown error',
+        });
+        return NextResponse.json(
+          { success: false, error: "Could not create directory" },
+          { status: 500 }
+        );
+      }
     }
 
     // Auto-create subfolders for inputs and generations
@@ -154,6 +190,19 @@ export async function GET(request: NextRequest) {
     logger.warn('file.load', 'Directory validation failed: missing path parameter');
     return NextResponse.json(
       { success: false, error: "Path parameter required" },
+      { status: 400 }
+    );
+  }
+
+  // Validate path to prevent traversal attacks
+  const pathValidation = validateWorkflowPath(directoryPath);
+  if (!pathValidation.valid) {
+    logger.warn('file.error', 'Directory validation failed: invalid path', {
+      directoryPath,
+      error: pathValidation.error,
+    });
+    return NextResponse.json(
+      { success: false, error: pathValidation.error },
       { status: 400 }
     );
   }

@@ -1,13 +1,12 @@
 "use client";
 
-import { useCallback, useState, useMemo } from "react";
+import { useCallback, useState, useMemo, useEffect, useRef } from "react";
 import { Handle, Position, NodeProps, Node } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
 import { useCommentNavigation } from "@/hooks/useCommentNavigation";
 import { useWorkflowStore } from "@/store/workflowStore";
 import { OutputNodeData } from "@/types";
-import { QualityBadge } from "./QualityBadge";
-import { QualityDetailModal } from "@/components/QualityDetailModal";
+import { useVideoBlobUrl } from "@/hooks/useVideoBlobUrl";
 
 type OutputNodeType = Node<OutputNodeData, "output">;
 
@@ -15,33 +14,64 @@ export function OutputNode({ id, data, selected }: NodeProps<OutputNodeType>) {
   const nodeData = data;
   const commentNavigation = useCommentNavigation(id);
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
-  const edges = useWorkflowStore((state) => state.edges);
-  const nodes = useWorkflowStore((state) => state.nodes);
   const regenerateNode = useWorkflowStore((state) => state.regenerateNode);
+  const connectedEdgeCount = useWorkflowStore(
+    (state) => state.edges.filter((edge) => edge.target === id).length
+  );
+  const isRunning = useWorkflowStore((state) => state.isRunning);
   const [showLightbox, setShowLightbox] = useState(false);
-  const [showQualityModal, setShowQualityModal] = useState(false);
-  const [reviewLoading, setReviewLoading] = useState(false);
+  const previousEdgeCountRef = useRef<number | null>(null);
+
+  // Determine if content is audio
+  const isAudio = useMemo(() => {
+    if (nodeData.audio) return true;
+    if (nodeData.contentType === "audio") return true;
+    if (nodeData.image?.startsWith("data:audio/")) return true;
+    return false;
+  }, [nodeData.audio, nodeData.contentType, nodeData.image]);
 
   // Determine if content is video
   const isVideo = useMemo(() => {
+    if (isAudio) return false;
     if (nodeData.video) return true;
     if (nodeData.contentType === "video") return true;
     if (nodeData.image?.startsWith("data:video/")) return true;
     if (nodeData.image?.includes(".mp4") || nodeData.image?.includes(".webm")) return true;
     return false;
-  }, [nodeData.video, nodeData.contentType, nodeData.image]);
+  }, [isAudio, nodeData.video, nodeData.contentType, nodeData.image]);
 
-  // Get the content source (video or image)
+  // Get the content source (audio, video, or image)
   const contentSrc = useMemo(() => {
+    if (nodeData.audio) return nodeData.audio;
     if (nodeData.video) return nodeData.video;
     return nodeData.image;
-  }, [nodeData.video, nodeData.image]);
+  }, [nodeData.audio, nodeData.video, nodeData.image]);
+
+  const videoBlobUrl = useVideoBlobUrl(isVideo ? contentSrc ?? null : null);
+
+  // Auto-trigger execution when a new connection is made
+  useEffect(() => {
+    if (previousEdgeCountRef.current === null) {
+      // First run — just record the baseline, don't trigger
+      previousEdgeCountRef.current = connectedEdgeCount;
+      return;
+    }
+    if (connectedEdgeCount > previousEdgeCountRef.current) {
+      regenerateNode(id);
+    }
+    previousEdgeCountRef.current = connectedEdgeCount;
+  }, [connectedEdgeCount, id, regenerateNode]);
+
+  // Handle Run button click
+  const handleRun = useCallback(() => {
+    regenerateNode(id);
+  }, [id, regenerateNode]);
 
   const handleDownload = useCallback(async () => {
     if (!contentSrc) return;
 
     const timestamp = Date.now();
-    const extension = isVideo ? "mp4" : "png";
+    const extension = isAudio ? "mp3" : isVideo ? "mp4" : "png";
     // Use custom filename if provided, otherwise use timestamp
     const filename = nodeData.outputFilename
       ? `${nodeData.outputFilename}.${extension}`
@@ -74,77 +104,7 @@ export function OutputNode({ id, data, selected }: NodeProps<OutputNodeType>) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  }, [contentSrc, isVideo, nodeData.outputFilename]);
-
-  const handleReview = useCallback(async () => {
-    if (!contentSrc || isVideo || reviewLoading) return;
-    setReviewLoading(true);
-    try {
-      const res = await fetch("/api/agents/quality-review", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          images: [{ url: contentSrc }],
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const review = data.reviews?.[0];
-        if (review) {
-          updateNodeData(id, {
-            qualityReview: {
-              grade: review.grade,
-              scores: review.scores,
-              issues: review.issues,
-              suggestion: review.suggestion,
-              passed: review.passed,
-              reviewId: review.id,
-            },
-          });
-        }
-      }
-    } catch (err) {
-      console.error("Quality review failed:", err);
-    } finally {
-      setReviewLoading(false);
-    }
-  }, [contentSrc, isVideo, reviewLoading, id, updateNodeData]);
-
-  const handleRegenerateWithFix = useCallback((suggestion: string) => {
-    // Walk upstream: output ← nanoBanana ← prompt
-    // Find the nanoBanana node that feeds this output
-    const sourceEdge = edges.find(e => e.target === id && e.targetHandle === "image");
-    if (!sourceEdge) return;
-
-    const genNodeId = sourceEdge.source;
-    const genNode = nodes.find(n => n.id === genNodeId);
-    if (!genNode || genNode.type !== "nanoBanana") return;
-
-    // Find the prompt node that feeds the nanoBanana
-    const promptEdge = edges.find(e => e.target === genNodeId && e.targetHandle === "text");
-    if (promptEdge) {
-      const promptNode = nodes.find(n => n.id === promptEdge.source);
-      if (promptNode && promptNode.type === "prompt") {
-        const currentPrompt = (promptNode.data as { prompt?: string }).prompt || "";
-        updateNodeData(promptNode.id, {
-          prompt: `${currentPrompt}\n\nImprovement: ${suggestion}`,
-        });
-      }
-    }
-
-    // Clear old review and re-run the generate node
-    updateNodeData(id, { qualityReview: undefined });
-    regenerateNode(genNodeId);
-  }, [id, edges, nodes, updateNodeData, regenerateNode]);
-
-  const qualityReview = nodeData.qualityReview as {
-    grade: "A" | "B" | "C" | "F";
-    scores: { artifacts: number; text_readability: number; composition: number; prompt_alignment: number; overall: number };
-    issues: string[];
-    suggestion: string;
-    passed: boolean;
-    reviewId: string;
-  } | undefined;
+  }, [contentSrc, isAudio, isVideo, nodeData.outputFilename]);
 
   return (
     <>
@@ -155,6 +115,8 @@ export function OutputNode({ id, data, selected }: NodeProps<OutputNodeType>) {
         comment={nodeData.comment}
         onCustomTitleChange={(title) => updateNodeData(id, { customTitle: title || undefined })}
         onCommentChange={(comment) => updateNodeData(id, { comment: comment || undefined })}
+        onRun={handleRun}
+        isExecuting={isRunning}
         selected={selected}
         className="min-w-[200px]"
         commentNavigation={commentNavigation ?? undefined}
@@ -165,67 +127,64 @@ export function OutputNode({ id, data, selected }: NodeProps<OutputNodeType>) {
           id="image"
           data-handletype="image"
         />
+        <Handle
+          type="target"
+          position={Position.Left}
+          id="audio"
+          data-handletype="audio"
+          style={{ top: "60%", background: "rgb(167, 139, 250)" }}
+        />
 
         {contentSrc ? (
           <div className="flex-1 flex flex-col min-h-0 gap-2">
-            <div
-              className="relative cursor-pointer group flex-1 min-h-0"
-              onClick={() => setShowLightbox(true)}
-            >
-              {qualityReview && (
-                <div onClick={(e) => e.stopPropagation()}>
-                  <QualityBadge
-                    grade={qualityReview.grade}
-                    score={qualityReview.scores.overall}
-                    onClick={() => setShowQualityModal(true)}
-                  />
-                </div>
-              )}
-              {isVideo ? (
-                <video
+            {isAudio ? (
+              <div className="flex-1 flex items-center min-h-0 py-2">
+                <audio
                   src={contentSrc}
                   controls
-                  loop
-                  muted
-                  autoPlay
-                  playsInline
-                  className="w-full h-full object-contain rounded"
-                  onClick={(e) => e.stopPropagation()}
+                  className="w-full rounded"
                 />
-              ) : (
-                <img
-                  src={contentSrc}
-                  alt="Output"
-                  className="w-full h-full object-contain rounded"
-                />
-              )}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center rounded pointer-events-none">
-                <span className="text-[10px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 px-2 py-1 rounded">
-                  View full size
-                </span>
               </div>
-            </div>
-            <div className="flex gap-1.5 shrink-0">
-              <button
-                onClick={handleDownload}
-                className="flex-1 py-1.5 bg-white hover:bg-neutral-200 text-neutral-900 text-[10px] font-medium rounded transition-colors"
+            ) : (
+              <div
+                className="relative cursor-pointer group flex-1 min-h-0"
+                onClick={() => setShowLightbox(true)}
               >
-                Download
-              </button>
-              {!isVideo && (
-                <button
-                  onClick={handleReview}
-                  disabled={reviewLoading}
-                  className="py-1.5 px-2 bg-neutral-600 hover:bg-neutral-500 text-neutral-200 text-[10px] font-medium rounded transition-colors disabled:opacity-50"
-                >
-                  {reviewLoading ? "..." : "Review"}
-                </button>
-              )}
-            </div>
+                {isVideo ? (
+                  <video
+                    src={videoBlobUrl ?? undefined}
+                    controls
+                    loop
+                    muted
+                    autoPlay
+                    playsInline
+                    className="w-full h-full object-contain rounded"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : (
+                  <img
+                    src={contentSrc}
+                    alt="Output"
+                    className="w-full h-full object-contain rounded"
+                  />
+                )}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center rounded pointer-events-none">
+                  <span className="text-[10px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 px-2 py-1 rounded">
+                    View full size
+                  </span>
+                </div>
+              </div>
+            )}
+            <button
+              onClick={handleDownload}
+              className="w-full py-1.5 bg-white hover:bg-neutral-200 text-neutral-900 text-[10px] font-medium rounded transition-colors shrink-0"
+            >
+              Download
+            </button>
           </div>
         ) : (
           <div className="w-full flex-1 min-h-[144px] border border-dashed border-neutral-600 rounded flex items-center justify-center">
-            <span className="text-neutral-500 text-[10px]">Waiting for image or video</span>
+            <span className="text-neutral-500 text-[10px]">Waiting for image, video, or audio</span>
           </div>
         )}
 
@@ -241,29 +200,8 @@ export function OutputNode({ id, data, selected }: NodeProps<OutputNodeType>) {
         </div>
       </BaseNode>
 
-      {/* Quality Detail Modal */}
-      {showQualityModal && qualityReview && (
-        <QualityDetailModal
-          grade={qualityReview.grade}
-          scores={qualityReview.scores}
-          issues={qualityReview.issues}
-          suggestion={qualityReview.suggestion}
-          onClose={() => setShowQualityModal(false)}
-          onAcceptAnyway={() => {
-            updateNodeData(id, {
-              qualityReview: { ...qualityReview, passed: true },
-            });
-            setShowQualityModal(false);
-          }}
-          onRegenerateWithFix={(suggestion) => {
-            setShowQualityModal(false);
-            handleRegenerateWithFix(suggestion);
-          }}
-        />
-      )}
-
-      {/* Lightbox Modal */}
-      {showLightbox && contentSrc && (
+      {/* Lightbox Modal (skip for audio) */}
+      {showLightbox && contentSrc && !isAudio && (
         <div
           className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-8"
           onClick={() => setShowLightbox(false)}
@@ -271,7 +209,7 @@ export function OutputNode({ id, data, selected }: NodeProps<OutputNodeType>) {
           <div className="relative max-w-full max-h-full">
             {isVideo ? (
               <video
-                src={contentSrc}
+                src={videoBlobUrl ?? undefined}
                 controls
                 loop
                 autoPlay

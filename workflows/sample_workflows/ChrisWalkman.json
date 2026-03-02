@@ -1,0 +1,2665 @@
+{
+  "version": 1,
+  "id": "wf_1766313978359_x50sbbikl",
+  "name": "ChrisWalkman",
+  "nodes": [
+    {
+      "id": "prompt-1",
+      "type": "prompt",
+      "position": {
+        "x": 324.2201580095258,
+        "y": 1103.714572070265
+      },
+      "data": {
+        "prompt": "Editorial street photography shoot. \n\nThe image shows the model standing in a sunlit park beneath a large tree. The model is in the bottom two thirds of the image and the shot is facing up at the model from a worms eye view. \n\nThe model is wearing the outfit in the attached image. Along with a classic sony walkman. The model is wearing a paid of classic Walkman headphones and there is a visible cord leading to his jeans, the walkman is visible and clipped to the jeans. The model is holding a dog leash and the dog is sitting by his side. \n\nThe model is looking into the distance. Match the expression, facial features, and facial structure of the model perfectly. \n\nShot on fuji velvia film, colours are highly saturated with pronounced film grain. 14mm lens.     "
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 480,
+        "height": 472
+      },
+      "selected": false,
+      "groupId": "group-1",
+      "dragging": false,
+      "width": 480,
+      "height": 472,
+      "resizing": false
+    },
+    {
+      "id": "nanoBanana-2",
+      "type": "nanoBanana",
+      "position": {
+        "x": 825.5775279722257,
+        "y": 1099.3786392123116
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "Editorial street photography shoot. \n\nThe setting shows a tall plain concrete wall with fading graffiti. The image show's the model standing in a sunlit park beneath a large tree. The model is in the bottom two thirds of the image and the shot is facing up at the model from a worms eye view. \n\nThe model is wearing the outfit in the attached image. Along with a classic sony walkman. The model is wearing a paid of classic Walkman headphones and there is a visible cord leading to his jeans, the walkman is visible and clipped to the jeans.\n\nThe model is looking into the distance. Match the expression, facial features, and facial structure of the model perfectly. \n\nShot on fuji velvia film, colours are highly saturated with pronounced film grain. 16mm lens. 16:9 aspect ratio",
+        "outputImage": null,
+        "aspectRatio": "3:2",
+        "resolution": "2K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": [],
+        "inputImageRefs": [
+          "img-ml9kz4m3-ujb9vt",
+          "img-ml9kz4xz-srn70g",
+          "img-ml9kz524-hsbjwb"
+        ],
+        "outputImageRef": "img-ml9kz4lo-y63by0"
+      },
+      "style": {
+        "width": 298,
+        "height": 300
+      },
+      "measured": {
+        "width": 1078,
+        "height": 1040
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 1078,
+      "height": 1040,
+      "resizing": false,
+      "groupId": "group-1"
+    },
+    {
+      "id": "imageInput-3",
+      "type": "imageInput",
+      "position": {
+        "x": 1.5361319396273814,
+        "y": 1103.2301401229345
+      },
+      "data": {
+        "image": null,
+        "filename": "walken.jpg",
+        "dimensions": {
+          "width": 248,
+          "height": 330
+        },
+        "imageRef": "img-ml9kz4m3-ujb9vt"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "groupId": "group-1",
+      "dragging": false
+    },
+    {
+      "id": "imageInput-4",
+      "type": "imageInput",
+      "position": {
+        "x": 1.5361319396273814,
+        "y": 1403.2301401229345
+      },
+      "data": {
+        "image": null,
+        "filename": "Walkman.png",
+        "dimensions": {
+          "width": 368,
+          "height": 433
+        },
+        "imageRef": "img-ml9kz4xz-srn70g"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "groupId": "group-1",
+      "dragging": false
+    },
+    {
+      "id": "nanoBanana-6",
+      "type": "nanoBanana",
+      "position": {
+        "x": 2463.467396983063,
+        "y": 1125.8604393674248
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "Analyze the input image and silently inventory all design-critical details: the model's features (older male, grey hair, serious expression), the styling (tan dickies work jacket, blue cargo jeans, vintage blue Sony Walkman, over ear vintage headphones), the dog, and the environment (trees, dappled sunlight).\n\nAll styling elements, the model, environment details, and color grade must remain 100% unchanged across all frames. \n\nDo not add or remove anything.\n\nDo not reinterpret materials or colors.\n\nDo not output any reasoning.\n\nPerfectly replicate the exact structural features of the clothing, specifically the jacket texture, the plastic sheen of the Walkman, the classic over ear walkman headphones, the park setting, and the details and appearance of the dog.\n\nYour visible output must be:\n\nOne 2×3 contact sheet image (6 frames only). \n\nThe six frames must be spatially dynamic, non-linear, and visually distinct.\n\nRequired 6-Frame Shot List  \n\n1. The Hero Profile (35mm, Eye-Level, Side Profile) Camera positioned at eye level, capturing the model in a strong profile view looking off-camera. The focus is on the silhouette of the  bomber jacket and the over ear walkman headphone cable draping down. The background shows the depth of the park trees. The lighting creates high-contrast shadows on the face, emphasizing the serious expression. \n\n2. High Angle (32mm, downward tilt) Camera positioned overhead but off-center, capturing the subject and dog from a diagonal downward angle. This frame should create strong shape abstraction and reveal wardrobe details from above.\n\n3. Low-Angle \"Power\" Stance (24mm, Worm's Eye View, Upward Tilt) Camera positioned very low to the ground, angled obliquely upward. This elongates the model's legs and makes the jacket look imposing and architectural against the tree  canopy and sky. The classic walkman over ear headphones are visible around the model's neck. The Walkman clipped to the belt is a focal point of the composition. The dog is visible in the shot, looking directly into the camera lens with a blank expression. \n\n4. Wide Cinematic Environmental (50mm, Wide Shot, Center Framed) Camera positioned back, capturing the model and dog centered in the frame. This shot emphasizes scale and the isolation of the subject and his dog. The model stands hands-by-sides, looking directly at the lens. The dog looks directly at the lens of the camera with a blank expression. The sunlight cuts through the trees, creating a dappled light effect across the whole scene.\n\n5. The \"Listening\" Mid-Shot (85mm, Chest Up, Shallow DOF) Camera positioned at chest height, slightly off-center. The model has one hand raised, adjusting the headphones. The focus is sharp on the face and the collar of the jacket. The background is compressed and blurred (bokeh), turning the leaves into washes of saturated color, but remaining recognizable as the park.\n\n6. Waist-Level textural Detail (50mm, Hip Level, Medium-  Close) Camera positioned at hip level. A focused study of the jacket hem, the denim texture, and the Walkman. The model's hand is resting near the device. The background includes the park setting behind the subject to maintain context.\n\nContinuity & Technical Requirements Maintain perfect subject fidelity in every frame: exact outfit details, Walkman model, and environment.\n\nVisual Style: Film Stock: Fuji Velvia. Color: Highly saturated, rich  greens and reds, deep blacks. Texture: Pronounced, realistic film grain. Lighting: Hard, natural sunlight with strong contrast (sunny 16 rule). Lens: Varied focal lengths as specified. \n\nOutput Format A) 2×3 Contact Sheet Image (Mandatory)   \nDo not include any notes or text between the images. Do not show a significant gap or border between images.               ",
+        "outputImage": null,
+        "aspectRatio": "3:2",
+        "resolution": "2K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": [],
+        "inputImageRefs": [
+          "img-ml9kz5iy-qcdimd"
+        ],
+        "outputImageRef": "img-ml9kz59g-ztr7ev"
+      },
+      "style": {
+        "width": 298,
+        "height": 300
+      },
+      "measured": {
+        "width": 1124,
+        "height": 840
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 1124,
+      "height": 840,
+      "resizing": false,
+      "groupId": "group-2"
+    },
+    {
+      "id": "prompt-7",
+      "type": "prompt",
+      "position": {
+        "x": 2015.848503884445,
+        "y": 1128.4443493092087
+      },
+      "data": {
+        "prompt": "Analyze the input image and silently inventory all design-critical details: the model's features (older male, grey hair, serious expression), the styling (tan dickies work jacket, blue cargo jeans, vintage blue Sony Walkman, over ear vintage headphones), the dog, and the environment (trees, dappled sunlight).\n\nAll styling elements, the model, environment details, and color grade must remain 100% unchanged across all frames. \n\nDo not add or remove anything.\n\nDo not reinterpret materials or colors.\n\nDo not output any reasoning.\n\nPerfectly replicate the exact structural features of the clothing, specifically the jacket texture, the plastic sheen of the Walkman, the classic over ear walkman headphones, the park setting, and the details and appearance of the dog.\n\nYour visible output must be:\n\nOne 2×3 contact sheet image (6 frames only). \n\nThe six frames must be spatially dynamic, non-linear, and visually distinct.\n\nRequired 6-Frame Shot List  \n\n1. The Hero Profile (35mm, Eye-Level, Side Profile) Camera positioned at eye level, capturing the model in a strong profile view looking off-camera. The focus is on the silhouette of the  bomber jacket and the over ear walkman headphone cable draping down. The background shows the depth of the park trees. The lighting creates high-contrast shadows on the face, emphasizing the serious expression. \n\n2. High Angle (32mm, downward tilt) Camera positioned overhead but off-center, capturing the subject and dog from a diagonal downward angle. This frame should create strong shape abstraction and reveal wardrobe details from above.\n\n3. Low-Angle \"Power\" Stance (24mm, Worm's Eye View, Upward Tilt) Camera positioned very low to the ground, angled obliquely upward. This elongates the model's legs and makes the jacket look imposing and architectural against the tree  canopy and sky. The classic walkman over ear headphones are visible around the model's neck. The Walkman clipped to the belt is a focal point of the composition. The dog is visible in the shot, looking directly into the camera lens with a blank expression. \n\n4. Wide Cinematic Environmental (50mm, Wide Shot, Center Framed) Camera positioned back, capturing the model and dog centered in the frame. This shot emphasizes scale and the isolation of the subject and his dog. The model stands hands-by-sides, looking directly at the lens. The dog looks directly at the lens of the camera with a blank expression. The sunlight cuts through the trees, creating a dappled light effect across the whole scene.\n\n5. The \"Listening\" Mid-Shot (85mm, Chest Up, Shallow DOF) Camera positioned at chest height, slightly off-center. The model has one hand raised, adjusting the headphones. The focus is sharp on the face and the collar of the jacket. The background is compressed and blurred (bokeh), turning the leaves into washes of saturated color, but remaining recognizable as the park.\n\n6. Waist-Level textural Detail (50mm, Hip Level, Medium-  Close) Camera positioned at hip level. A focused study of the jacket hem, the denim texture, and the Walkman. The model's hand is resting near the device. The background includes the park setting behind the subject to maintain context.\n\nContinuity & Technical Requirements Maintain perfect subject fidelity in every frame: exact outfit details, Walkman model, and environment.\n\nVisual Style: Film Stock: Fuji Velvia. Color: Highly saturated, rich  greens and reds, deep blacks. Texture: Pronounced, realistic film grain. Lighting: Hard, natural sunlight with strong contrast (sunny 16 rule). Lens: Varied focal lengths as specified. \n\nOutput Format A) 2×3 Contact Sheet Image (Mandatory)   \nDo not include any notes or text between the images. Do not show a significant gap or border between images.               "
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 407,
+        "height": 648
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 407,
+      "height": 648,
+      "resizing": false,
+      "groupId": "group-2"
+    },
+    {
+      "id": "splitGrid-17",
+      "type": "splitGrid",
+      "position": {
+        "x": 3696.5046189206855,
+        "y": 1501.4480517311772
+      },
+      "data": {
+        "sourceImage": null,
+        "targetCount": 6,
+        "defaultPrompt": "Upscale the image, keeping all details exactly the same only with enhanced detail. ",
+        "generateSettings": {
+          "aspectRatio": "16:9",
+          "resolution": "2K",
+          "model": "nano-banana-pro",
+          "useGoogleSearch": false
+        },
+        "childNodeIds": [
+          {
+            "imageInput": "imageInput-18",
+            "prompt": "prompt-20",
+            "nanoBanana": "nanoBanana-19"
+          },
+          {
+            "imageInput": "imageInput-21",
+            "prompt": "prompt-23",
+            "nanoBanana": "nanoBanana-22"
+          },
+          {
+            "imageInput": "imageInput-24",
+            "prompt": "prompt-26",
+            "nanoBanana": "nanoBanana-25"
+          },
+          {
+            "imageInput": "imageInput-27",
+            "prompt": "prompt-29",
+            "nanoBanana": "nanoBanana-28"
+          },
+          {
+            "imageInput": "imageInput-30",
+            "prompt": "prompt-32",
+            "nanoBanana": "nanoBanana-31"
+          },
+          {
+            "imageInput": "imageInput-33",
+            "prompt": "prompt-35",
+            "nanoBanana": "nanoBanana-34"
+          }
+        ],
+        "gridRows": 2,
+        "gridCols": 3,
+        "isConfigured": true,
+        "status": "complete",
+        "error": null,
+        "sourceImageRef": "img-ml9kz5pz-w7ir2m"
+      },
+      "style": {
+        "width": 300,
+        "height": 320
+      },
+      "measured": {
+        "width": 300,
+        "height": 320
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-3"
+    },
+    {
+      "id": "imageInput-18",
+      "type": "imageInput",
+      "position": {
+        "x": 4044.5046189206855,
+        "y": 1107.4480517311772
+      },
+      "data": {
+        "image": null,
+        "filename": "split-1-1.png",
+        "dimensions": {
+          "width": 843,
+          "height": 848
+        },
+        "imageRef": "img-ml9kz5sc-ukfmgz"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-3"
+    },
+    {
+      "id": "nanoBanana-19",
+      "type": "nanoBanana",
+      "position": {
+        "x": 4384.504618920689,
+        "y": 1107.4480517311772
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "Upscale the image, keeping all details exactly the same only with enhanced detail.              ",
+        "outputImage": null,
+        "aspectRatio": "3:2",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": [],
+        "inputImageRefs": [
+          "img-ml9kz5sc-ukfmgz"
+        ],
+        "outputImageRef": "img-ml9kz5t6-n99t6e"
+      },
+      "style": {
+        "width": 500,
+        "height": 516
+      },
+      "measured": {
+        "width": 596,
+        "height": 546
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 596,
+      "height": 546,
+      "resizing": false,
+      "groupId": "group-3"
+    },
+    {
+      "id": "prompt-20",
+      "type": "prompt",
+      "position": {
+        "x": 4044.5046189206855,
+        "y": 1437.4480517311772
+      },
+      "data": {
+        "prompt": "Upscale the image, keeping all details exactly the same only with enhanced detail.              "
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-3"
+    },
+    {
+      "id": "imageInput-21",
+      "type": "imageInput",
+      "position": {
+        "x": 4998.282878539948,
+        "y": 1104.5198182845388
+      },
+      "data": {
+        "image": null,
+        "filename": "split-1-2.png",
+        "dimensions": {
+          "width": 843,
+          "height": 848
+        },
+        "imageRef": "img-ml9kz5zq-eucczk"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-3"
+    },
+    {
+      "id": "nanoBanana-22",
+      "type": "nanoBanana",
+      "position": {
+        "x": 5335.782878539948,
+        "y": 1093.0198182845388
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "Upscale the image, keeping all details exactly the same only with enhanced detail.         ",
+        "outputImage": null,
+        "aspectRatio": "3:2",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": [],
+        "inputImageRefs": [
+          "img-ml9kz5zq-eucczk"
+        ],
+        "outputImageRef": "img-ml9kz60x-cu5kgn"
+      },
+      "style": {
+        "width": 298,
+        "height": 300
+      },
+      "measured": {
+        "width": 634,
+        "height": 540
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 634,
+      "height": 540,
+      "resizing": false,
+      "groupId": "group-3"
+    },
+    {
+      "id": "prompt-23",
+      "type": "prompt",
+      "position": {
+        "x": 4998.282878539948,
+        "y": 1434.5198182845388
+      },
+      "data": {
+        "prompt": "Upscale the image, keeping all details exactly the same only with enhanced detail.         "
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-3"
+    },
+    {
+      "id": "imageInput-24",
+      "type": "imageInput",
+      "position": {
+        "x": 6008.5252548825265,
+        "y": 1100.519818284539
+      },
+      "data": {
+        "image": null,
+        "filename": "split-1-3.png",
+        "dimensions": {
+          "width": 843,
+          "height": 848
+        },
+        "imageRef": "img-ml9kz68j-w6tbmw"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-3"
+    },
+    {
+      "id": "nanoBanana-25",
+      "type": "nanoBanana",
+      "position": {
+        "x": 6330.5252548825265,
+        "y": 1106.519818284539
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "Upscale the image, keeping all details exactly the same only with enhanced detail.   ",
+        "outputImage": null,
+        "aspectRatio": "3:2",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": [],
+        "inputImageRefs": [
+          "img-ml9kz68j-w6tbmw"
+        ],
+        "outputImageRef": "img-ml9kz69m-mmnl0s"
+      },
+      "style": {
+        "width": 298,
+        "height": 300
+      },
+      "measured": {
+        "width": 836,
+        "height": 546
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 836,
+      "height": 546,
+      "resizing": false,
+      "groupId": "group-3"
+    },
+    {
+      "id": "prompt-26",
+      "type": "prompt",
+      "position": {
+        "x": 5997.751727010327,
+        "y": 1432.6745238589788
+      },
+      "data": {
+        "prompt": "Upscale the image, keeping all details exactly the same only with enhanced detail.       "
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-3"
+    },
+    {
+      "id": "imageInput-27",
+      "type": "imageInput",
+      "position": {
+        "x": 4048.5046189206855,
+        "y": 1767.4480517311772
+      },
+      "data": {
+        "image": null,
+        "filename": "split-2-1.png",
+        "dimensions": {
+          "width": 843,
+          "height": 848
+        },
+        "imageRef": "img-ml9kz6dm-v8qk9w"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-3"
+    },
+    {
+      "id": "nanoBanana-28",
+      "type": "nanoBanana",
+      "position": {
+        "x": 4366.504618920689,
+        "y": 1767.4480517311772
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "Upscale the image, keeping all details exactly the same only with enhanced detail.                                                   ",
+        "outputImage": null,
+        "aspectRatio": "3:2",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": [],
+        "inputImageRefs": [
+          "img-ml9kz6dm-v8qk9w"
+        ],
+        "outputImageRef": "img-ml9kz6et-gd047v"
+      },
+      "style": {
+        "width": 298,
+        "height": 300
+      },
+      "measured": {
+        "width": 612,
+        "height": 516
+      },
+      "selected": false,
+      "width": 612,
+      "height": 516,
+      "resizing": false,
+      "dragging": false,
+      "groupId": "group-3"
+    },
+    {
+      "id": "prompt-29",
+      "type": "prompt",
+      "position": {
+        "x": 4026.5046189206855,
+        "y": 2097.448051731177
+      },
+      "data": {
+        "prompt": "Upscale the image, keeping all details exactly the same only with enhanced detail.                                                                              "
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-3"
+    },
+    {
+      "id": "imageInput-30",
+      "type": "imageInput",
+      "position": {
+        "x": 5011.664056242189,
+        "y": 1762.5198182845388
+      },
+      "data": {
+        "image": null,
+        "filename": "split-2-2.png",
+        "dimensions": {
+          "width": 843,
+          "height": 848
+        },
+        "imageRef": "img-ml9kz6q8-xiq28u"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-3"
+    },
+    {
+      "id": "nanoBanana-31",
+      "type": "nanoBanana",
+      "position": {
+        "x": 5328.58111722111,
+        "y": 1764.5198182845388
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "Upscale the image, keeping all details exactly the same only with enhanced detail. ",
+        "outputImage": null,
+        "aspectRatio": "3:2",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": [],
+        "inputImageRefs": [
+          "img-ml9kz6q8-xiq28u"
+        ],
+        "outputImageRef": "img-ml9kz6r2-8jwuy5"
+      },
+      "style": {
+        "width": 298,
+        "height": 300
+      },
+      "measured": {
+        "width": 639,
+        "height": 527
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 639,
+      "height": 527,
+      "resizing": false,
+      "groupId": "group-3"
+    },
+    {
+      "id": "prompt-32",
+      "type": "prompt",
+      "position": {
+        "x": 5005.818761816629,
+        "y": 2075.90099598678
+      },
+      "data": {
+        "prompt": "Upscale the image, keeping all details exactly the same only with enhanced detail. "
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-3"
+    },
+    {
+      "id": "imageInput-33",
+      "type": "imageInput",
+      "position": {
+        "x": 6008.845838499123,
+        "y": 1752.519818284539
+      },
+      "data": {
+        "image": null,
+        "filename": "split-2-3.png",
+        "dimensions": {
+          "width": 843,
+          "height": 848
+        },
+        "imageRef": "img-ml9kz6yr-hi74u3"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-3"
+    },
+    {
+      "id": "nanoBanana-34",
+      "type": "nanoBanana",
+      "position": {
+        "x": 6321.917605052485,
+        "y": 1744.519818284539
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "Upscale the image, keeping all details exactly the same only with enhanced detail. ",
+        "outputImage": null,
+        "aspectRatio": "3:2",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": [],
+        "inputImageRefs": [
+          "img-ml9kz6yr-hi74u3"
+        ],
+        "outputImageRef": "img-ml9kz6zi-x02zx6"
+      },
+      "style": {
+        "width": 298,
+        "height": 300
+      },
+      "measured": {
+        "width": 844,
+        "height": 546
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 844,
+      "height": 546,
+      "resizing": false,
+      "groupId": "group-3"
+    },
+    {
+      "id": "prompt-35",
+      "type": "prompt",
+      "position": {
+        "x": 5988.536427350243,
+        "y": 2070.21040713566
+      },
+      "data": {
+        "prompt": "Upscale the image, keeping all details exactly the same only with enhanced detail.                                                                            "
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-3"
+    },
+    {
+      "id": "imageInput-45",
+      "type": "imageInput",
+      "position": {
+        "x": 1.5361319396273814,
+        "y": 2003.2301401229358
+      },
+      "data": {
+        "image": null,
+        "filename": "jacket.png",
+        "dimensions": {
+          "width": 2400,
+          "height": 2400
+        },
+        "imageRef": "img-ml9kz7bj-o4hije"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-1"
+    },
+    {
+      "id": "imageInput-46",
+      "type": "imageInput",
+      "position": {
+        "x": -2.6403661673399768,
+        "y": 1696.3858939499853
+      },
+      "data": {
+        "image": null,
+        "filename": "20230719_154857.jpg",
+        "dimensions": {
+          "width": 608,
+          "height": 589
+        },
+        "imageRef": "img-ml9kz7d9-naff8b"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-1"
+    },
+    {
+      "id": "nanoBanana-47",
+      "type": "nanoBanana",
+      "position": {
+        "x": 7667.86670167465,
+        "y": 1111.053061944372
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": null,
+        "outputImage": null,
+        "aspectRatio": "3:2",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": [],
+        "outputImageRef": "img-ml9kz7jz-3zj7mr"
+      },
+      "style": {
+        "width": 298,
+        "height": 300
+      },
+      "measured": {
+        "width": 719,
+        "height": 532
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 719,
+      "height": 532,
+      "resizing": false,
+      "groupId": "group-9"
+    },
+    {
+      "id": "prompt-48",
+      "type": "prompt",
+      "position": {
+        "x": 7317.255298823143,
+        "y": 1420.9618799058517
+      },
+      "data": {
+        "prompt": "Put the text 'CHRISTOPHER' behind the model in very large type. The text is full width and masked by the model. Match the font exactly and keep all other aspects of the image exactly the same  "
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-9"
+    },
+    {
+      "id": "imageInput-49",
+      "type": "imageInput",
+      "position": {
+        "x": 7318.055510490444,
+        "y": 1103.6697391618668
+      },
+      "data": {
+        "image": null,
+        "filename": "pasted-1766485826515.png",
+        "dimensions": {
+          "width": 878,
+          "height": 166
+        },
+        "imageRef": "img-ml9kz7k6-fb6ivu"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-9"
+    },
+    {
+      "id": "nanoBanana-50",
+      "type": "nanoBanana",
+      "position": {
+        "x": 8803.531698659963,
+        "y": 1112.8466607707082
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": null,
+        "outputImage": null,
+        "aspectRatio": "3:2",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": [],
+        "outputImageRef": "img-ml9kz7oh-bl3r32"
+      },
+      "style": {
+        "width": 298,
+        "height": 300
+      },
+      "measured": {
+        "width": 741,
+        "height": 516
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 741,
+      "height": 516,
+      "resizing": false,
+      "groupId": "group-9"
+    },
+    {
+      "id": "prompt-51",
+      "type": "prompt",
+      "position": {
+        "x": 8471.350081461549,
+        "y": 1409.4373904121503
+      },
+      "data": {
+        "prompt": "Put the text 'WALKMAN' behind the model's legs and dog in very large type. The text is full width and masked by the model and dog. Match the font exactly and keep all other aspects of the image exactly the same      "
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-9"
+    },
+    {
+      "id": "imageInput-53",
+      "type": "imageInput",
+      "position": {
+        "x": 8479.095011569274,
+        "y": 1112.3827664847227
+      },
+      "data": {
+        "image": null,
+        "filename": "pasted-1766486113666.png",
+        "dimensions": {
+          "width": 674,
+          "height": 166
+        },
+        "imageRef": "img-ml9kz7ol-nkoczg"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-9"
+    },
+    {
+      "id": "imageInput-54",
+      "type": "imageInput",
+      "position": {
+        "x": 474.56463343763954,
+        "y": 2457.318756068422
+      },
+      "data": {
+        "image": null,
+        "filename": "pasted-1766486405257.png",
+        "dimensions": {
+          "width": 1264,
+          "height": 848
+        },
+        "imageRef": "img-ml9kz7r7-vww3pg"
+      },
+      "style": {
+        "width": 542,
+        "height": 432
+      },
+      "measured": {
+        "width": 428,
+        "height": 330
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 428,
+      "height": 330,
+      "resizing": false,
+      "groupId": "group-5"
+    },
+    {
+      "id": "prompt-55",
+      "type": "prompt",
+      "position": {
+        "x": 510.73469164971806,
+        "y": 3141.2728260713293
+      },
+      "data": {
+        "prompt": "Show me a close up image of the dog sitting in the sunlit park. Perfectly match the details of the dog's face, colouring and body shape.  "
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 394,
+        "height": 201
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 394,
+      "height": 201,
+      "resizing": false,
+      "groupId": "group-5"
+    },
+    {
+      "id": "imageInput-57",
+      "type": "imageInput",
+      "position": {
+        "x": 536.8852704365444,
+        "y": 2799.98819630065
+      },
+      "data": {
+        "image": null,
+        "filename": "20230719_154857.jpg",
+        "dimensions": {
+          "width": 608,
+          "height": 589
+        },
+        "imageRef": "img-ml9kz7d9-naff8b"
+      },
+      "style": {
+        "width": 535,
+        "height": 398
+      },
+      "measured": {
+        "width": 364,
+        "height": 332
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-5",
+      "width": 364,
+      "height": 332,
+      "resizing": false
+    },
+    {
+      "id": "nanoBanana-58",
+      "type": "nanoBanana",
+      "position": {
+        "x": 921.1880521449073,
+        "y": 2457.1232631780713
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": null,
+        "outputImage": null,
+        "aspectRatio": "3:2",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": [],
+        "outputImageRef": "img-ml9kz7u2-n21alm"
+      },
+      "style": {
+        "width": 298,
+        "height": 300
+      },
+      "measured": {
+        "width": 1027,
+        "height": 869
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 1027,
+      "height": 869,
+      "resizing": false,
+      "groupId": "group-5"
+    },
+    {
+      "id": "nanoBanana-59",
+      "type": "nanoBanana",
+      "position": {
+        "x": 2453.7975419623494,
+        "y": 2445.6784026993587
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": null,
+        "outputImage": null,
+        "aspectRatio": "3:2",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": true,
+        "status": "complete",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": [],
+        "outputImageRef": "img-ml9kz7uv-hqvl27"
+      },
+      "style": {
+        "width": 298,
+        "height": 300
+      },
+      "measured": {
+        "width": 1182,
+        "height": 819
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 1182,
+      "height": 819,
+      "resizing": false,
+      "groupId": "group-6"
+    },
+    {
+      "id": "prompt-60",
+      "type": "prompt",
+      "position": {
+        "x": 2047.0317285533,
+        "y": 2457.5477289170717
+      },
+      "data": {
+        "prompt": "Analyze the input image and silently inventory all design-critical details: the specific brown and white Brittany-type dog, its tan collar and yellow tag, and the environment (mature trees, sun-dappled green grass, fallen autumn leaves, hard natural sunlight).\n\nThe subject is exclusively this dog.\n\nCrucial Constraints & Instructive Elements:\n\nAll aspects of the dog (appearance, collar, tag), the environment details, lighting conditions, and the specified color grade must remain 100% unchanged across all six frames.\n\nDo not add or remove anything. No human models, no props, no extra clothing, and specifically no headphones or Walkman devices should be present.\n\nDo not reinterpret materials or colors. The fur texture, grass, and leaves must be rendered exactly as seen in  the input image.\n\nPerfectly replicate the exact structural features and appearance of the dog and the park setting in every shot.\n\nMaintain perfect subject fidelity in every frame.\n\nVisual Style:\n\nFilm Stock: Fuji Velvia aesthetic.\n\nColor: Highly saturated, rich greens and reds, deep blacks.\n\nTexture: Pronounced, realistic film grain throughout the entire contact sheet.\n\nLighting: Hard, natural sunlight with strong contrast (creating distinct shadows), matching the input image.\n\nOutput Format: One single 3x2 photographic contact sheet image containing 6 distinct frames.\n\nThe six frames must be spatially dynamic, non-linear, and visually distinct perspectives of the same dog in the same moment.\n\nDo not include any notes, text, film strip numbers, or markings between or around the images.\n\nDo not show a significant gap or border between images; they should sit tightly together as a single sheet.\n\nRequired 6-Frame Shot List (Grid Layout):\n\nTop Row (Left to Right):\n\n1. The Hero Profile (35mm, Eye-Level): The camera is positioned at the dog's eye level. The dog stands stoically in a strong side profile, looking off-camera right. The hard sunlight highlights the contours of its face and fur.\n\n2. High Angle (32mm, Downward Tilt): The camera looks down from above. The dog is looking up towards the lens. This angle emphasizes the shape of its body against the textured ground of grass and fallen leaves.\n\n3. Low-Angle Stance (24mm, Worm's Eye View): The camera is very low to the ground, angled sharply upward. The dog looks imposing, towering over the lens against the backdrop of the large trees and sky.\n\n4. Wide Environmental (50mm, Center Framed): A wide shot capturing the entire dog centered in the frame, emphasizing its scale within the large park environment. The dog stands alert, looking directly at the camera. \n\n5. Portrait (85mm, Close Up, Shallow DOF): A tight close-up on the dog's face. The focus is sharp on the eyes and nose. The background of sun-dappled leaves is heavily blurred into bokeh. \n\n6. Textural Detail (50mm, Hip Level): A focused study of the dog's shoulder and flank texture, showing the coarse fur and the details of the tan collar and tag. Sunlight rakes across the fur texture."
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 378,
+        "height": 783
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 378,
+      "height": 783,
+      "resizing": false,
+      "groupId": "group-6"
+    },
+    {
+      "id": "splitGrid-61",
+      "type": "splitGrid",
+      "position": {
+        "x": 3696.463800031419,
+        "y": 2790.6328957593823
+      },
+      "data": {
+        "sourceImage": null,
+        "targetCount": 6,
+        "defaultPrompt": "Upscale the image to 3:2 aspect ratio. Keep all aspects of the original image unchanged. ",
+        "generateSettings": {
+          "aspectRatio": "3:2",
+          "resolution": "1K",
+          "model": "nano-banana-pro",
+          "useGoogleSearch": false
+        },
+        "childNodeIds": [
+          {
+            "imageInput": "imageInput-62",
+            "prompt": "prompt-64",
+            "nanoBanana": "nanoBanana-63"
+          },
+          {
+            "imageInput": "imageInput-65",
+            "prompt": "prompt-67",
+            "nanoBanana": "nanoBanana-66"
+          },
+          {
+            "imageInput": "imageInput-68",
+            "prompt": "prompt-70",
+            "nanoBanana": "nanoBanana-69"
+          },
+          {
+            "imageInput": "imageInput-71",
+            "prompt": "prompt-73",
+            "nanoBanana": "nanoBanana-72"
+          },
+          {
+            "imageInput": "imageInput-74",
+            "prompt": "prompt-76",
+            "nanoBanana": "nanoBanana-75"
+          },
+          {
+            "imageInput": "imageInput-77",
+            "prompt": "prompt-79",
+            "nanoBanana": "nanoBanana-78"
+          }
+        ],
+        "gridRows": 2,
+        "gridCols": 3,
+        "isConfigured": true,
+        "status": "complete",
+        "error": null,
+        "sourceImageRef": "img-ml9kz7wq-usm3aj"
+      },
+      "style": {
+        "width": 300,
+        "height": 320
+      },
+      "measured": {
+        "width": 300,
+        "height": 320
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-7"
+    },
+    {
+      "id": "imageInput-62",
+      "type": "imageInput",
+      "position": {
+        "x": 4072.8836522143297,
+        "y": 2455.981434776006
+      },
+      "data": {
+        "image": null,
+        "filename": "split-1-1.png",
+        "dimensions": {
+          "width": 421,
+          "height": 424
+        },
+        "imageRef": "img-ml9kz7x6-os3oml"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-7"
+    },
+    {
+      "id": "nanoBanana-63",
+      "type": "nanoBanana",
+      "position": {
+        "x": 4412.883652214332,
+        "y": 2455.981434776006
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "Upscale the image to 3:2 aspect ratio. Keep all aspects of the original image unchanged.     ",
+        "outputImage": null,
+        "aspectRatio": "3:2",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": [],
+        "inputImageRefs": [
+          "img-ml9kz7x6-os3oml"
+        ],
+        "outputImageRef": "img-ml9kz7y2-6sgz3r"
+      },
+      "style": {
+        "width": 500,
+        "height": 546
+      },
+      "measured": {
+        "width": 500,
+        "height": 546
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-7"
+    },
+    {
+      "id": "prompt-64",
+      "type": "prompt",
+      "position": {
+        "x": 4072.8836522143297,
+        "y": 2785.9814347760057
+      },
+      "data": {
+        "prompt": "Upscale the image to 3:2 aspect ratio. Keep all aspects of the original image unchanged.                "
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-7"
+    },
+    {
+      "id": "imageInput-65",
+      "type": "imageInput",
+      "position": {
+        "x": 5025.34001751758,
+        "y": 2470.659130433172
+      },
+      "data": {
+        "image": null,
+        "filename": "split-1-2.png",
+        "dimensions": {
+          "width": 421,
+          "height": 424
+        },
+        "imageRef": "img-ml9kz7zn-03fuj0"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-7"
+    },
+    {
+      "id": "nanoBanana-66",
+      "type": "nanoBanana",
+      "position": {
+        "x": 5365.34001751758,
+        "y": 2470.659130433172
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "Upscale the image to 3:2 aspect ratio. Keep all aspects of the original image unchanged. ",
+        "outputImage": null,
+        "aspectRatio": "3:2",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": [],
+        "inputImageRefs": [
+          "img-ml9kz7zn-03fuj0"
+        ],
+        "outputImageRef": "img-ml9kz80g-ats89d"
+      },
+      "style": {
+        "width": 500,
+        "height": 537
+      },
+      "measured": {
+        "width": 500,
+        "height": 537
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-7"
+    },
+    {
+      "id": "prompt-67",
+      "type": "prompt",
+      "position": {
+        "x": 5025.34001751758,
+        "y": 2800.6591304331714
+      },
+      "data": {
+        "prompt": "Upscale the image to 3:2 aspect ratio. Keep all aspects of the original image unchanged. "
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-7"
+    },
+    {
+      "id": "imageInput-68",
+      "type": "imageInput",
+      "position": {
+        "x": 5992.474078477995,
+        "y": 2464.788052170306
+      },
+      "data": {
+        "image": null,
+        "filename": "split-1-3.png",
+        "dimensions": {
+          "width": 421,
+          "height": 424
+        },
+        "imageRef": "img-ml9kz83a-l0yh0i"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-7"
+    },
+    {
+      "id": "nanoBanana-69",
+      "type": "nanoBanana",
+      "position": {
+        "x": 6332.474078477996,
+        "y": 2464.788052170306
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "Upscale the image to 3:2 aspect ratio. Keep all aspects of the original image unchanged. ",
+        "outputImage": null,
+        "aspectRatio": "3:2",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": [],
+        "inputImageRefs": [
+          "img-ml9kz83a-l0yh0i"
+        ],
+        "outputImageRef": "img-ml9kz843-p2gt1i"
+      },
+      "style": {
+        "width": 500,
+        "height": 537
+      },
+      "measured": {
+        "width": 500,
+        "height": 537
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-7"
+    },
+    {
+      "id": "prompt-70",
+      "type": "prompt",
+      "position": {
+        "x": 5992.474078477995,
+        "y": 2794.7880521703055
+      },
+      "data": {
+        "prompt": "Upscale the image to 3:2 aspect ratio. Keep all aspects of the original image unchanged. "
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-7"
+    },
+    {
+      "id": "imageInput-71",
+      "type": "imageInput",
+      "position": {
+        "x": 4072.8836522143297,
+        "y": 3065.9814347760052
+      },
+      "data": {
+        "image": null,
+        "filename": "split-2-1.png",
+        "dimensions": {
+          "width": 421,
+          "height": 424
+        },
+        "imageRef": "img-ml9kz868-6yp2wh"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-7"
+    },
+    {
+      "id": "nanoBanana-72",
+      "type": "nanoBanana",
+      "position": {
+        "x": 4412.883652214332,
+        "y": 3065.9814347760052
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "Upscale the image to 3:2 aspect ratio. Keep all aspects of the original image unchanged. ",
+        "outputImage": null,
+        "aspectRatio": "3:2",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": [],
+        "inputImageRefs": [
+          "img-ml9kz868-6yp2wh"
+        ],
+        "outputImageRef": "img-ml9kz86z-lj2iso"
+      },
+      "style": {
+        "width": 298,
+        "height": 300
+      },
+      "measured": {
+        "width": 540,
+        "height": 546
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 540,
+      "height": 546,
+      "resizing": false,
+      "groupId": "group-7"
+    },
+    {
+      "id": "prompt-73",
+      "type": "prompt",
+      "position": {
+        "x": 4072.8836522143297,
+        "y": 3395.9814347760052
+      },
+      "data": {
+        "prompt": "Upscale the image to 3:2 aspect ratio. Keep all aspects of the original image unchanged. "
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-7"
+    },
+    {
+      "id": "imageInput-74",
+      "type": "imageInput",
+      "position": {
+        "x": 5025.34001751758,
+        "y": 3080.659130433171
+      },
+      "data": {
+        "image": null,
+        "filename": "split-2-2.png",
+        "dimensions": {
+          "width": 421,
+          "height": 424
+        },
+        "imageRef": "img-ml9kz88k-eo2hhs"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-7"
+    },
+    {
+      "id": "nanoBanana-75",
+      "type": "nanoBanana",
+      "position": {
+        "x": 5365.34001751758,
+        "y": 3080.659130433171
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "Upscale the image to 3:2 aspect ratio. Keep all aspects of the original image unchanged. ",
+        "outputImage": null,
+        "aspectRatio": "3:2",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": [],
+        "inputImageRefs": [
+          "img-ml9kz88k-eo2hhs"
+        ],
+        "outputImageRef": "img-ml9kz89c-otywij"
+      },
+      "style": {
+        "width": 298,
+        "height": 300
+      },
+      "measured": {
+        "width": 593,
+        "height": 537
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 593,
+      "height": 537,
+      "resizing": false,
+      "groupId": "group-7"
+    },
+    {
+      "id": "prompt-76",
+      "type": "prompt",
+      "position": {
+        "x": 5025.34001751758,
+        "y": 3410.659130433171
+      },
+      "data": {
+        "prompt": "Upscale the image to 3:2 aspect ratio. Keep all aspects of the original image unchanged.   "
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-7"
+    },
+    {
+      "id": "imageInput-77",
+      "type": "imageInput",
+      "position": {
+        "x": 5992.474078477995,
+        "y": 3074.788052170305
+      },
+      "data": {
+        "image": null,
+        "filename": "split-2-3.png",
+        "dimensions": {
+          "width": 421,
+          "height": 424
+        },
+        "imageRef": "img-ml9kz8cy-p6jgs6"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-7"
+    },
+    {
+      "id": "nanoBanana-78",
+      "type": "nanoBanana",
+      "position": {
+        "x": 6332.474078477996,
+        "y": 3074.788052170305
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "Upscale the image to 3:2 aspect ratio. Keep all aspects of the original image unchanged. ",
+        "outputImage": null,
+        "aspectRatio": "3:2",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": [],
+        "inputImageRefs": [
+          "img-ml9kz8cy-p6jgs6"
+        ],
+        "outputImageRef": "img-ml9kz8dy-3cwo4y"
+      },
+      "style": {
+        "width": 298,
+        "height": 300
+      },
+      "measured": {
+        "width": 602,
+        "height": 537
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 602,
+      "height": 537,
+      "resizing": false,
+      "groupId": "group-7"
+    },
+    {
+      "id": "prompt-79",
+      "type": "prompt",
+      "position": {
+        "x": 5992.474078477995,
+        "y": 3404.788052170305
+      },
+      "data": {
+        "prompt": "Upscale the image to 3:2 aspect ratio. Keep all aspects of the original image unchanged. "
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-7"
+    },
+    {
+      "id": "nanoBanana-80",
+      "type": "nanoBanana",
+      "position": {
+        "x": 7654.759632332795,
+        "y": 1687.9298092059926
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": null,
+        "outputImage": null,
+        "aspectRatio": "3:2",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": true,
+        "status": "complete",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": [],
+        "outputImageRef": "img-ml9kz8fe-8yk3wq"
+      },
+      "style": {
+        "width": 300,
+        "height": 301
+      },
+      "measured": {
+        "width": 737,
+        "height": 525
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 737,
+      "height": 525,
+      "resizing": false,
+      "groupId": "group-9"
+    },
+    {
+      "id": "prompt-81",
+      "type": "prompt",
+      "position": {
+        "x": 7322.774793647072,
+        "y": 2010.6695088470783
+      },
+      "data": {
+        "prompt": "Put the text 'GOOD' behind the Dog in very large type. The text is full width and masked by the dog. Match the font exactly and keep all other aspects of the image exactly the same"
+      },
+      "style": {
+        "width": 180,
+        "height": 484
+      },
+      "measured": {
+        "width": 308,
+        "height": 199
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-9",
+      "width": 308,
+      "height": 199,
+      "resizing": false
+    },
+    {
+      "id": "nanoBanana-82",
+      "type": "nanoBanana",
+      "position": {
+        "x": 8797.445879239662,
+        "y": 1668.755243309684
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": null,
+        "outputImage": null,
+        "aspectRatio": "3:2",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": [],
+        "outputImageRef": "img-ml9kz8gn-tyda8x"
+      },
+      "style": {
+        "width": 300,
+        "height": 301
+      },
+      "measured": {
+        "width": 740,
+        "height": 555
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 740,
+      "height": 555,
+      "resizing": false,
+      "groupId": "group-9"
+    },
+    {
+      "id": "prompt-83",
+      "type": "prompt",
+      "position": {
+        "x": 8481.175715724929,
+        "y": 2020.7639558179185
+      },
+      "data": {
+        "prompt": " Put the text 'GIRL' behind the Dog in very large type. The text is full width and partially masked by the dog. Match the font exactly and keep all other aspects of the image exactly the same"
+      },
+      "style": {
+        "width": 308,
+        "height": 199
+      },
+      "measured": {
+        "width": 308,
+        "height": 199
+      },
+      "selected": false,
+      "dragging": false,
+      "groupId": "group-9"
+    },
+    {
+      "id": "imageInput-84",
+      "type": "imageInput",
+      "position": {
+        "x": 7336.8175850485595,
+        "y": 1688.091614642119
+      },
+      "data": {
+        "image": null,
+        "filename": "pasted-1766487583606.png",
+        "dimensions": {
+          "width": 390,
+          "height": 166
+        },
+        "imageRef": "img-ml9kz8gr-dbqhhf"
+      },
+      "style": {
+        "width": 308,
+        "height": 199
+      },
+      "measured": {
+        "width": 300,
+        "height": 209
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 300,
+      "height": 209,
+      "resizing": false,
+      "groupId": "group-9"
+    },
+    {
+      "id": "imageInput-85",
+      "type": "imageInput",
+      "position": {
+        "x": 8483.521478235665,
+        "y": 1669.9241148044534
+      },
+      "data": {
+        "image": null,
+        "filename": "pasted-1766487608325.png",
+        "dimensions": {
+          "width": 320,
+          "height": 166
+        },
+        "imageRef": "img-ml9kz8hm-794xxz"
+      },
+      "style": {
+        "width": 308,
+        "height": 199
+      },
+      "measured": {
+        "width": 300,
+        "height": 224
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 300,
+      "height": 224,
+      "resizing": false,
+      "groupId": "group-9"
+    }
+  ],
+  "edges": [
+    {
+      "source": "imageInput-3",
+      "sourceHandle": "image",
+      "target": "nanoBanana-2",
+      "targetHandle": "image",
+      "id": "edge-imageInput-3-nanoBanana-2-image-image",
+      "selected": false
+    },
+    {
+      "source": "imageInput-4",
+      "sourceHandle": "image",
+      "target": "nanoBanana-2",
+      "targetHandle": "image",
+      "id": "edge-imageInput-4-nanoBanana-2-image-image",
+      "selected": false
+    },
+    {
+      "source": "prompt-1",
+      "sourceHandle": "text",
+      "target": "nanoBanana-2",
+      "targetHandle": "text",
+      "id": "edge-prompt-1-nanoBanana-2-text-text",
+      "selected": false
+    },
+    {
+      "source": "prompt-7",
+      "sourceHandle": "text",
+      "target": "nanoBanana-6",
+      "targetHandle": "text",
+      "id": "edge-prompt-7-nanoBanana-6-text-text",
+      "selected": false
+    },
+    {
+      "source": "nanoBanana-6",
+      "sourceHandle": "image",
+      "target": "splitGrid-17",
+      "targetHandle": "image",
+      "id": "edge-nanoBanana-6-splitGrid-17-image-image",
+      "selected": false
+    },
+    {
+      "source": "imageInput-18",
+      "sourceHandle": "image",
+      "target": "nanoBanana-19",
+      "targetHandle": "image",
+      "id": "edge-imageInput-18-nanoBanana-19-image-image",
+      "selected": false
+    },
+    {
+      "source": "prompt-20",
+      "sourceHandle": "text",
+      "target": "nanoBanana-19",
+      "targetHandle": "text",
+      "id": "edge-prompt-20-nanoBanana-19-text-text",
+      "selected": false
+    },
+    {
+      "source": "splitGrid-17",
+      "sourceHandle": "reference",
+      "target": "imageInput-18",
+      "targetHandle": "reference",
+      "id": "edge-splitGrid-17-imageInput-18-reference-reference",
+      "type": "reference",
+      "selected": false
+    },
+    {
+      "source": "imageInput-21",
+      "sourceHandle": "image",
+      "target": "nanoBanana-22",
+      "targetHandle": "image",
+      "id": "edge-imageInput-21-nanoBanana-22-image-image",
+      "selected": false
+    },
+    {
+      "source": "prompt-23",
+      "sourceHandle": "text",
+      "target": "nanoBanana-22",
+      "targetHandle": "text",
+      "id": "edge-prompt-23-nanoBanana-22-text-text",
+      "selected": false
+    },
+    {
+      "source": "splitGrid-17",
+      "sourceHandle": "reference",
+      "target": "imageInput-21",
+      "targetHandle": "reference",
+      "id": "edge-splitGrid-17-imageInput-21-reference-reference",
+      "type": "reference",
+      "selected": false
+    },
+    {
+      "source": "imageInput-24",
+      "sourceHandle": "image",
+      "target": "nanoBanana-25",
+      "targetHandle": "image",
+      "id": "edge-imageInput-24-nanoBanana-25-image-image",
+      "selected": false
+    },
+    {
+      "source": "prompt-26",
+      "sourceHandle": "text",
+      "target": "nanoBanana-25",
+      "targetHandle": "text",
+      "id": "edge-prompt-26-nanoBanana-25-text-text",
+      "selected": false
+    },
+    {
+      "source": "splitGrid-17",
+      "sourceHandle": "reference",
+      "target": "imageInput-24",
+      "targetHandle": "reference",
+      "id": "edge-splitGrid-17-imageInput-24-reference-reference",
+      "type": "reference",
+      "selected": false
+    },
+    {
+      "source": "imageInput-27",
+      "sourceHandle": "image",
+      "target": "nanoBanana-28",
+      "targetHandle": "image",
+      "id": "edge-imageInput-27-nanoBanana-28-image-image",
+      "selected": false
+    },
+    {
+      "source": "prompt-29",
+      "sourceHandle": "text",
+      "target": "nanoBanana-28",
+      "targetHandle": "text",
+      "id": "edge-prompt-29-nanoBanana-28-text-text",
+      "selected": false
+    },
+    {
+      "source": "splitGrid-17",
+      "sourceHandle": "reference",
+      "target": "imageInput-27",
+      "targetHandle": "reference",
+      "id": "edge-splitGrid-17-imageInput-27-reference-reference",
+      "type": "reference",
+      "selected": false
+    },
+    {
+      "source": "imageInput-30",
+      "sourceHandle": "image",
+      "target": "nanoBanana-31",
+      "targetHandle": "image",
+      "id": "edge-imageInput-30-nanoBanana-31-image-image",
+      "selected": false
+    },
+    {
+      "source": "prompt-32",
+      "sourceHandle": "text",
+      "target": "nanoBanana-31",
+      "targetHandle": "text",
+      "id": "edge-prompt-32-nanoBanana-31-text-text",
+      "selected": false
+    },
+    {
+      "source": "splitGrid-17",
+      "sourceHandle": "reference",
+      "target": "imageInput-30",
+      "targetHandle": "reference",
+      "id": "edge-splitGrid-17-imageInput-30-reference-reference",
+      "type": "reference",
+      "selected": false
+    },
+    {
+      "source": "imageInput-33",
+      "sourceHandle": "image",
+      "target": "nanoBanana-34",
+      "targetHandle": "image",
+      "id": "edge-imageInput-33-nanoBanana-34-image-image",
+      "selected": false
+    },
+    {
+      "source": "prompt-35",
+      "sourceHandle": "text",
+      "target": "nanoBanana-34",
+      "targetHandle": "text",
+      "id": "edge-prompt-35-nanoBanana-34-text-text",
+      "selected": false
+    },
+    {
+      "source": "splitGrid-17",
+      "sourceHandle": "reference",
+      "target": "imageInput-33",
+      "targetHandle": "reference",
+      "id": "edge-splitGrid-17-imageInput-33-reference-reference",
+      "type": "reference",
+      "selected": false
+    },
+    {
+      "source": "imageInput-45",
+      "sourceHandle": "image",
+      "target": "nanoBanana-2",
+      "targetHandle": "image",
+      "id": "edge-imageInput-45-nanoBanana-2-image-image",
+      "selected": false
+    },
+    {
+      "source": "imageInput-46",
+      "sourceHandle": "image",
+      "target": "nanoBanana-2",
+      "targetHandle": "image",
+      "id": "edge-imageInput-46-nanoBanana-2-image-image",
+      "selected": false
+    },
+    {
+      "source": "nanoBanana-2",
+      "sourceHandle": "image",
+      "target": "nanoBanana-6",
+      "targetHandle": "image",
+      "id": "edge-nanoBanana-2-nanoBanana-6-image-image",
+      "selected": false
+    },
+    {
+      "source": "nanoBanana-31",
+      "sourceHandle": "image",
+      "target": "nanoBanana-47",
+      "targetHandle": "image",
+      "id": "edge-nanoBanana-31-nanoBanana-47-image-image",
+      "selected": false
+    },
+    {
+      "source": "prompt-48",
+      "sourceHandle": "text",
+      "target": "nanoBanana-47",
+      "targetHandle": "text",
+      "id": "edge-prompt-48-nanoBanana-47-text-text",
+      "selected": false
+    },
+    {
+      "source": "imageInput-49",
+      "sourceHandle": "image",
+      "target": "nanoBanana-47",
+      "targetHandle": "image",
+      "id": "edge-imageInput-49-nanoBanana-47-image-image",
+      "selected": false
+    },
+    {
+      "source": "nanoBanana-28",
+      "sourceHandle": "image",
+      "target": "nanoBanana-50",
+      "targetHandle": "image",
+      "id": "edge-nanoBanana-28-nanoBanana-50-image-image",
+      "selected": false
+    },
+    {
+      "source": "prompt-51",
+      "sourceHandle": "text",
+      "target": "nanoBanana-50",
+      "targetHandle": "text",
+      "id": "edge-prompt-51-nanoBanana-50-text-text",
+      "selected": false
+    },
+    {
+      "source": "imageInput-53",
+      "sourceHandle": "image",
+      "target": "nanoBanana-50",
+      "targetHandle": "image",
+      "id": "edge-imageInput-53-nanoBanana-50-image-image",
+      "selected": false
+    },
+    {
+      "source": "imageInput-54",
+      "sourceHandle": "image",
+      "target": "nanoBanana-58",
+      "targetHandle": "image",
+      "id": "edge-imageInput-54-nanoBanana-58-image-image",
+      "selected": false
+    },
+    {
+      "source": "imageInput-57",
+      "sourceHandle": "image",
+      "target": "nanoBanana-58",
+      "targetHandle": "image",
+      "id": "edge-imageInput-57-nanoBanana-58-image-image",
+      "selected": false
+    },
+    {
+      "source": "prompt-55",
+      "sourceHandle": "text",
+      "target": "nanoBanana-58",
+      "targetHandle": "text",
+      "id": "edge-prompt-55-nanoBanana-58-text-text",
+      "selected": false
+    },
+    {
+      "source": "nanoBanana-58",
+      "sourceHandle": "image",
+      "target": "nanoBanana-59",
+      "targetHandle": "image",
+      "id": "edge-nanoBanana-58-nanoBanana-59-image-image",
+      "selected": false
+    },
+    {
+      "source": "prompt-60",
+      "sourceHandle": "text",
+      "target": "nanoBanana-59",
+      "targetHandle": "text",
+      "id": "edge-prompt-60-nanoBanana-59-text-text",
+      "selected": false
+    },
+    {
+      "source": "nanoBanana-59",
+      "sourceHandle": "image",
+      "target": "splitGrid-61",
+      "targetHandle": "image",
+      "id": "edge-nanoBanana-59-splitGrid-61-image-image",
+      "selected": false
+    },
+    {
+      "source": "imageInput-62",
+      "sourceHandle": "image",
+      "target": "nanoBanana-63",
+      "targetHandle": "image",
+      "id": "edge-imageInput-62-nanoBanana-63-image-image",
+      "selected": false
+    },
+    {
+      "source": "prompt-64",
+      "sourceHandle": "text",
+      "target": "nanoBanana-63",
+      "targetHandle": "text",
+      "id": "edge-prompt-64-nanoBanana-63-text-text",
+      "selected": false
+    },
+    {
+      "source": "splitGrid-61",
+      "sourceHandle": "reference",
+      "target": "imageInput-62",
+      "targetHandle": "reference",
+      "id": "edge-splitGrid-61-imageInput-62-reference-reference",
+      "type": "reference",
+      "selected": false
+    },
+    {
+      "source": "imageInput-65",
+      "sourceHandle": "image",
+      "target": "nanoBanana-66",
+      "targetHandle": "image",
+      "id": "edge-imageInput-65-nanoBanana-66-image-image",
+      "selected": false
+    },
+    {
+      "source": "prompt-67",
+      "sourceHandle": "text",
+      "target": "nanoBanana-66",
+      "targetHandle": "text",
+      "id": "edge-prompt-67-nanoBanana-66-text-text",
+      "selected": false
+    },
+    {
+      "source": "splitGrid-61",
+      "sourceHandle": "reference",
+      "target": "imageInput-65",
+      "targetHandle": "reference",
+      "id": "edge-splitGrid-61-imageInput-65-reference-reference",
+      "type": "reference",
+      "selected": false
+    },
+    {
+      "source": "imageInput-68",
+      "sourceHandle": "image",
+      "target": "nanoBanana-69",
+      "targetHandle": "image",
+      "id": "edge-imageInput-68-nanoBanana-69-image-image",
+      "selected": false
+    },
+    {
+      "source": "prompt-70",
+      "sourceHandle": "text",
+      "target": "nanoBanana-69",
+      "targetHandle": "text",
+      "id": "edge-prompt-70-nanoBanana-69-text-text",
+      "selected": false
+    },
+    {
+      "source": "splitGrid-61",
+      "sourceHandle": "reference",
+      "target": "imageInput-68",
+      "targetHandle": "reference",
+      "id": "edge-splitGrid-61-imageInput-68-reference-reference",
+      "type": "reference",
+      "selected": false
+    },
+    {
+      "source": "imageInput-71",
+      "sourceHandle": "image",
+      "target": "nanoBanana-72",
+      "targetHandle": "image",
+      "id": "edge-imageInput-71-nanoBanana-72-image-image",
+      "selected": false
+    },
+    {
+      "source": "prompt-73",
+      "sourceHandle": "text",
+      "target": "nanoBanana-72",
+      "targetHandle": "text",
+      "id": "edge-prompt-73-nanoBanana-72-text-text",
+      "selected": false
+    },
+    {
+      "source": "splitGrid-61",
+      "sourceHandle": "reference",
+      "target": "imageInput-71",
+      "targetHandle": "reference",
+      "id": "edge-splitGrid-61-imageInput-71-reference-reference",
+      "type": "reference",
+      "selected": false
+    },
+    {
+      "source": "imageInput-74",
+      "sourceHandle": "image",
+      "target": "nanoBanana-75",
+      "targetHandle": "image",
+      "id": "edge-imageInput-74-nanoBanana-75-image-image",
+      "selected": false
+    },
+    {
+      "source": "prompt-76",
+      "sourceHandle": "text",
+      "target": "nanoBanana-75",
+      "targetHandle": "text",
+      "id": "edge-prompt-76-nanoBanana-75-text-text",
+      "selected": false
+    },
+    {
+      "source": "splitGrid-61",
+      "sourceHandle": "reference",
+      "target": "imageInput-74",
+      "targetHandle": "reference",
+      "id": "edge-splitGrid-61-imageInput-74-reference-reference",
+      "type": "reference",
+      "selected": false
+    },
+    {
+      "source": "imageInput-77",
+      "sourceHandle": "image",
+      "target": "nanoBanana-78",
+      "targetHandle": "image",
+      "id": "edge-imageInput-77-nanoBanana-78-image-image",
+      "selected": false
+    },
+    {
+      "source": "prompt-79",
+      "sourceHandle": "text",
+      "target": "nanoBanana-78",
+      "targetHandle": "text",
+      "id": "edge-prompt-79-nanoBanana-78-text-text",
+      "selected": false
+    },
+    {
+      "source": "splitGrid-61",
+      "sourceHandle": "reference",
+      "target": "imageInput-77",
+      "targetHandle": "reference",
+      "id": "edge-splitGrid-61-imageInput-77-reference-reference",
+      "type": "reference",
+      "selected": false
+    },
+    {
+      "source": "prompt-81",
+      "sourceHandle": "text",
+      "target": "nanoBanana-80",
+      "targetHandle": "text",
+      "id": "edge-prompt-81-nanoBanana-80-text-text",
+      "selected": false
+    },
+    {
+      "source": "nanoBanana-69",
+      "sourceHandle": "image",
+      "target": "nanoBanana-82",
+      "targetHandle": "image",
+      "id": "edge-nanoBanana-69-nanoBanana-82-image-image",
+      "selected": false
+    },
+    {
+      "source": "prompt-83",
+      "sourceHandle": "text",
+      "target": "nanoBanana-82",
+      "targetHandle": "text",
+      "id": "edge-prompt-83-nanoBanana-82-text-text",
+      "selected": false
+    },
+    {
+      "source": "imageInput-84",
+      "sourceHandle": "image",
+      "target": "nanoBanana-80",
+      "targetHandle": "image",
+      "id": "edge-imageInput-84-nanoBanana-80-image-image",
+      "selected": false
+    },
+    {
+      "source": "imageInput-85",
+      "sourceHandle": "image",
+      "target": "nanoBanana-82",
+      "targetHandle": "image",
+      "id": "edge-imageInput-85-nanoBanana-82-image-image",
+      "selected": false
+    },
+    {
+      "source": "nanoBanana-63",
+      "sourceHandle": "image",
+      "target": "nanoBanana-80",
+      "targetHandle": "image",
+      "id": "edge-nanoBanana-63-nanoBanana-80-image-image",
+      "selected": false
+    }
+  ],
+  "edgeStyle": "curved",
+  "groups": {
+    "group-1": {
+      "id": "group-1",
+      "name": "Initial Gen",
+      "color": "neutral",
+      "position": {
+        "x": -33.45671107363988,
+        "y": 1045.515968847781
+      },
+      "size": {
+        "width": 1989.8816838144442,
+        "height": 1278.9290434407171
+      }
+    },
+    "group-2": {
+      "id": "group-2",
+      "name": "Contact sheet",
+      "color": "blue",
+      "position": {
+        "x": 1985.8074935902628,
+        "y": 1056.1767532270571
+      },
+      "size": {
+        "width": 1642.6410357800387,
+        "height": 947.1875728520274
+      }
+    },
+    "group-3": {
+      "id": "group-3",
+      "name": "Split",
+      "color": "green",
+      "position": {
+        "x": 3676.5046189206855,
+        "y": 1053.9480517311772
+      },
+      "size": {
+        "width": 3543.987118558687,
+        "height": 1283.5
+      }
+    },
+    "group-5": {
+      "id": "group-5",
+      "name": "Murph Mode",
+      "color": "purple",
+      "position": {
+        "x": 454.5646334376394,
+        "y": 2405.1232631780713
+      },
+      "size": {
+        "width": 1513.6234187072664,
+        "height": 957.1495628932576
+      }
+    },
+    "group-6": {
+      "id": "group-6",
+      "name": "Contact Sheet - Dog",
+      "color": "orange",
+      "position": {
+        "x": 2027.0317285533001,
+        "y": 2401.175758273024
+      },
+      "size": {
+        "width": 1618.770044491187,
+        "height": 891
+      }
+    },
+    "group-7": {
+      "id": "group-7",
+      "name": "Upscale",
+      "color": "green",
+      "position": {
+        "x": 3676.4638000314185,
+        "y": 2403.981434776006
+      },
+      "size": {
+        "width": 3278.0102784465607,
+        "height": 1246.6776956571657
+      }
+    },
+    "group-9": {
+      "id": "group-9",
+      "name": "Typography",
+      "color": "red",
+      "position": {
+        "x": 7297.255298823143,
+        "y": 1051.6697391618668
+      },
+      "size": {
+        "width": 2267.276399836821,
+        "height": 1192.0855041478173
+      }
+    }
+  }
+}

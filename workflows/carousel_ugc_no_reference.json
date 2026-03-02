@@ -1,0 +1,1010 @@
+{
+  "version": 1,
+  "id": "wf_1770900000000_carousel_ugc_no_ref",
+  "name": "Carousel UGC (No Reference)",
+  "nodes": [
+    {
+      "id": "imageInput-1",
+      "type": "imageInput",
+      "position": {
+        "x": 50,
+        "y": 100
+      },
+      "data": {
+        "image": null,
+        "filename": null,
+        "dimensions": null,
+        "imageRef": null
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "groupId": "group-inputs"
+    },
+    {
+      "id": "prompt-persona",
+      "type": "prompt",
+      "position": {
+        "x": 50,
+        "y": 430
+      },
+      "data": {
+        "prompt": "Sofia, 28, confident and warm, loves self-improvement, always learning\nActivities: journaling, morning runs, reading on the couch, cooking healthy meals, traveling solo, working from cafés\nTopics: mindset, productivity, self-care, personal growth, motivation"
+      },
+      "style": {
+        "width": 380,
+        "height": 180
+      },
+      "measured": {
+        "width": 380,
+        "height": 180
+      },
+      "selected": false,
+      "groupId": "group-inputs"
+    },
+    {
+      "id": "prompt-language",
+      "type": "prompt",
+      "position": {
+        "x": 50,
+        "y": 660
+      },
+      "data": {
+        "prompt": "English"
+      },
+      "style": {
+        "width": 380,
+        "height": 100
+      },
+      "measured": {
+        "width": 380,
+        "height": 100
+      },
+      "selected": false,
+      "groupId": "group-inputs"
+    },
+    {
+      "id": "prompt-instructions",
+      "type": "prompt",
+      "position": {
+        "x": 50,
+        "y": 810
+      },
+      "data": {
+        "prompt": "Topic: \"5 Morning Habits That Changed My Life\"\nTone: Warm, authentic, relatable — like talking to a close friend\nSlides: 6 (Hook → Problem → 3 Insights → CTA)"
+      },
+      "style": {
+        "width": 380,
+        "height": 160
+      },
+      "measured": {
+        "width": 380,
+        "height": 160
+      },
+      "selected": false,
+      "groupId": "group-inputs"
+    },
+    {
+      "id": "prompt-constructor",
+      "type": "prompt",
+      "position": {
+        "x": 500,
+        "y": 100
+      },
+      "data": {
+        "prompt": "PERSONA:\n@persona\n\nLANGUAGE:\nWrite all text in @language\n\nINSTRUCTIONS:\n@instructions\n\n=== CAROUSEL PROMPT ENGINE (do not edit below) ===\n\nYou are a carousel content strategist and image prompt engineer. You receive a photo of a real person (the UGC creator) and the persona/language/instructions above.\n\nGenerate a single image-generation prompt that produces a 2x3 contact sheet (6 frames), one per carousel slide.\n\nSTYLE DIRECTION:\nThis must feel like real life — UGC, iPhone shots, raw moments, real emotions. NOT a polished studio shoot. Authentic storytelling that stops the scroll because it feels REAL.\n\nFor each of the 6 slides, pick a DIFFERENT photography approach. Never repeat. Choose from:\n\n1. SELFIE CLOSE-UP — Phone-distance (24mm), slightly above eye level, arm extended/cropped. Direct eye contact. Instagram story energy.\n2. FIRST-PERSON POV — Subject's hands visible doing an activity (journaling, holding coffee, cooking). Face NOT visible. Like a POV reel.\n3. CANDID THIRD-PERSON — Someone else took this. Subject mid-action, unaware. 3-5m away. A friend captured a moment.\n4. EMOTIONAL CLOSE-UP — Tight face crop (85mm). Raw emotion: tears, laughter with closed eyes, hand over mouth. The feeling hits before you read.\n5. LIFESTYLE (NO SUBJECT) — Subject absent. Show their world: desk setup, coffee steam, running shoes by the door, open journal, sunset from their window.\n6. MIRROR SELFIE — Reflected in bathroom/gym/bedroom mirror. Phone visible. Casual. The most UGC shot possible.\n7. BACK-TO-CAMERA — Facing away, looking at a view, walking, sitting on a bench. Contemplative. We see their world.\n8. LAUGHING BURST — Mid-laugh, head back, eyes crinkled. Genuine joy. Motion energy. 35mm candid.\n9. CRYING/VULNERABLE — Tears or wiping eyes. Not performative. Intimate. Soft warm light. Makes people feel.\n10. OVER-THE-SHOULDER — Behind subject's shoulder, showing what they see: a screen, a view, a book. Cinematic.\n11. WIDE ENVIRONMENTAL — Subject small in frame, environment dominates. Street, nature, café. 24mm. Context and energy.\n12. ACTION MID-MOTION — Mid-stride, mid-stretch, mid-pour. Life in motion. 35mm, eye level.\n\nRULES:\n- Slide 1 (Hook): MUST be SELFIE CLOSE-UP or EMOTIONAL CLOSE-UP\n- Slide 6 (CTA): MUST be SELFIE CLOSE-UP or MIRROR SELFIE\n- Slides 2-5: 4 different approaches from the rest. Maximize variety.\n- Story arc: Hook → Pain/Problem → Insight → Insight → Insight → CTA\n- Ground every scene in the persona's ACTUAL activities and life\n\nOUTPUT YOUR PROMPT WITH THIS EXACT STRUCTURE:\n\n---\n\nAnalyze the input image. [Describe the person: face, skin, hair color/length/texture, age, features, body type, clothing. Be precise enough for perfect recognition.]\n\nThe subject's appearance — facial features, skin tone, hair, body type — must remain 100% consistent across all six frames, even from behind or in different clothing. In frames where the subject appears, they must be unmistakably the same person. Do not reinterpret. Do not output reasoning.\n\nYour visible output must be: One 2x3 contact sheet image (6 frames only). Each frame is a distinct UGC-style photograph with bold typographic text as a design element. Aesthetic: raw, authentic, iPhone camera, natural light, real locations.\n\n1. [APPROACH] ([focal length], [camera], [framing])\nHeadline: \"[TEXT IN LANGUAGE]\" — bold white sans-serif, [position]. Subtitle: \"[TEXT IN LANGUAGE]\" — lighter weight, below.\n[Scene: what they're doing, where, environment, lighting, emotion, specific details from persona's life.]\n\n2. [repeat for each slide...]\n\n[...through slide 6]\n\nTypography: Bold white sans-serif headlines, high contrast. Subtitles same family, lighter, 40% size. Text integrated as design element with subtle shadow for legibility. ALL text in the specified language. Every frame MUST contain headline + subtitle.\n\nVisual Style: Raw UGC. Natural color temperature per scene. Natural saturation. Real locations — bedrooms, streets, cafés, parks. Natural light: window light, golden hour, ambient. Optional film grain. Feels like a real Instagram feed.\n\nOutput Format: 2x3 Contact Sheet Image (Mandatory)\nNo borders, gaps, annotations, or frame numbers. Frames sit tightly as one seamless sheet.\n\n---\n\nOutput ONLY the final prompt. No explanations. Start with \"Analyze the input image.\""
+      },
+      "style": {
+        "width": 420,
+        "height": 220
+      },
+      "measured": {
+        "width": 420,
+        "height": 220
+      },
+      "selected": false,
+      "groupId": "group-constructor"
+    },
+    {
+      "id": "llmGenerate-3",
+      "type": "llmGenerate",
+      "position": {
+        "x": 1000,
+        "y": 100
+      },
+      "data": {
+        "inputPrompt": null,
+        "inputImages": [],
+        "outputText": null,
+        "provider": "google",
+        "model": "gemini-3-flash-preview",
+        "temperature": 0.95,
+        "maxTokens": 14000,
+        "status": "idle",
+        "error": null
+      },
+      "style": {
+        "width": 340,
+        "height": 360
+      },
+      "measured": {
+        "width": 340,
+        "height": 360
+      },
+      "selected": false,
+      "groupId": "group-engine"
+    },
+    {
+      "id": "nanoBanana-4",
+      "type": "nanoBanana",
+      "position": {
+        "x": 1500,
+        "y": 100
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": null,
+        "outputImage": null,
+        "aspectRatio": "3:2",
+        "resolution": "2K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "idle",
+        "error": null,
+        "selectedModel": {
+          "provider": "kie",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": [
+          {
+            "name": "prompt",
+            "type": "text",
+            "required": true,
+            "label": "Prompt"
+          },
+          {
+            "name": "image_input",
+            "type": "image",
+            "required": false,
+            "label": "Image",
+            "isArray": true
+          }
+        ],
+        "parameters": {}
+      },
+      "style": {
+        "width": 447,
+        "height": 400
+      },
+      "measured": {
+        "width": 447,
+        "height": 400
+      },
+      "selected": false,
+      "groupId": "group-sheet"
+    },
+    {
+      "id": "splitGrid-5",
+      "type": "splitGrid",
+      "position": {
+        "x": 2100,
+        "y": 200
+      },
+      "data": {
+        "sourceImage": null,
+        "targetCount": 6,
+        "defaultPrompt": "Expand and upscale this carousel slide to full 9:16 vertical. Preserve exact composition, subject appearance, mood, lighting, and all text. Headlines and subtitles must stay razor-sharp, same font/size/color/position. Enhance fine details. Keep all aspects unchanged.",
+        "generateSettings": {
+          "aspectRatio": "9:16",
+          "resolution": "2K",
+          "model": "nano-banana-pro",
+          "useGoogleSearch": false
+        },
+        "childNodeIds": [
+          {
+            "imageInput": "imageInput-10",
+            "prompt": "prompt-11",
+            "nanoBanana": "nanoBanana-12"
+          },
+          {
+            "imageInput": "imageInput-13",
+            "prompt": "prompt-14",
+            "nanoBanana": "nanoBanana-15"
+          },
+          {
+            "imageInput": "imageInput-16",
+            "prompt": "prompt-17",
+            "nanoBanana": "nanoBanana-18"
+          },
+          {
+            "imageInput": "imageInput-19",
+            "prompt": "prompt-20",
+            "nanoBanana": "nanoBanana-21"
+          },
+          {
+            "imageInput": "imageInput-22",
+            "prompt": "prompt-23",
+            "nanoBanana": "nanoBanana-24"
+          },
+          {
+            "imageInput": "imageInput-25",
+            "prompt": "prompt-26",
+            "nanoBanana": "nanoBanana-27"
+          }
+        ],
+        "gridRows": 2,
+        "gridCols": 3,
+        "isConfigured": true,
+        "status": "idle",
+        "error": null
+      },
+      "style": {
+        "width": 300,
+        "height": 320
+      },
+      "measured": {
+        "width": 300,
+        "height": 320
+      },
+      "selected": false,
+      "groupId": "group-expand"
+    },
+    {
+      "id": "imageInput-10",
+      "type": "imageInput",
+      "position": {
+        "x": 2550,
+        "y": 50
+      },
+      "data": {
+        "image": null,
+        "filename": null,
+        "dimensions": null,
+        "imageRef": null
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "groupId": "group-expand"
+    },
+    {
+      "id": "prompt-11",
+      "type": "prompt",
+      "position": {
+        "x": 2550,
+        "y": 380
+      },
+      "data": {
+        "prompt": "Expand and upscale this HOOK slide to full 9:16 vertical. Preserve exact composition, subject, expression, pose, background, and text (headline + subtitle razor-sharp, same font/color/size/position). Enhance detail and text crispness. Keep all aspects unchanged."
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "groupId": "group-expand"
+    },
+    {
+      "id": "nanoBanana-12",
+      "type": "nanoBanana",
+      "position": {
+        "x": 2900,
+        "y": 50
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": null,
+        "outputImage": null,
+        "aspectRatio": "9:16",
+        "resolution": "2K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "idle",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": []
+      },
+      "style": {
+        "width": 298,
+        "height": 300
+      },
+      "measured": {
+        "width": 298,
+        "height": 300
+      },
+      "selected": false,
+      "groupId": "group-expand"
+    },
+    {
+      "id": "imageInput-13",
+      "type": "imageInput",
+      "position": {
+        "x": 3350,
+        "y": 50
+      },
+      "data": {
+        "image": null,
+        "filename": null,
+        "dimensions": null,
+        "imageRef": null
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "groupId": "group-expand"
+    },
+    {
+      "id": "prompt-14",
+      "type": "prompt",
+      "position": {
+        "x": 3350,
+        "y": 380
+      },
+      "data": {
+        "prompt": "Expand and upscale this slide to full 9:16 vertical. Preserve exact composition, subject, mood, lighting, expression, and all text. Text razor-sharp, same font/color/size/position. Enhance fine details. Keep all aspects unchanged."
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "groupId": "group-expand"
+    },
+    {
+      "id": "nanoBanana-15",
+      "type": "nanoBanana",
+      "position": {
+        "x": 3700,
+        "y": 50
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": null,
+        "outputImage": null,
+        "aspectRatio": "9:16",
+        "resolution": "2K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "idle",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": []
+      },
+      "style": {
+        "width": 298,
+        "height": 300
+      },
+      "measured": {
+        "width": 298,
+        "height": 300
+      },
+      "selected": false,
+      "groupId": "group-expand"
+    },
+    {
+      "id": "imageInput-16",
+      "type": "imageInput",
+      "position": {
+        "x": 4150,
+        "y": 50
+      },
+      "data": {
+        "image": null,
+        "filename": null,
+        "dimensions": null,
+        "imageRef": null
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "groupId": "group-expand"
+    },
+    {
+      "id": "prompt-17",
+      "type": "prompt",
+      "position": {
+        "x": 4150,
+        "y": 380
+      },
+      "data": {
+        "prompt": "Expand and upscale this slide to full 9:16 vertical. Preserve exact composition, subject, mood, lighting, expression, and all text. Text razor-sharp, same font/color/size/position. Enhance fine details. Keep all aspects unchanged."
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "groupId": "group-expand"
+    },
+    {
+      "id": "nanoBanana-18",
+      "type": "nanoBanana",
+      "position": {
+        "x": 4500,
+        "y": 50
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": null,
+        "outputImage": null,
+        "aspectRatio": "9:16",
+        "resolution": "2K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "idle",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": []
+      },
+      "style": {
+        "width": 298,
+        "height": 300
+      },
+      "measured": {
+        "width": 298,
+        "height": 300
+      },
+      "selected": false,
+      "groupId": "group-expand"
+    },
+    {
+      "id": "imageInput-19",
+      "type": "imageInput",
+      "position": {
+        "x": 2550,
+        "y": 700
+      },
+      "data": {
+        "image": null,
+        "filename": null,
+        "dimensions": null,
+        "imageRef": null
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "groupId": "group-expand"
+    },
+    {
+      "id": "prompt-20",
+      "type": "prompt",
+      "position": {
+        "x": 2550,
+        "y": 1030
+      },
+      "data": {
+        "prompt": "Expand and upscale this slide to full 9:16 vertical. Preserve exact composition, subject, mood, lighting, expression, and all text. Text razor-sharp, same font/color/size/position. Enhance fine details. Keep all aspects unchanged."
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "groupId": "group-expand"
+    },
+    {
+      "id": "nanoBanana-21",
+      "type": "nanoBanana",
+      "position": {
+        "x": 2900,
+        "y": 700
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": null,
+        "outputImage": null,
+        "aspectRatio": "9:16",
+        "resolution": "2K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "idle",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": []
+      },
+      "style": {
+        "width": 298,
+        "height": 300
+      },
+      "measured": {
+        "width": 298,
+        "height": 300
+      },
+      "selected": false,
+      "groupId": "group-expand"
+    },
+    {
+      "id": "imageInput-22",
+      "type": "imageInput",
+      "position": {
+        "x": 3350,
+        "y": 700
+      },
+      "data": {
+        "image": null,
+        "filename": null,
+        "dimensions": null,
+        "imageRef": null
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "groupId": "group-expand"
+    },
+    {
+      "id": "prompt-23",
+      "type": "prompt",
+      "position": {
+        "x": 3350,
+        "y": 1030
+      },
+      "data": {
+        "prompt": "Expand and upscale this slide to full 9:16 vertical. Preserve exact composition, subject, mood, lighting, expression, and all text. Text razor-sharp, same font/color/size/position. Enhance fine details. Keep all aspects unchanged."
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "groupId": "group-expand"
+    },
+    {
+      "id": "nanoBanana-24",
+      "type": "nanoBanana",
+      "position": {
+        "x": 3700,
+        "y": 700
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": null,
+        "outputImage": null,
+        "aspectRatio": "9:16",
+        "resolution": "2K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "idle",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": []
+      },
+      "style": {
+        "width": 298,
+        "height": 300
+      },
+      "measured": {
+        "width": 298,
+        "height": 300
+      },
+      "selected": false,
+      "groupId": "group-expand"
+    },
+    {
+      "id": "imageInput-25",
+      "type": "imageInput",
+      "position": {
+        "x": 4150,
+        "y": 700
+      },
+      "data": {
+        "image": null,
+        "filename": null,
+        "dimensions": null,
+        "imageRef": null
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "groupId": "group-expand"
+    },
+    {
+      "id": "prompt-26",
+      "type": "prompt",
+      "position": {
+        "x": 4150,
+        "y": 1030
+      },
+      "data": {
+        "prompt": "Expand and upscale this CTA slide to full 9:16 vertical. Preserve direct address, warm expression, CTA text prominent in lower third. Text razor-sharp, same font/color/size/position. Maintain exact subject appearance. Enhance detail and warmth. Keep all aspects unchanged."
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "groupId": "group-expand"
+    },
+    {
+      "id": "nanoBanana-27",
+      "type": "nanoBanana",
+      "position": {
+        "x": 4500,
+        "y": 700
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": null,
+        "outputImage": null,
+        "aspectRatio": "9:16",
+        "resolution": "2K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "idle",
+        "error": null,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": []
+      },
+      "style": {
+        "width": 298,
+        "height": 300
+      },
+      "measured": {
+        "width": 298,
+        "height": 300
+      },
+      "selected": false,
+      "groupId": "group-expand"
+    }
+  ],
+  "edges": [
+    {
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "llmGenerate-3",
+      "targetHandle": "image",
+      "id": "edge-img1-llm",
+      "type": "editable",
+      "animated": false,
+      "selected": false
+    },
+    {
+      "source": "prompt-constructor",
+      "sourceHandle": "text",
+      "target": "llmGenerate-3",
+      "targetHandle": "text",
+      "id": "edge-constructor-llm",
+      "type": "editable",
+      "animated": false,
+      "selected": false
+    },
+    {
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "nanoBanana-4",
+      "targetHandle": "image",
+      "id": "edge-img1-gen",
+      "type": "editable",
+      "animated": false,
+      "selected": false
+    },
+    {
+      "source": "llmGenerate-3",
+      "sourceHandle": "text",
+      "target": "nanoBanana-4",
+      "targetHandle": "text",
+      "id": "edge-llm-gen",
+      "type": "editable",
+      "animated": false,
+      "selected": false
+    },
+    {
+      "source": "nanoBanana-4",
+      "sourceHandle": "image",
+      "target": "splitGrid-5",
+      "targetHandle": "image",
+      "id": "edge-gen-split",
+      "type": "editable",
+      "animated": false,
+      "selected": false
+    },
+    {
+      "source": "splitGrid-5",
+      "sourceHandle": "reference",
+      "target": "imageInput-10",
+      "targetHandle": "reference",
+      "id": "edge-split-img10",
+      "type": "reference",
+      "selected": false
+    },
+    {
+      "source": "imageInput-10",
+      "sourceHandle": "image",
+      "target": "nanoBanana-12",
+      "targetHandle": "image",
+      "id": "edge-img10-nb12",
+      "selected": false
+    },
+    {
+      "source": "prompt-11",
+      "sourceHandle": "text",
+      "target": "nanoBanana-12",
+      "targetHandle": "text",
+      "id": "edge-p11-nb12",
+      "selected": false
+    },
+    {
+      "source": "splitGrid-5",
+      "sourceHandle": "reference",
+      "target": "imageInput-13",
+      "targetHandle": "reference",
+      "id": "edge-split-img13",
+      "type": "reference",
+      "selected": false
+    },
+    {
+      "source": "imageInput-13",
+      "sourceHandle": "image",
+      "target": "nanoBanana-15",
+      "targetHandle": "image",
+      "id": "edge-img13-nb15",
+      "selected": false
+    },
+    {
+      "source": "prompt-14",
+      "sourceHandle": "text",
+      "target": "nanoBanana-15",
+      "targetHandle": "text",
+      "id": "edge-p14-nb15",
+      "selected": false
+    },
+    {
+      "source": "splitGrid-5",
+      "sourceHandle": "reference",
+      "target": "imageInput-16",
+      "targetHandle": "reference",
+      "id": "edge-split-img16",
+      "type": "reference",
+      "selected": false
+    },
+    {
+      "source": "imageInput-16",
+      "sourceHandle": "image",
+      "target": "nanoBanana-18",
+      "targetHandle": "image",
+      "id": "edge-img16-nb18",
+      "selected": false
+    },
+    {
+      "source": "prompt-17",
+      "sourceHandle": "text",
+      "target": "nanoBanana-18",
+      "targetHandle": "text",
+      "id": "edge-p17-nb18",
+      "selected": false
+    },
+    {
+      "source": "splitGrid-5",
+      "sourceHandle": "reference",
+      "target": "imageInput-19",
+      "targetHandle": "reference",
+      "id": "edge-split-img19",
+      "type": "reference",
+      "selected": false
+    },
+    {
+      "source": "imageInput-19",
+      "sourceHandle": "image",
+      "target": "nanoBanana-21",
+      "targetHandle": "image",
+      "id": "edge-img19-nb21",
+      "selected": false
+    },
+    {
+      "source": "prompt-20",
+      "sourceHandle": "text",
+      "target": "nanoBanana-21",
+      "targetHandle": "text",
+      "id": "edge-p20-nb21",
+      "selected": false
+    },
+    {
+      "source": "splitGrid-5",
+      "sourceHandle": "reference",
+      "target": "imageInput-22",
+      "targetHandle": "reference",
+      "id": "edge-split-img22",
+      "type": "reference",
+      "selected": false
+    },
+    {
+      "source": "imageInput-22",
+      "sourceHandle": "image",
+      "target": "nanoBanana-24",
+      "targetHandle": "image",
+      "id": "edge-img22-nb24",
+      "selected": false
+    },
+    {
+      "source": "prompt-23",
+      "sourceHandle": "text",
+      "target": "nanoBanana-24",
+      "targetHandle": "text",
+      "id": "edge-p23-nb24",
+      "selected": false
+    },
+    {
+      "source": "splitGrid-5",
+      "sourceHandle": "reference",
+      "target": "imageInput-25",
+      "targetHandle": "reference",
+      "id": "edge-split-img25",
+      "type": "reference",
+      "selected": false
+    },
+    {
+      "source": "imageInput-25",
+      "sourceHandle": "image",
+      "target": "nanoBanana-27",
+      "targetHandle": "image",
+      "id": "edge-img25-nb27",
+      "selected": false
+    },
+    {
+      "source": "prompt-26",
+      "sourceHandle": "text",
+      "target": "nanoBanana-27",
+      "targetHandle": "text",
+      "id": "edge-p26-nb27",
+      "selected": false
+    }
+  ],
+  "edgeStyle": "curved",
+  "groups": {
+    "group-inputs": {
+      "id": "group-inputs",
+      "name": "1. Your Inputs",
+      "color": "purple",
+      "position": {
+        "x": 20,
+        "y": 0
+      },
+      "size": {
+        "width": 430,
+        "height": 1050
+      }
+    },
+    "group-constructor": {
+      "id": "group-constructor",
+      "name": "2. Prompt Constructor (@persona @language @instructions)",
+      "color": "yellow",
+      "position": {
+        "x": 470,
+        "y": 40
+      },
+      "size": {
+        "width": 480,
+        "height": 500
+      }
+    },
+    "group-engine": {
+      "id": "group-engine",
+      "name": "3. LLM Engine",
+      "color": "orange",
+      "position": {
+        "x": 970,
+        "y": 40
+      },
+      "size": {
+        "width": 420,
+        "height": 500
+      }
+    },
+    "group-sheet": {
+      "id": "group-sheet",
+      "name": "4. Contact Sheet (2x3)",
+      "color": "blue",
+      "position": {
+        "x": 1470,
+        "y": 40
+      },
+      "size": {
+        "width": 510,
+        "height": 500
+      }
+    },
+    "group-expand": {
+      "id": "group-expand",
+      "name": "5. Split & Expand (9:16)",
+      "color": "green",
+      "position": {
+        "x": 2050,
+        "y": 0
+      },
+      "size": {
+        "width": 2850,
+        "height": 1350
+      }
+    }
+  }
+}

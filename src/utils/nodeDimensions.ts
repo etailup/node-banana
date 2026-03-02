@@ -16,12 +16,29 @@ export function getImageDimensions(
       return;
     }
 
+    let resolved = false;
     const img = new Image();
+    const cleanup = () => {
+      img.onload = null;
+      img.onerror = null;
+      img.src = "";
+    };
+    const safeResolve = (value: { width: number; height: number } | null) => {
+      if (resolved) return;
+      resolved = true;
+      cleanup();
+      resolve(value);
+    };
+
+    const timeout = setTimeout(() => safeResolve(null), 10_000);
+
     img.onload = () => {
-      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      clearTimeout(timeout);
+      safeResolve({ width: img.naturalWidth, height: img.naturalHeight });
     };
     img.onerror = () => {
-      resolve(null);
+      clearTimeout(timeout);
+      safeResolve(null);
     };
     img.src = base64DataUrl;
   });
@@ -41,12 +58,33 @@ export function getVideoDimensions(
       return;
     }
 
+    let resolved = false;
     const video = document.createElement("video");
+    video.preload = "metadata";
+
+    const cleanup = () => {
+      video.onloadedmetadata = null;
+      video.onerror = null;
+      video.src = "";
+      video.load();
+    };
+
+    const safeResolve = (value: { width: number; height: number } | null) => {
+      if (resolved) return;
+      resolved = true;
+      cleanup();
+      resolve(value);
+    };
+
+    const timeout = setTimeout(() => safeResolve(null), 10_000);
+
     video.onloadedmetadata = () => {
-      resolve({ width: video.videoWidth, height: video.videoHeight });
+      clearTimeout(timeout);
+      safeResolve({ width: video.videoWidth, height: video.videoHeight });
     };
     video.onerror = () => {
-      resolve(null);
+      clearTimeout(timeout);
+      safeResolve(null);
     };
     video.src = videoUrl;
   });

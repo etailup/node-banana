@@ -183,21 +183,28 @@ describe("/api/workflow route", () => {
       expect(data.error).toBe("Path is not a directory");
     });
 
-    it("should reject non-existent directory", async () => {
-      mockStat.mockRejectedValue(new Error("ENOENT"));
+    it("should create non-existent directory and continue saving", async () => {
+      const mockWorkflow = { nodes: [], edges: [] };
+      mockStat.mockRejectedValue(Object.assign(new Error("ENOENT"), { code: "ENOENT" }));
+      mockMkdir.mockResolvedValue(undefined);
+      mockWriteFile.mockResolvedValue(undefined);
 
       const request = createMockPostRequest({
         directoryPath: "/nonexistent/dir",
         filename: "workflow",
-        workflow: { nodes: [], edges: [] },
+        workflow: mockWorkflow,
       });
 
       const response = await POST(request);
       const data = await response.json();
 
-      expect(response.status).toBe(400);
-      expect(data.success).toBe(false);
-      expect(data.error).toBe("Directory does not exist");
+      expect(data.success).toBe(true);
+      expect(mockMkdir).toHaveBeenCalledWith("/nonexistent/dir", { recursive: true });
+      expect(mockWriteFile).toHaveBeenCalledWith(
+        "/nonexistent/dir/workflow.json",
+        JSON.stringify(mockWorkflow, null, 2),
+        "utf-8"
+      );
     });
 
     it("should continue saving even if subfolder creation fails", async () => {
@@ -241,6 +248,51 @@ describe("/api/workflow route", () => {
       expect(response.status).toBe(500);
       expect(data.success).toBe(false);
       expect(data.error).toBe("Disk full");
+    });
+
+    it("should reject path traversal attempts", async () => {
+      const request = createMockPostRequest({
+        directoryPath: "/test/../etc/passwd",
+        filename: "workflow",
+        workflow: { nodes: [], edges: [] },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.success).toBe(false);
+      expect(data.error).toBe("Path contains traversal sequences");
+    });
+
+    it("should reject non-absolute paths", async () => {
+      const request = createMockPostRequest({
+        directoryPath: "relative/path",
+        filename: "workflow",
+        workflow: { nodes: [], edges: [] },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.success).toBe(false);
+      expect(data.error).toBe("Path must be absolute");
+    });
+
+    it("should reject dangerous system paths", async () => {
+      const request = createMockPostRequest({
+        directoryPath: "/etc/workflows",
+        filename: "workflow",
+        workflow: { nodes: [], edges: [] },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.success).toBe(false);
+      expect(data.error).toBe("Access to /etc is not allowed");
     });
   });
 
@@ -293,6 +345,26 @@ describe("/api/workflow route", () => {
       expect(response.status).toBe(400);
       expect(data.success).toBe(false);
       expect(data.error).toBe("Path parameter required");
+    });
+
+    it("should reject path traversal attempts in GET", async () => {
+      const request = createMockGetRequest({ path: "/test/../etc" });
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.success).toBe(false);
+      expect(data.error).toBe("Path contains traversal sequences");
+    });
+
+    it("should reject non-absolute paths in GET", async () => {
+      const request = createMockGetRequest({ path: "relative/path" });
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.success).toBe(false);
+      expect(data.error).toBe("Path must be absolute");
     });
   });
 });

@@ -55,6 +55,7 @@ export function ImageInputNode({ id, data, selected }: NodeProps<ImageInputNodeT
                 if (result.success && result.cdnUrl) {
                   updateNodeData(id, {
                     image: result.cdnUrl,
+                    imageRef: undefined,
                     filename: file.name,
                     dimensions: { width: img.width, height: img.height },
                   });
@@ -62,6 +63,7 @@ export function ImageInputNode({ id, data, selected }: NodeProps<ImageInputNodeT
                   // Fallback: store base64 if upload fails
                   updateNodeData(id, {
                     image: base64,
+                    imageRef: undefined,
                     filename: file.name,
                     dimensions: { width: img.width, height: img.height },
                   });
@@ -71,6 +73,7 @@ export function ImageInputNode({ id, data, selected }: NodeProps<ImageInputNodeT
                 // Fallback: store base64 if upload fails
                 updateNodeData(id, {
                   image: base64,
+                  imageRef: undefined,
                   filename: file.name,
                   dimensions: { width: img.width, height: img.height },
                 });
@@ -78,6 +81,7 @@ export function ImageInputNode({ id, data, selected }: NodeProps<ImageInputNodeT
           } else {
             updateNodeData(id, {
               image: base64,
+              imageRef: undefined,
               filename: file.name,
               dimensions: { width: img.width, height: img.height },
             });
@@ -116,6 +120,7 @@ export function ImageInputNode({ id, data, selected }: NodeProps<ImageInputNodeT
   const handleRemove = useCallback(() => {
     updateNodeData(id, {
       image: null,
+      imageRef: undefined,
       filename: null,
       dimensions: null,
     });

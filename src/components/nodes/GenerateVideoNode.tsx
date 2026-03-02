@@ -12,44 +12,36 @@ import { ProviderModel, ModelCapability } from "@/lib/providers/types";
 import { ModelSearchDialog } from "@/components/modals/ModelSearchDialog";
 import { useToast } from "@/components/Toast";
 import { getVideoDimensions, calculateNodeSizePreservingHeight } from "@/utils/nodeDimensions";
-
-// Provider badge component - shows provider icon for all providers
-function ProviderBadge({ provider }: { provider: ProviderType }) {
-  const providerName = provider === "gemini" ? "Gemini" : provider === "replicate" ? "Replicate" : provider === "kie" ? "Kie.ai" : provider === "wavespeed" ? "WaveSpeed" : "fal.ai";
-
-  return (
-    <span className="text-neutral-500 shrink-0" title={providerName}>
-      {provider === "gemini" ? (
-        <svg className="w-4 h-4" viewBox="0 0 65 65" fill="currentColor">
-          <path d="M57.8647 29.0098C52.865 26.8576 48.4905 23.905 44.7393 20.1556C40.99 16.4063 38.0373 12.0299 35.8851 7.03022C35.0589 5.11406 34.395 3.14442 33.886 1.12498C33.72 0.464747 33.128 0 32.4475 0C31.7669 0 31.1749 0.464747 31.009 1.12498C30.4999 3.14442 29.836 5.11222 29.0098 7.03022C26.8576 12.0299 23.905 16.4063 20.1556 20.1556C16.4063 23.905 12.0299 26.8576 7.03022 29.0098C5.11406 29.836 3.14442 30.4999 1.12498 31.009C0.464747 31.1749 0 31.7669 0 32.4475C0 33.128 0.464747 33.72 1.12498 33.886C3.14442 34.395 5.11222 35.0589 7.03022 35.8851C12.0299 38.0373 16.4045 40.99 20.1556 44.7393C23.9068 48.4886 26.8576 52.865 29.0098 57.8647C29.836 59.7809 30.4999 61.7505 31.009 63.7699C31.1749 64.4302 31.7669 64.8949 32.4475 64.8949C33.128 64.8949 33.72 64.4302 33.886 63.7699C34.395 61.7505 35.0589 59.7827 35.8851 57.8647C38.0373 52.865 40.99 48.4905 44.7393 44.7393C48.4886 40.99 52.865 38.0373 57.8647 35.8851C59.7809 35.0589 61.7505 34.395 63.7699 33.886C64.4302 33.72 64.8949 33.128 64.8949 32.4475C64.8949 31.7669 64.4302 31.1749 63.7699 31.009C61.7505 30.4999 59.7827 29.836 57.8647 29.0098Z" />
-        </svg>
-      ) : provider === "replicate" ? (
-        <svg className="w-4 h-4" viewBox="0 0 1000 1000" fill="currentColor">
-          <polygon points="1000,427.6 1000,540.6 603.4,540.6 603.4,1000 477,1000 477,427.6" />
-          <polygon points="1000,213.8 1000,327 364.8,327 364.8,1000 238.4,1000 238.4,213.8" />
-          <polygon points="1000,0 1000,113.2 126.4,113.2 126.4,1000 0,1000 0,0" />
-        </svg>
-      ) : provider === "kie" ? (
-        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M6 3h3.5v7L17 3h4l-8 8.5L21 21h-4l-7.5-8.5V21H6V3z" />
-        </svg>
-      ) : provider === "wavespeed" ? (
-        <svg className="w-4 h-4" viewBox="95 140 350 230" fill="currentColor">
-          <path d="M308.946 153.758C314.185 153.758 318.268 158.321 317.516 163.506C306.856 237.02 270.334 302.155 217.471 349.386C211.398 354.812 203.458 357.586 195.315 357.586H127.562C117.863 357.586 110.001 349.724 110.001 340.025V333.552C110.001 326.82 113.882 320.731 119.792 317.505C176.087 286.779 217.883 232.832 232.32 168.537C234.216 160.09 241.509 153.758 250.167 153.758H308.946Z" />
-          <path d="M183.573 153.758C188.576 153.758 192.592 157.94 192.069 162.916C187.11 210.12 160.549 250.886 122.45 275.151C116.916 278.676 110 274.489 110 267.928V171.318C110 161.62 117.862 153.758 127.56 153.758H183.573Z" />
-          <path d="M414.815 153.758C425.503 153.758 433.734 163.232 431.799 173.743C420.697 234.038 398.943 290.601 368.564 341.414C362.464 351.617 351.307 357.586 339.419 357.586H274.228C266.726 357.586 262.611 348.727 267.233 342.819C306.591 292.513 334.86 233.113 348.361 168.295C350.104 159.925 357.372 153.758 365.922 153.758H414.815Z" />
-        </svg>
-      ) : (
-        <svg className="w-4 h-4" viewBox="0 0 1855 1855" fill="currentColor">
-          <path fillRule="evenodd" clipRule="evenodd" d="M1181.65 78C1212.05 78 1236.42 101.947 1239.32 131.261C1265.25 392.744 1480.07 600.836 1750.02 625.948C1780.28 628.764 1805 652.366 1805 681.816V1174.18C1805 1203.63 1780.28 1227.24 1750.02 1230.05C1480.07 1255.16 1265.25 1463.26 1239.32 1724.74C1236.42 1754.05 1212.05 1778 1181.65 1778H673.354C642.951 1778 618.585 1754.05 615.678 1724.74C589.754 1463.26 374.927 1255.16 104.984 1230.05C74.7212 1227.24 50 1203.63 50 1174.18V681.816C50 652.366 74.7213 628.764 104.984 625.948C374.927 600.836 589.754 392.744 615.678 131.261C618.585 101.946 642.951 78 673.353 78H1181.65ZM402.377 926.561C402.377 1209.41 638.826 1438.71 930.501 1438.71C1222.18 1438.71 1458.63 1209.41 1458.63 926.561C1458.63 643.709 1222.18 414.412 930.501 414.412C638.826 414.412 402.377 643.709 402.377 926.561Z" />
-        </svg>
-      )}
-    </span>
-  );
-}
+import { ProviderBadge } from "./ProviderBadge";
+import { useVideoBlobUrl } from "@/hooks/useVideoBlobUrl";
 
 // Video generation capabilities
 const VIDEO_CAPABILITIES: ModelCapability[] = ["text-to-video", "image-to-video"];
+
+// Hardcoded Veo parameter options (matches getGeminiVideoSchema in models/[modelId]/route.ts)
+const VEO_ASPECT_RATIOS = ["16:9", "9:16"] as const;
+const VEO_DURATIONS = ["4", "6", "8"] as const;
+const VEO_RESOLUTIONS = ["720p", "1080p", "4k"] as const;
+
+/** Returns true for Gemini-native Veo video models */
+function isVeoModel(modelId: string | undefined): boolean {
+  if (!modelId) return false;
+  return modelId.startsWith("veo-");
+}
+
+/** Build the hardcoded inputSchema for a Veo model, or undefined for non-Veo */
+function buildVeoInputSchema(modelId: string): ModelInputDef[] | undefined {
+  if (!isVeoModel(modelId)) return undefined;
+  const isI2V = modelId.includes("image-to-video");
+  const inputs: ModelInputDef[] = [
+    { name: "prompt", type: "text", required: true, label: "Prompt" },
+    { name: "negative_prompt", type: "text", required: false, label: "Neg. Prompt" },
+  ];
+  if (isI2V) {
+    inputs.unshift({ name: "image", type: "image", required: true, label: "Image" });
+  }
+  return inputs;
+}
 
 type GenerateVideoNodeType = Node<GenerateVideoNodeData, "generateVideo">;
 
@@ -58,20 +50,24 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
   const commentNavigation = useCommentNavigation(id);
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   // Use stable selector for API keys to prevent unnecessary re-fetches
-  const { replicateApiKey, falApiKey, kieApiKey, replicateEnabled, kieEnabled } = useProviderApiKeys();
+  const { geminiApiKey, replicateApiKey, falApiKey, kieApiKey, replicateEnabled, kieEnabled } = useProviderApiKeys();
   const generationsPath = useWorkflowStore((state) => state.generationsPath);
   const [externalModels, setExternalModels] = useState<ProviderModel[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [modelsFetchError, setModelsFetchError] = useState<string | null>(null);
   const [isBrowseDialogOpen, setIsBrowseDialogOpen] = useState(false);
   const [isLoadingCarouselVideo, setIsLoadingCarouselVideo] = useState(false);
+  const videoBlobUrl = useVideoBlobUrl(nodeData.outputVideo ?? null);
 
-  // Get the current selected provider (default to fal since Gemini doesn't do video)
   const currentProvider: ProviderType = nodeData.selectedModel?.provider || "fal";
 
-  // Get enabled providers (exclude Gemini since it doesn't do video)
+  // Get enabled providers
   const enabledProviders = useMemo(() => {
     const providers: { id: ProviderType; name: string }[] = [];
+    // Gemini available when API key is configured (settings or env var)
+    if (geminiApiKey) {
+      providers.push({ id: "gemini", name: "Gemini" });
+    }
     // fal.ai is always available (works without key but rate limited)
     providers.push({ id: "fal", name: "fal.ai" });
     // Add Replicate if configured
@@ -83,7 +79,7 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
       providers.push({ id: "kie", name: "Kie.ai" });
     }
     return providers;
-  }, [replicateEnabled, replicateApiKey, kieEnabled, kieApiKey]);
+  }, [geminiApiKey, replicateEnabled, replicateApiKey, kieEnabled, kieApiKey]);
 
   // Fetch models from external providers when provider changes
   const fetchModels = useCallback(async () => {
@@ -92,6 +88,9 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
     try {
       const capabilities = VIDEO_CAPABILITIES.join(",");
       const headers: HeadersInit = {};
+      if (geminiApiKey) {
+        headers["X-Gemini-API-Key"] = geminiApiKey;
+      }
       if (replicateApiKey) {
         headers["X-Replicate-Key"] = replicateApiKey;
       }
@@ -123,7 +122,7 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
     } finally {
       setIsLoadingModels(false);
     }
-  }, [currentProvider, replicateApiKey, falApiKey, kieApiKey]);
+  }, [currentProvider, geminiApiKey, replicateApiKey, falApiKey, kieApiKey]);
 
   useEffect(() => {
     fetchModels();
@@ -139,8 +138,8 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
         modelId: "",
         displayName: "Select model...",
       };
-      // Clear parameters when switching providers (different providers have different schemas)
-      updateNodeData(id, { selectedModel: newSelectedModel, parameters: {} });
+      // Clear parameters and schema when switching providers
+      updateNodeData(id, { selectedModel: newSelectedModel, parameters: {}, inputSchema: undefined });
     },
     [id, updateNodeData]
   );
@@ -157,7 +156,12 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
           displayName: model.name,
         };
         // Clear parameters when changing models (different models have different schemas)
-        updateNodeData(id, { selectedModel: newSelectedModel, parameters: {} });
+        // Set inputSchema immediately for Veo models so handles render in the same update
+        updateNodeData(id, {
+          selectedModel: newSelectedModel,
+          parameters: {},
+          inputSchema: buildVeoInputSchema(model.id),
+        });
       }
     },
     [id, currentProvider, externalModels, updateNodeData]
@@ -172,6 +176,22 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
       updateNodeData(id, { parameters });
     },
     [id, updateNodeData]
+  );
+
+  // Update a single key in the parameters bag (used by hardcoded Veo controls)
+  const updateVeoParam = useCallback(
+    (key: string, value: unknown) => {
+      const current = nodeData.parameters || {};
+      // Remove the key if value is empty string (clear optional fields)
+      if (value === "") {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { [key]: _, ...rest } = current;
+        updateNodeData(id, { parameters: rest });
+      } else {
+        updateNodeData(id, { parameters: { ...current, [key]: value } });
+      }
+    },
+    [id, nodeData.parameters, updateNodeData]
   );
 
   // Handle inputs loaded from schema
@@ -290,7 +310,12 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
       modelId: model.id,
       displayName: model.name,
     };
-    updateNodeData(id, { selectedModel: newSelectedModel, parameters: {} });
+    // Set inputSchema immediately for Veo models so handles render in the same update
+    updateNodeData(id, {
+      selectedModel: newSelectedModel,
+      parameters: {},
+      inputSchema: buildVeoInputSchema(model.id),
+    });
     setIsBrowseDialogOpen(false);
   }, [id, updateNodeData]);
 
@@ -595,7 +620,8 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
           <>
           <div className="relative w-full flex-1 min-h-0">
             <video
-              src={nodeData.outputVideo}
+              key={nodeData.videoHistory?.[nodeData.selectedVideoHistoryIndex || 0]?.id}
+              src={videoBlobUrl ?? undefined}
               controls
               autoPlay
               loop
@@ -744,7 +770,50 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
         )}
 
         {/* Model-specific parameters */}
-        {nodeData.selectedModel?.modelId && (
+        {nodeData.selectedModel?.modelId && isVeoModel(nodeData.selectedModel.modelId) ? (
+          // Hardcoded Veo parameters (matching GenerateImageNode pattern for Gemini models)
+          <div className="flex flex-col gap-1.5 shrink-0">
+            {/* Aspect ratio + Duration row */}
+            <div className="flex gap-1.5">
+              <select
+                value={(nodeData.parameters?.aspectRatio as string) || "16:9"}
+                onChange={(e) => updateVeoParam("aspectRatio", e.target.value)}
+                className="flex-1 text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300"
+              >
+                {VEO_ASPECT_RATIOS.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+              <select
+                value={(nodeData.parameters?.durationSeconds as string) || "8"}
+                onChange={(e) => updateVeoParam("durationSeconds", e.target.value)}
+                className="w-12 text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300"
+              >
+                {VEO_DURATIONS.map((d) => (
+                  <option key={d} value={d}>{d}s</option>
+                ))}
+              </select>
+              <select
+                value={(nodeData.parameters?.resolution as string) || "720p"}
+                onChange={(e) => updateVeoParam("resolution", e.target.value)}
+                className="w-14 text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300"
+              >
+                {VEO_RESOLUTIONS.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+            </div>
+            {/* Seed */}
+            <input
+              type="number"
+              placeholder="Seed (optional)"
+              value={(nodeData.parameters?.seed as string) ?? ""}
+              onChange={(e) => updateVeoParam("seed", e.target.value === "" ? "" : Number(e.target.value))}
+              min={0}
+              className="w-full text-[10px] py-1 px-1.5 border border-neutral-700 rounded bg-neutral-900/50 focus:outline-none focus:ring-1 focus:ring-neutral-600 text-neutral-300 placeholder:text-neutral-600"
+            />
+          </div>
+        ) : nodeData.selectedModel?.modelId ? (
           <ModelParameters
             modelId={nodeData.selectedModel.modelId}
             provider={currentProvider}
@@ -753,7 +822,7 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
             onExpandChange={handleParametersExpandChange}
             onInputsLoaded={handleInputsLoaded}
           />
-        )}
+        ) : null}
       </div>
     </BaseNode>
 
