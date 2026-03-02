@@ -1936,6 +1936,12 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
           body: JSON.stringify({ workflowId, workflow }),
         });
 
+        if (!response.ok) {
+          const text = await response.text().catch(() => "Unknown error");
+          useToast.getState().show(`Cloud save failed (${response.status}): ${text.slice(0, 100)}`, "error");
+          return false;
+        }
+
         const result = await response.json();
 
         if (result.success) {
@@ -1964,6 +1970,12 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
           workflow,
         }),
       });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => "Unknown error");
+        useToast.getState().show(`Auto-save failed (${response.status}): ${text.slice(0, 100)}`, "error");
+        return false;
+      }
 
       const result = await response.json();
 
