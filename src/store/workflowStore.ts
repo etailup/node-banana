@@ -22,7 +22,6 @@ import {
   ProviderType,
   ProviderSettings,
   RecentModel,
-  OutputGalleryNodeData,
   VideoStitchNodeData,
   EaseCurveNodeData,
   CarouselImageItem,

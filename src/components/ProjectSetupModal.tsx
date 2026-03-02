@@ -279,6 +279,7 @@ export function ProjectSetupModal({
         setError("Project directory is required");
         return;
       }
+    }
 
     const fullProjectPath = ensureProjectSubfolderPath(directoryPath, name);
 
