@@ -50,3 +50,4 @@ logs/*.json
 .agents/
 
 .superset/workflows/sample_workflows/Carsi2v.json
+.env.backup
