@@ -220,11 +220,8 @@ All routes in `src/app/api/`:
 
 ## Git Workflow
 
-- The primary development branch is `develop`, NOT `main` or `master`
-- Always checkout `develop` before creating feature branches: `git checkout develop`
-- Create feature branches from `develop` using: `feature/<short-description>` or `fix/<short-description>`
-- All PRs MUST target `develop`: use `gh pr create --base develop`
-- Never push directly to `main`, `master`, or `develop`
+- The primary branch is `master`
+- Create feature branches from `master` using: `feature/<short-description>` or `fix/<short-description>`
 
 ## Commits
 - Commit after each logical task or unit of work is complete. When implementing a multi-task plan, commit after finishing each task — do NOT batch all tasks into a single commit at the end.
