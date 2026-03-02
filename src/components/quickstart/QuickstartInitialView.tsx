@@ -22,7 +22,7 @@ export function QuickstartInitialView({
             <div className="flex items-center gap-2">
               <img src="/banana_icon.png" alt="" className="w-7 h-7" />
               <h1 className="text-2xl font-medium text-neutral-100">
-                Node Banana
+                {process.env.NEXT_PUBLIC_APP_NAME || "Node Banana"}
               </h1>
             </div>
           </div>

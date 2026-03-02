@@ -3,7 +3,7 @@ import "./globals.css";
 import { Toast } from "@/components/Toast";
 
 export const metadata: Metadata = {
-  title: "Node Banana",
+  title: process.env.NEXT_PUBLIC_APP_NAME || "Node Banana",
   description: "Visual node editor for AI image generation workflows",
 };
 

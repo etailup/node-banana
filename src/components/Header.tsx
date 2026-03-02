@@ -311,7 +311,7 @@ export function Header() {
             <circle cx="21" cy="12" r="1" fill="#c4b5fd"/>
           </svg>
           <h1 className="text-2xl font-semibold text-neutral-100 tracking-tight">
-            ContentWiz
+            {process.env.NEXT_PUBLIC_APP_NAME || "Node Banana"}
           </h1>
 
           <div className="flex items-center gap-2 ml-4 pl-4 border-l border-neutral-700">
