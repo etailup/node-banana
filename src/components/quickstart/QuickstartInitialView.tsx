@@ -20,14 +20,9 @@ export function QuickstartInitialView({
         <div className="flex-1 flex flex-col">
           <div className="mb-4">
             <div className="flex items-center gap-2">
-              <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 21L13 11M13 11L9.5 7.5M13 11L16.5 7.5" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M15 3L16.5 5.5L19 4L17.5 6.5L20 8L17.5 7.5L17 10L15.5 7.5L13 8L14.5 5.5L15 3Z" fill="#a78bfa"/>
-                <circle cx="7" cy="4" r="1" fill="#c4b5fd"/>
-                <circle cx="21" cy="12" r="1" fill="#c4b5fd"/>
-              </svg>
+              <img src="/banana_icon.png" alt="" className="w-7 h-7" />
               <h1 className="text-2xl font-medium text-neutral-100">
-                ContentWiz
+                Node Banana
               </h1>
             </div>
           </div>
