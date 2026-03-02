@@ -64,7 +64,7 @@ import {
   clearNodeImageRefs,
 } from "./utils/executionUtils";
 import { getConnectedInputsPure, validateWorkflowPure } from "./utils/connectedInputs";
-import { cloudSaveWorkflow, canSaveWorkflow, shouldAutoSave, shouldSkipHydration } from "./cloudExtensions";
+import { cloudSaveWorkflow, cloudExternalizeWorkflowImages, canSaveWorkflow, shouldAutoSave, shouldSkipHydration } from "./cloudExtensions";
 import { evaluateRule } from "./utils/ruleEvaluation";
 import { computeDimmedNodes } from "./utils/dimmingUtils";
 import {
@@ -1925,10 +1925,14 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
         groups: groups && Object.keys(groups).length > 0 ? groups : undefined,
       };
 
-      // Cloud mode: save directly to Supabase (images already CDN URLs, no externalization)
+      // Cloud mode: externalize base64 images to R2, then save lean JSON to Supabase
       if (isCloud) {
+        workflow = await cloudExternalizeWorkflowImages(workflowId!, workflow);
         const ok = await cloudSaveWorkflow(workflowId!, workflow);
-        if (ok) set({ lastSavedAt: Date.now(), hasUnsavedChanges: false });
+        if (ok) {
+          // Update store nodes with CDN URLs so subsequent saves don't re-upload
+          set({ nodes: workflow.nodes, lastSavedAt: Date.now(), hasUnsavedChanges: false });
+        }
         return ok;
       }
 
