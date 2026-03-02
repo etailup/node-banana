@@ -97,6 +97,10 @@ describe("/api/models route", () => {
     // Clear API keys
     delete process.env.REPLICATE_API_KEY;
     delete process.env.FAL_API_KEY;
+    delete process.env.KIE_API_KEY;
+    delete process.env.WAVESPEED_API_KEY;
+    // Set KIE key so Kie models (hardcoded, 31 total) are always included alongside Gemini
+    process.env.KIE_API_KEY = "test-kie-key";
     // Set up mock fetch
     global.fetch = mockFetch;
     // Reset cache mock to default (miss)
@@ -124,12 +128,14 @@ describe("/api/models route", () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
-      // 2 fal models + 7 gemini models (3 image + 4 video, always included)
-      expect(data.models).toHaveLength(9);
+      // 2 fal models + 7 gemini models (3 image + 4 video) + 31 kie models
+      expect(data.models).toHaveLength(40);
       expect(data.providers.fal.success).toBe(true);
       expect(data.providers.fal.count).toBe(2);
       expect(data.providers.gemini.success).toBe(true);
       expect(data.providers.gemini.count).toBe(7);
+      expect(data.providers.kie.success).toBe(true);
+      expect(data.providers.kie.count).toBe(31);
     });
 
     it("GET: should return models from both providers when both keys present", async () => {
@@ -156,8 +162,8 @@ describe("/api/models route", () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
-      // 1 replicate + 1 fal + 7 gemini models (always included)
-      expect(data.models).toHaveLength(9);
+      // 1 replicate + 1 fal + 7 gemini + 31 kie models
+      expect(data.models).toHaveLength(40);
       expect(data.providers.replicate.success).toBe(true);
       expect(data.providers.fal.success).toBe(true);
       expect(data.providers.gemini.success).toBe(true);
@@ -445,8 +451,8 @@ describe("/api/models route", () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
-      // 1 fal + 7 gemini models (always included)
-      expect(data.models).toHaveLength(8);
+      // 1 fal + 7 gemini + 31 kie models
+      expect(data.models).toHaveLength(39);
       expect(data.providers.replicate.success).toBe(false);
       expect(data.providers.fal.success).toBe(true);
       expect(data.providers.gemini.success).toBe(true);
@@ -684,8 +690,8 @@ describe("/api/models route", () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      // 4 fal models + 7 gemini models (always included)
-      expect(data.models).toHaveLength(11);
+      // 4 fal models + 7 gemini + 31 kie models
+      expect(data.models).toHaveLength(42);
       expect(data.models.find((m: { id: string }) => m.id === "fal-ai/flux")?.capabilities).toEqual(["text-to-image"]);
       expect(data.models.find((m: { id: string }) => m.id === "fal-ai/img2img")?.capabilities).toEqual(["image-to-image"]);
       expect(data.models.find((m: { id: string }) => m.id === "fal-ai/t2v")?.capabilities).toEqual(["text-to-video"]);
@@ -712,8 +718,8 @@ describe("/api/models route", () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      // 1 fal text-to-image + 1 fal text-to-speech (mapped to text-to-audio) + 7 gemini models (always included)
-      expect(data.models).toHaveLength(9);
+      // 1 fal text-to-image + 1 fal text-to-speech (mapped to text-to-audio) + 7 gemini + 31 kie models
+      expect(data.models).toHaveLength(40);
       expect(data.models.find((m: { id: string }) => m.id === "fal-ai/flux")).toBeDefined();
       expect(data.models.find((m: { id: string }) => m.id === "fal-ai/tts")?.capabilities).toEqual(["text-to-audio"]);
     });
@@ -749,7 +755,7 @@ describe("/api/models route", () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      // Sorted by provider (fal < gemini < replicate), then by name
+      // Sorted by provider (fal < gemini < kie < replicate), then by name
       expect(data.models[0].provider).toBe("fal");
       expect(data.models[0].name).toBe("Alpha");
       expect(data.models[1].provider).toBe("fal");
@@ -769,10 +775,15 @@ describe("/api/models route", () => {
       expect(data.models[7].name).toBe("Veo 3.1 Fast I2V");
       expect(data.models[8].provider).toBe("gemini");
       expect(data.models[8].name).toBe("Veo 3.1 I2V");
-      expect(data.models[9].provider).toBe("replicate");
-      expect(data.models[9].name).toBe("alpha");
-      expect(data.models[10].provider).toBe("replicate");
-      expect(data.models[10].name).toBe("zebra");
+      // 31 kie models sorted by name between gemini and replicate (indices 9-39)
+      expect(data.models[9].provider).toBe("kie");
+      const kieModels = data.models.filter((m: { provider: string }) => m.provider === "kie");
+      expect(kieModels).toHaveLength(31);
+      // Replicate models after all 31 kie models (indices 40-41)
+      expect(data.models[40].provider).toBe("replicate");
+      expect(data.models[40].name).toBe("alpha");
+      expect(data.models[41].provider).toBe("replicate");
+      expect(data.models[41].name).toBe("zebra");
     });
   });
 });
