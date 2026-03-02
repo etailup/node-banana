@@ -1,10 +1,18 @@
 "use client";
 
-import { useState, useRef, useMemo, useCallback } from "react";
+import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { useWorkflowStore, WorkflowFile } from "@/store/workflowStore";
 import { ProjectSetupModal } from "./ProjectSetupModal";
+import { HeadlessPublishModal } from "./HeadlessPublishModal";
 import { CostIndicator } from "./CostIndicator";
 import { KeyboardShortcutsDialog } from "./KeyboardShortcutsDialog";
+
+interface CloudWorkflowItem {
+  id: string;
+  name: string;
+  thumbnail_url: string | null;
+  updated_at: string;
+}
 
 function CommentsNavigationIcon() {
   // Subscribe to nodes so we re-render when comments change
@@ -65,6 +73,7 @@ export function Header() {
     hasUnsavedChanges,
     lastSavedAt,
     isSaving,
+    isCloud,
     setWorkflowMetadata,
     saveToFile,
     loadWorkflow,
@@ -75,11 +84,16 @@ export function Header() {
   } = useWorkflowStore();
 
   const [showProjectModal, setShowProjectModal] = useState(false);
+  const [showPublishModal, setShowPublishModal] = useState(false);
   const [projectModalMode, setProjectModalMode] = useState<"new" | "settings">("new");
+  const [showCloudWorkflows, setShowCloudWorkflows] = useState(false);
+  const [cloudWorkflows, setCloudWorkflows] = useState<CloudWorkflowItem[]>([]);
+  const [isLoadingCloudWorkflows, setIsLoadingCloudWorkflows] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cloudDropdownRef = useRef<HTMLDivElement>(null);
 
   const isProjectConfigured = !!workflowName;
-  const canSave = !!(workflowId && workflowName && saveDirectoryPath);
+  const canSave = !!(workflowId && workflowName && (isCloud || saveDirectoryPath));
 
   const formatTime = (timestamp: number) => {
     return new Date(timestamp).toLocaleTimeString([], {
@@ -128,13 +142,15 @@ export function Header() {
   const handleProjectSave = async (id: string, name: string, path: string) => {
     setWorkflowMetadata(id, name, path); // generationsPath is auto-derived
     setShowProjectModal(false);
-    // Small delay to let state update
-    setTimeout(() => {
-      saveToFile().catch((error) => {
-        console.error("Failed to save project:", error);
-        alert("Failed to save project. Please try again.");
-      });
-    }, 50);
+    // Only save to file if we have a directory path (not on cloud deployments)
+    if (path) {
+      setTimeout(() => {
+        saveToFile().catch((error) => {
+          console.error("Failed to save project:", error);
+          alert("Failed to save project. Please try again.");
+        });
+      }, 50);
+    }
   };
 
   const handleOpenDirectory = async () => {
@@ -172,6 +188,72 @@ export function Header() {
     }
   }, [revertToSnapshot]);
 
+  const handleToggleCloudWorkflows = useCallback(async () => {
+    if (showCloudWorkflows) {
+      setShowCloudWorkflows(false);
+      return;
+    }
+    setShowCloudWorkflows(true);
+    setIsLoadingCloudWorkflows(true);
+    try {
+      const res = await fetch("/api/editor-workflows");
+      const data = await res.json();
+      if (data.success) {
+        setCloudWorkflows(data.workflows || []);
+      }
+    } catch {
+      setCloudWorkflows([]);
+    } finally {
+      setIsLoadingCloudWorkflows(false);
+    }
+  }, [showCloudWorkflows]);
+
+  const handleLoadCloudWorkflow = useCallback(async (wfId: string) => {
+    setShowCloudWorkflows(false);
+    try {
+      const res = await fetch("/api/editor-workflows", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workflowId: wfId }),
+      });
+      const data = await res.json();
+      if (data.success && data.workflow) {
+        await loadWorkflow(data.workflow as WorkflowFile);
+      } else {
+        alert(data.error || "Failed to load workflow");
+      }
+    } catch {
+      alert("Failed to load workflow");
+    }
+  }, [loadWorkflow]);
+
+  const handleDeleteCloudWorkflow = useCallback(async (wfId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("Delete this workflow?")) return;
+    try {
+      await fetch("/api/editor-workflows", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workflowId: wfId }),
+      });
+      setCloudWorkflows((prev) => prev.filter((w) => w.id !== wfId));
+    } catch {
+      alert("Failed to delete workflow");
+    }
+  }, []);
+
+  // Close cloud workflows dropdown on outside click
+  useEffect(() => {
+    if (!showCloudWorkflows) return;
+    const handleClick = (e: MouseEvent) => {
+      if (cloudDropdownRef.current && !cloudDropdownRef.current.contains(e.target as Node)) {
+        setShowCloudWorkflows(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showCloudWorkflows]);
+
   const settingsButtons = (
     <div className="flex items-center gap-0.5 ml-1 pl-1 border-l border-neutral-700/50">
       <button
@@ -208,6 +290,10 @@ export function Header() {
         onClose={() => setShowProjectModal(false)}
         onSave={handleProjectSave}
         mode={projectModalMode}
+      />
+      <HeadlessPublishModal
+        isOpen={showPublishModal}
+        onClose={() => setShowPublishModal(false)}
       />
       <input
         ref={fileInputRef}
@@ -281,6 +367,55 @@ export function Header() {
                       </svg>
                     </button>
                   )}
+                  {isCloud && (
+                    <div className="relative" ref={cloudDropdownRef}>
+                      <button
+                        onClick={handleToggleCloudWorkflows}
+                        className="p-1.5 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 rounded transition-colors"
+                        title="My Workflows"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" />
+                        </svg>
+                      </button>
+                      {showCloudWorkflows && (
+                        <div className="absolute top-full left-0 mt-1 w-64 bg-neutral-800 border border-neutral-700 rounded-lg shadow-xl z-50 max-h-80 overflow-y-auto">
+                          <div className="px-3 py-2 border-b border-neutral-700 text-xs font-medium text-neutral-300">
+                            My Workflows
+                          </div>
+                          {isLoadingCloudWorkflows ? (
+                            <div className="px-3 py-4 text-xs text-neutral-500 text-center">Loading...</div>
+                          ) : cloudWorkflows.length === 0 ? (
+                            <div className="px-3 py-4 text-xs text-neutral-500 text-center">No saved workflows</div>
+                          ) : (
+                            cloudWorkflows.map((wf) => (
+                              <button
+                                key={wf.id}
+                                onClick={() => handleLoadCloudWorkflow(wf.id)}
+                                className="w-full px-3 py-2 text-left hover:bg-neutral-700 transition-colors flex items-center justify-between group"
+                              >
+                                <div className="min-w-0">
+                                  <div className="text-sm text-neutral-200 truncate">{wf.name}</div>
+                                  <div className="text-xs text-neutral-500">
+                                    {new Date(wf.updated_at).toLocaleDateString()}
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={(e) => handleDeleteCloudWorkflow(wf.id, e)}
+                                  className="p-1 text-neutral-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                                  title="Delete"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <button
                     onClick={handleOpenFile}
                     className="p-1.5 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 rounded transition-colors"
@@ -297,6 +432,25 @@ export function Header() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setShowPublishModal(true)}
+                    className="p-1.5 text-neutral-400 hover:text-violet-300 hover:bg-neutral-800 rounded transition-colors"
+                    title="Publish to Headless API"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z"
                       />
                     </svg>
                   </button>

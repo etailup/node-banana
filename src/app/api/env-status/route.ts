@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-export interface EnvStatusResponse {
+interface EnvStatusResponse {
   gemini: boolean;
   openai: boolean;
   anthropic: boolean;
@@ -8,6 +8,7 @@ export interface EnvStatusResponse {
   fal: boolean;
   kie: boolean;
   wavespeed: boolean;
+  isCloud: boolean;
 }
 
 export async function GET() {
@@ -20,6 +21,7 @@ export async function GET() {
     fal: !!process.env.FAL_API_KEY,
     kie: !!process.env.KIE_API_KEY,
     wavespeed: !!process.env.WAVESPEED_API_KEY,
+    isCloud: !!process.env.VERCEL,
   };
 
   return NextResponse.json(status);

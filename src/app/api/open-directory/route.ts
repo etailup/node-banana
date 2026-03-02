@@ -8,6 +8,14 @@ import os from "os";
 const execFileAsync = promisify(execFile);
 
 export async function POST(req: NextRequest) {
+    // Cloud mode: filesystem operations not available
+    if (process.env.VERCEL) {
+        return NextResponse.json(
+            { success: false, error: "Not available on cloud deployments" },
+            { status: 400 }
+        );
+    }
+
     try {
         const body = await req.json();
         const { path: inputPath } = body;

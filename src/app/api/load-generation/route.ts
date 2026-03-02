@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { logger } from "@/utils/logger";
+import { isCloudMode } from "@/lib/cloud/editorStorage";
 
 // Supported file extensions
 const SUPPORTED_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'mp4', 'webm', 'mov'];
@@ -21,12 +22,33 @@ const EXT_TO_MIME: Record<string, string> = {
   mov: 'video/quicktime',
 };
 
-// POST: Load a generated image or video from the generations folder by ID
+// POST: Load a generated image or video by ID
 export async function POST(request: NextRequest) {
   let directoryPath: string | undefined;
   let imageId: string | undefined;
   try {
     const body = await request.json();
+
+    // Cloud mode: images use CDN URLs directly, echo back if provided
+    if (isCloudMode()) {
+      const { cdnUrl } = body;
+      if (cdnUrl) {
+        // Determine content type from URL extension
+        const isVideo = /\.(mp4|webm|mov)$/i.test(cdnUrl);
+        return NextResponse.json({
+          success: true,
+          contentType: isVideo ? "video" : "image",
+          ...(isVideo ? { video: cdnUrl } : { image: cdnUrl }),
+          isCloud: true,
+        });
+      }
+      return NextResponse.json({
+        success: false,
+        error: "On cloud, use CDN URLs directly",
+        isCloud: true,
+      });
+    }
+
     directoryPath = body.directoryPath;
     imageId = body.imageId;
 

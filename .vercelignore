@@ -1,6 +1,7 @@
-workflows/generations/
-workflows/inputs/
-workflows/outputs/
+workflows/
 examples/
 screenshots/
+docs/
 AGENTIC_NEXTJS-MASTERSTARTERKIT/
+*.md
+!README.md

@@ -936,6 +936,46 @@ export function WorkflowCanvas() {
   // Compute selected node IDs for chat context scoping
   const selectedNodeIds = useMemo(() => nodes.filter(n => n.selected).map(n => n.id), [nodes]);
 
+  // Handle prompt optimization from chat /optimize command
+  const handleOptimizePrompt = useCallback(async (
+    prompt: string,
+    variationCount: number,
+    referenceImageNodeId?: string
+  ) => {
+    showToast("Starting prompt optimization...", "info");
+
+    // Get reference image if a node was specified
+    let referenceImage: string | undefined;
+    if (referenceImageNodeId) {
+      const img = getImageFromNode(referenceImageNodeId);
+      if (img) referenceImage = img;
+    }
+
+    try {
+      const res = await fetch("/api/agents/optimize-prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          basePrompt: prompt,
+          count: variationCount,
+          referenceImage,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.error || "Failed to start optimization", "error");
+        return;
+      }
+
+      const { jobId } = await res.json();
+      showToast(`Optimization started (job: ${jobId}). Check agent jobs for results.`, "success");
+    } catch (err) {
+      console.error("Prompt optimization error:", err);
+      showToast("Failed to start optimization", "error");
+    }
+  }, [showToast, getImageFromNode]);
+
   // Handle applying edit operations from chat
   const handleApplyEdits = useCallback((operations: EditOperation[]) => {
     captureSnapshot(); // Snapshot before AI edits
@@ -1989,6 +2029,7 @@ export function WorkflowCanvas() {
         onBuildWorkflow={handleBuildWorkflow}
         isBuildingWorkflow={isBuildingWorkflow}
         onApplyEdits={handleApplyEdits}
+        onOptimizePrompt={handleOptimizePrompt}
         workflowState={chatWorkflowState}
         selectedNodeIds={selectedNodeIds}
       />

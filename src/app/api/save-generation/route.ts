@@ -3,6 +3,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import * as crypto from "crypto";
 import { logger } from "@/utils/logger";
+import { isCloudMode, getAuthenticatedUserId, uploadEditorAsset, uploadEditorAssetBuffer } from "@/lib/cloud/editorStorage";
 
 // Helper to get file extension from MIME type
 function getExtensionFromMime(mimeType: string): string {
@@ -56,24 +57,7 @@ function isHttpUrl(str: string): boolean {
   return str.startsWith("http://") || str.startsWith("https://");
 }
 
-// Known file extensions for 3D models and common media
-const KNOWN_3D_EXTENSIONS = new Set(["glb", "gltf", "obj", "fbx", "usdz", "stl", "ply"]);
-const KNOWN_MEDIA_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "webp", "svg", "mp4", "webm", "mov"]);
-
-// Helper to extract a recognized file extension from a URL pathname
-export function getExtensionFromUrl(url: string): string | null {
-  try {
-    const urlObj = new URL(url);
-    const pathname = urlObj.pathname;
-    const lastDot = pathname.lastIndexOf(".");
-    if (lastDot === -1 || lastDot === pathname.length - 1) return null;
-    const ext = pathname.substring(lastDot + 1).toLowerCase();
-    if (KNOWN_3D_EXTENSIONS.has(ext) || KNOWN_MEDIA_EXTENSIONS.has(ext)) return ext;
-    return null;
-  } catch {
-    return null;
-  }
-}
+import { getExtensionFromUrl } from "./utils";
 
 // Helper to compute MD5 hash of buffer content
 function computeContentHash(buffer: Buffer): string {
@@ -97,11 +81,72 @@ async function findExistingFileByHash(
   }
 }
 
-// POST: Save a generated image or video to the generations folder (or outputs folder)
+// POST: Save a generated image or video to R2 (cloud) or filesystem (local)
 export async function POST(request: NextRequest) {
   let directoryPath: string | undefined;
   try {
     const body = await request.json();
+
+    // Cloud mode: upload to R2
+    if (isCloudMode()) {
+      const userId = await getAuthenticatedUserId();
+      if (!userId) {
+        return NextResponse.json(
+          { success: false, error: "Authentication required" },
+          { status: 401 }
+        );
+      }
+
+      const { workflowId, image, video, imageId: cloudImageId } = body;
+      const isVideo = !!video;
+      const content = video || image;
+
+      if (!workflowId || !content) {
+        return NextResponse.json(
+          { success: false, error: "Missing workflowId or content" },
+          { status: 400 }
+        );
+      }
+
+      const assetId = cloudImageId || `gen-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
+      let cdnUrl: string;
+
+      if (isHttpUrl(content)) {
+        // Fetch and upload to R2
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
+        try {
+          const response = await fetch(content, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+          const rawCt = response.headers.get("content-type");
+          const contentType = (rawCt && (rawCt.startsWith("video/") || rawCt.startsWith("image/")))
+            ? rawCt : (isVideo ? "video/mp4" : "image/png");
+          const arrayBuffer = await response.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          cdnUrl = await uploadEditorAssetBuffer(workflowId, assetId, buffer, "generations", contentType);
+        } catch (fetchError) {
+          clearTimeout(timeoutId);
+          throw fetchError;
+        }
+      } else {
+        // Base64 content
+        const ctMatch = content.match(/^data:([\w/+-]+);base64,/);
+        const contentType = ctMatch ? ctMatch[1] : (isVideo ? "video/mp4" : "image/png");
+        cdnUrl = await uploadEditorAsset(workflowId, assetId, content, "generations", contentType);
+      }
+
+      logger.info('file.save', 'Generation saved to R2', { workflowId, assetId, cdnUrl });
+
+      return NextResponse.json({
+        success: true,
+        cdnUrl,
+        imageId: assetId,
+        isCloud: true,
+      });
+    }
+
+    // Local mode: save to filesystem
     directoryPath = body.directoryPath;
     const image = body.image;
     const video = body.video;

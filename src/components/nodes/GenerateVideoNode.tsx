@@ -227,8 +227,11 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
     regenerateNode(id);
   }, [id, regenerateNode]);
 
-  // Load video by ID from generations folder
-  const loadVideoById = useCallback(async (videoId: string) => {
+  // Load video by ID from generations folder or CDN
+  const loadVideoById = useCallback(async (videoId: string, cdnUrl?: string) => {
+    // Cloud mode: use CDN URL directly if available
+    if (cdnUrl) return cdnUrl;
+
     if (!generationsPath) {
       console.error("Generations path not configured");
       return null;
@@ -267,7 +270,7 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
     const videoItem = history[newIndex];
 
     setIsLoadingCarouselVideo(true);
-    const video = await loadVideoById(videoItem.id);
+    const video = await loadVideoById(videoItem.id, videoItem.cdnUrl);
     setIsLoadingCarouselVideo(false);
 
     if (video) {
@@ -287,7 +290,7 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
     const videoItem = history[newIndex];
 
     setIsLoadingCarouselVideo(true);
-    const video = await loadVideoById(videoItem.id);
+    const video = await loadVideoById(videoItem.id, videoItem.cdnUrl);
     setIsLoadingCarouselVideo(false);
 
     if (video) {

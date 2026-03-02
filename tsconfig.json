@@ -38,6 +38,7 @@
   ],
   "exclude": [
     "node_modules",
+    "ghoststack agentic boilerplate copy",
     "AGENTIC_NEXTJS-MASTERSTARTERKIT"
   ]
 }

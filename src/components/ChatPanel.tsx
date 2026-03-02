@@ -12,6 +12,7 @@ interface ChatPanelProps {
   onBuildWorkflow?: (description: string) => Promise<void>;
   isBuildingWorkflow?: boolean;
   onApplyEdits?: (operations: EditOperation[]) => { applied: number; skipped: string[] };
+  onOptimizePrompt?: (prompt: string, variationCount: number, referenceImageNodeId?: string) => void;
   workflowState?: {
     nodes: { id: string; type: string; data: Record<string, unknown> }[];
     edges: { id: string; source: string; target: string; sourceHandle?: string; targetHandle?: string }[]
@@ -19,7 +20,7 @@ interface ChatPanelProps {
   selectedNodeIds?: string[];
 }
 
-export function ChatPanel({ isOpen, onClose, onBuildWorkflow, isBuildingWorkflow = false, onApplyEdits, workflowState, selectedNodeIds }: ChatPanelProps) {
+export function ChatPanel({ isOpen, onClose, onBuildWorkflow, isBuildingWorkflow = false, onApplyEdits, onOptimizePrompt, workflowState, selectedNodeIds }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
   const [chipDismissed, setChipDismissed] = useState(false);
@@ -97,9 +98,20 @@ export function ChatPanel({ isOpen, onClose, onBuildWorkflow, isBuildingWorkflow
             onApplyEdits(operations);
           }
         }
+
+        if (toolName === "optimizePrompt" && onOptimizePrompt) {
+          const input = (part as Record<string, unknown>).input as {
+            prompt?: string;
+            variationCount?: number;
+            referenceImageNodeId?: string;
+          };
+          if (input.prompt) {
+            onOptimizePrompt(input.prompt, input.variationCount ?? 4, input.referenceImageNodeId);
+          }
+        }
       });
     });
-  }, [messages, onBuildWorkflow, onApplyEdits]);
+  }, [messages, onBuildWorkflow, onApplyEdits, onOptimizePrompt]);
 
   // Extract conversation description from user messages
   const getConversationDescription = () => {
@@ -253,6 +265,14 @@ export function ChatPanel({ isOpen, onClose, onBuildWorkflow, isBuildingWorkflow
                         return (
                           <div key={idx} className="mb-2 text-blue-300 text-xs italic">
                             Building workflow...
+                          </div>
+                        );
+                      }
+                      if (toolName === "optimizePrompt") {
+                        const optimizeInput = (tool.input as { prompt?: string; variationCount?: number });
+                        return (
+                          <div key={idx} className="mb-2 text-purple-300 text-xs italic">
+                            Optimizing prompt ({optimizeInput.variationCount ?? 4} variations)...
                           </div>
                         );
                       }

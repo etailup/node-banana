@@ -22,6 +22,10 @@ import {
   ProviderType,
   ProviderSettings,
   RecentModel,
+  VideoStitchNodeData,
+  EaseCurveNodeData,
+  CarouselImageItem,
+  CarouselVideoItem,
   CanvasNavigationSettings,
   MatchMode,
   MODEL_DISPLAY_NAMES,
@@ -275,6 +279,10 @@ interface WorkflowStore {
   addToGlobalHistory: (item: Omit<ImageHistoryItem, "id">) => void;
   clearGlobalHistory: () => void;
 
+  // Cloud mode
+  isCloud: boolean;
+  setIsCloud: (isCloud: boolean) => void;
+
   // Auto-save state
   workflowId: string | null;
   workflowName: string | null;
@@ -457,6 +465,9 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
   _abortController: null,  // Internal: for cancellation
   globalImageHistory: [],
 
+  // Cloud mode initial state
+  isCloud: false,
+
   // Auto-save initial state
   workflowId: null,
   workflowName: null,
@@ -493,6 +504,10 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
   // AI change snapshot initial state
   previousWorkflowSnapshot: null,
   manualChangeCount: 0,
+
+  setIsCloud: (isCloud: boolean) => {
+    set({ isCloud });
+  },
 
   // Canvas navigation settings initial state
   canvasNavigationSettings: getCanvasNavigationSettings(),
@@ -1220,14 +1235,17 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
     if (controller) {
       controller.abort("user-cancelled");
     }
-    // Reset any nodes stuck in "loading" state back to idle
-    const { nodes, updateNodeData } = get();
-    nodes.forEach(n => {
-      if ((n.data as Record<string, unknown>).status === "loading") {
-        updateNodeData(n.id, { status: "idle" });
-      }
-    });
-    set({ isRunning: false, currentNodeIds: [], _abortController: null });
+    // Reset any nodes stuck in "loading" state back to idle (single set() to avoid marking unsaved)
+    set((state) => ({
+      isRunning: false,
+      currentNodeIds: [],
+      _abortController: null,
+      nodes: state.nodes.map(n =>
+        (n.data as Record<string, unknown>).status === "loading"
+          ? { ...n, data: { ...n.data, status: "idle" } } as typeof n
+          : n
+      ),
+    }));
   },
 
   setMaxConcurrentCalls: (value: number) => {
@@ -1688,8 +1706,9 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
     const directoryPath = workflowPath || savedConfig?.directoryPath || workflow.directoryPath || null;
 
     // Hydrate images if we have a directory path and the workflow has image refs
+    // Skip hydration on cloud — images use CDN URLs and display directly
     let hydratedWorkflow = workflow;
-    if (directoryPath) {
+    if (directoryPath && !get().isCloud) {
       try {
         hydratedWorkflow = await hydrateWorkflowImages(workflow, directoryPath);
       } catch (error) {
@@ -1838,9 +1857,15 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
       saveDirectoryPath,
       useExternalImageStorage,
       imageRefBasePath,
+      isCloud,
     } = get();
 
-    if (!workflowId || !workflowName || !saveDirectoryPath) {
+    // Cloud mode: only need workflowId and workflowName
+    // Local mode: also need saveDirectoryPath
+    if (!workflowId || !workflowName) {
+      return false;
+    }
+    if (!isCloud && !saveDirectoryPath) {
       return false;
     }
 
@@ -1903,9 +1928,37 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
         groups: groups && Object.keys(groups).length > 0 ? groups : undefined,
       };
 
-      // If external image storage is enabled, externalize images before saving
+      // Cloud mode: save directly to Supabase (images already CDN URLs, no externalization)
+      if (isCloud) {
+        const response = await fetch("/api/workflow", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workflowId, workflow }),
+        });
+
+        if (!response.ok) {
+          const text = await response.text().catch(() => "Unknown error");
+          useToast.getState().show(`Cloud save failed (${response.status}): ${text.slice(0, 100)}`, "error");
+          return false;
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+          set({
+            lastSavedAt: Date.now(),
+            hasUnsavedChanges: false,
+          });
+          return true;
+        } else {
+          useToast.getState().show(`Cloud save failed: ${result.error}`, "error");
+          return false;
+        }
+      }
+
+      // Local mode: externalize images and save to filesystem
       if (useExternalImageStorage) {
-        workflow = await externalizeWorkflowImages(workflow, saveDirectoryPath);
+        workflow = await externalizeWorkflowImages(workflow, saveDirectoryPath!);
       }
 
       const response = await fetch("/api/workflow", {
@@ -1981,7 +2034,7 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
         saveSaveConfig({
           workflowId,
           name: workflowName,
-          directoryPath: saveDirectoryPath,
+          directoryPath: saveDirectoryPath!,
           generationsPath: get().generationsPath,
           lastSavedAt: timestamp,
           useExternalImageStorage,
@@ -2037,14 +2090,14 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
 
     autoSaveIntervalId = setInterval(async () => {
       const state = get();
-      if (
-        state.autoSaveEnabled &&
+      // Cloud mode: skip saveDirectoryPath check (not needed)
+      const canAutoSave = state.autoSaveEnabled &&
         state.hasUnsavedChanges &&
         state.workflowId &&
         state.workflowName &&
-        state.saveDirectoryPath &&
-        !state.isSaving
-      ) {
+        !state.isSaving &&
+        (state.isCloud || state.saveDirectoryPath);
+      if (canAutoSave) {
         await state.saveToFile();
       }
     }, 90 * 1000); // 90 seconds
