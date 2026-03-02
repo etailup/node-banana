@@ -1,0 +1,167 @@
+{
+  "version": 1,
+  "id": "wf_1770303535428_product-shot",
+  "name": "Product Shot",
+  "nodes": [
+    {
+      "id": "imageInput-1",
+      "type": "imageInput",
+      "position": {
+        "x": 50,
+        "y": 100
+      },
+      "data": {
+        "image": null,
+        "filename": "nike-shoe.jpg",
+        "dimensions": {
+          "width": 800,
+          "height": 600
+        },
+        "imageRef": "img-ml9l0wmp-qjgttu"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "measured": {
+        "width": 300,
+        "height": 280
+      }
+    },
+    {
+      "id": "imageInput-2",
+      "type": "imageInput",
+      "position": {
+        "x": 50,
+        "y": 430
+      },
+      "data": {
+        "image": null,
+        "filename": "desert.jpg",
+        "dimensions": {
+          "width": 800,
+          "height": 600
+        },
+        "imageRef": "img-ml9l0wvk-4ad9tu"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "measured": {
+        "width": 300,
+        "height": 280
+      }
+    },
+    {
+      "id": "prompt-1",
+      "type": "prompt",
+      "position": {
+        "x": 50,
+        "y": 760
+      },
+      "data": {
+        "prompt": "Place the Nike shoe on the desert sand dunes. Match the warm golden hour lighting from the desert scene. Position the shoe at a dynamic angle showing the sole and side profile. Add subtle sand particles around the shoe and soft shadows that match the desert lighting direction. The final image should look like a professional outdoor product shoot."
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "measured": {
+        "width": 320,
+        "height": 220
+      }
+    },
+    {
+      "id": "nanoBanana-1",
+      "type": "nanoBanana",
+      "position": {
+        "x": 450,
+        "y": 300
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": null,
+        "outputImage": null,
+        "aspectRatio": "1:1",
+        "resolution": "1K",
+        "model": "nano-banana-pro",
+        "useGoogleSearch": false,
+        "status": "idle",
+        "error": null,
+        "imageHistory": [],
+        "selectedHistoryIndex": 0,
+        "selectedModel": {
+          "provider": "gemini",
+          "modelId": "nano-banana-pro",
+          "displayName": "Nano Banana Pro"
+        },
+        "inputSchema": []
+      },
+      "style": {
+        "width": 300,
+        "height": 300
+      },
+      "selected": false,
+      "measured": {
+        "width": 300,
+        "height": 300
+      }
+    },
+    {
+      "id": "output-1",
+      "type": "output",
+      "position": {
+        "x": 850,
+        "y": 290
+      },
+      "data": {
+        "image": null,
+        "video": null
+      },
+      "style": {
+        "width": 320,
+        "height": 320
+      },
+      "selected": false,
+      "measured": {
+        "width": 320,
+        "height": 320
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-imageInput-1-nanoBanana-1",
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "nanoBanana-1",
+      "targetHandle": "image"
+    },
+    {
+      "id": "edge-imageInput-2-nanoBanana-1",
+      "source": "imageInput-2",
+      "sourceHandle": "image",
+      "target": "nanoBanana-1",
+      "targetHandle": "image"
+    },
+    {
+      "id": "edge-prompt-1-nanoBanana-1",
+      "source": "prompt-1",
+      "sourceHandle": "text",
+      "target": "nanoBanana-1",
+      "targetHandle": "text"
+    },
+    {
+      "id": "edge-nanoBanana-1-output-1",
+      "source": "nanoBanana-1",
+      "sourceHandle": "image",
+      "target": "output-1",
+      "targetHandle": "image"
+    }
+  ],
+  "edgeStyle": "curved"
+}

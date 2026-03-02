@@ -7,6 +7,8 @@ import {
   GenerateImageNodeDefaults,
   GenerateVideoNodeDefaults,
   LLMNodeDefaults,
+  CanvasNavigationSettings,
+  defaultCanvasNavigationSettings,
 } from "@/types";
 
 // Storage keys
@@ -16,6 +18,7 @@ export const GENERATE_IMAGE_DEFAULTS_KEY = "node-banana-nanoBanana-defaults";
 export const PROVIDER_SETTINGS_KEY = "node-banana-provider-settings";
 export const RECENT_MODELS_KEY = "node-banana-recent-models";
 export const NODE_DEFAULTS_KEY = "node-banana-node-defaults";
+export const CANVAS_NAVIGATION_KEY = "node-banana-canvas-navigation";
 
 // Maximum recent models to store (show 4 in UI, keep 8 for persistence)
 export const MAX_RECENT_MODELS = 8;
@@ -26,6 +29,7 @@ export interface GenerateImageDefaults {
   resolution: string;
   model: string;
   useGoogleSearch: boolean;
+  useImageSearch: boolean;
 }
 
 const DEFAULT_GENERATE_IMAGE_SETTINGS: GenerateImageDefaults = {
@@ -33,6 +37,7 @@ const DEFAULT_GENERATE_IMAGE_SETTINGS: GenerateImageDefaults = {
   resolution: "1K",
   model: "nano-banana-pro",
   useGoogleSearch: false,
+  useImageSearch: false,
 };
 
 // Default provider settings
@@ -40,6 +45,7 @@ export const defaultProviderSettings: ProviderSettings = {
   providers: {
     gemini: { id: "gemini", name: "Google Gemini", enabled: true, apiKey: null, apiKeyEnvVar: "GEMINI_API_KEY" },
     openai: { id: "openai", name: "OpenAI", enabled: true, apiKey: null, apiKeyEnvVar: "OPENAI_API_KEY" },
+    anthropic: { id: "anthropic", name: "Anthropic", enabled: true, apiKey: null, apiKeyEnvVar: "ANTHROPIC_API_KEY" },
     replicate: { id: "replicate", name: "Replicate", enabled: false, apiKey: null, apiKeyEnvVar: "REPLICATE_API_KEY" },
     fal: { id: "fal", name: "fal.ai", enabled: false, apiKey: null, apiKeyEnvVar: "FAL_API_KEY" },
     kie: { id: "kie", name: "Kie.ai", enabled: false, apiKey: null, apiKeyEnvVar: "KIE_API_KEY" },
@@ -189,6 +195,25 @@ export const getGenerateVideoDefaults = (): GenerateVideoNodeDefaults | undefine
 export const getLLMDefaults = (): LLMNodeDefaults | undefined => {
   const config = loadNodeDefaults();
   return config.llm;
+};
+
+// Canvas navigation settings helpers
+export const getCanvasNavigationSettings = (): CanvasNavigationSettings => {
+  if (typeof window === "undefined") return defaultCanvasNavigationSettings;
+  const stored = localStorage.getItem(CANVAS_NAVIGATION_KEY);
+  if (stored) {
+    try {
+      return JSON.parse(stored) as CanvasNavigationSettings;
+    } catch {
+      return defaultCanvasNavigationSettings;
+    }
+  }
+  return defaultCanvasNavigationSettings;
+};
+
+export const saveCanvasNavigationSettings = (settings: CanvasNavigationSettings): void => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(CANVAS_NAVIGATION_KEY, JSON.stringify(settings));
 };
 
 // Workflow ID generator

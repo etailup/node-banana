@@ -15,8 +15,9 @@ export interface GenerateRequest {
   aspectRatio?: AspectRatio;
   resolution?: Resolution; // Only for Nano Banana Pro
   model?: ModelType;
-  useGoogleSearch?: boolean; // Only for Nano Banana Pro
-  mediaType?: "image" | "video"; // Indicates expected output type for provider routing
+  useGoogleSearch?: boolean; // Only for Nano Banana Pro and Nano Banana 2
+  useImageSearch?: boolean; // Only for Nano Banana 2
+  mediaType?: "image" | "video" | "3d" | "audio"; // Indicates expected output type for provider routing
 }
 
 export interface GenerateResponse {
@@ -24,7 +25,10 @@ export interface GenerateResponse {
   image?: string;
   video?: string;
   videoUrl?: string; // For large videos, return URL directly
-  contentType?: "image" | "video";
+  audio?: string; // Base64 audio data
+  audioUrl?: string; // For large audio, return URL directly
+  model3dUrl?: string; // For 3D models, return GLB URL directly
+  contentType?: "image" | "video" | "3d" | "audio";
   error?: string;
 }
 

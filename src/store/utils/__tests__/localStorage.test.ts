@@ -5,6 +5,7 @@ import {
   GENERATE_IMAGE_DEFAULTS_KEY,
   PROVIDER_SETTINGS_KEY,
   NODE_DEFAULTS_KEY,
+  CANVAS_NAVIGATION_KEY,
   loadSaveConfigs,
   saveSaveConfig,
   loadWorkflowCostData,
@@ -20,7 +21,10 @@ import {
   getGenerateImageDefaults,
   getGenerateVideoDefaults,
   getLLMDefaults,
+  getCanvasNavigationSettings,
+  saveCanvasNavigationSettings,
 } from "../localStorage";
+import { defaultCanvasNavigationSettings } from "@/types";
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -167,6 +171,7 @@ describe("localStorage utilities", () => {
         resolution: "1K",
         model: "nano-banana-pro",
         useGoogleSearch: false,
+        useImageSearch: false,
       });
     });
 
@@ -195,6 +200,7 @@ describe("localStorage utilities", () => {
         resolution: "1K",
         model: "nano-banana-pro",
         useGoogleSearch: false,
+        useImageSearch: false,
       });
     });
   });
@@ -391,6 +397,47 @@ describe("localStorage utilities", () => {
 
       const result = getLLMDefaults();
       expect(result).toEqual(config.llm);
+    });
+  });
+
+  describe("getCanvasNavigationSettings", () => {
+    it("returns defaults when localStorage is empty", () => {
+      const result = getCanvasNavigationSettings();
+      expect(result).toEqual(defaultCanvasNavigationSettings);
+    });
+
+    it("returns stored settings when data exists", () => {
+      const customSettings = {
+        panMode: "always",
+        zoomMode: "scroll",
+        selectionMode: "altDrag",
+      };
+      localStorageMock.setItem(CANVAS_NAVIGATION_KEY, JSON.stringify(customSettings));
+
+      const result = getCanvasNavigationSettings();
+      expect(result).toEqual(customSettings);
+    });
+
+    it("returns defaults on invalid JSON", () => {
+      localStorageMock.setItem(CANVAS_NAVIGATION_KEY, "not valid json");
+
+      const result = getCanvasNavigationSettings();
+      expect(result).toEqual(defaultCanvasNavigationSettings);
+    });
+  });
+
+  describe("saveCanvasNavigationSettings", () => {
+    it("persists settings to localStorage", () => {
+      const settings = {
+        panMode: "middleMouse" as const,
+        zoomMode: "ctrlScroll" as const,
+        selectionMode: "altDrag" as const,
+      };
+
+      saveCanvasNavigationSettings(settings);
+
+      const stored = JSON.parse(localStorageMock.getItem(CANVAS_NAVIGATION_KEY)!);
+      expect(stored).toEqual(settings);
     });
   });
 });

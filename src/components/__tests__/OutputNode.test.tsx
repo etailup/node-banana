@@ -39,6 +39,9 @@ describe("OutputNode", () => {
     mockUseWorkflowStore.mockImplementation((selector) => {
       const state = {
         updateNodeData: mockUpdateNodeData,
+        regenerateNode: vi.fn(),
+        edges: [],
+        isRunning: false,
         currentNodeIds: [],
         groups: {},
         nodes: [],
@@ -78,7 +81,7 @@ describe("OutputNode", () => {
         </TestWrapper>
       );
 
-      expect(screen.getByText("Waiting for image or video")).toBeInTheDocument();
+      expect(screen.getByText("Waiting for image, video, or audio")).toBeInTheDocument();
     });
 
     it("should render the title 'Output'", () => {

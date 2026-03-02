@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { generateWorkflowId, useWorkflowStore } from "@/store/workflowStore";
 import { ProviderType, ProviderSettings, NodeDefaultsConfig, LLMProvider, LLMModelType } from "@/types";
+import { CanvasNavigationSettings, PanMode, ZoomMode, SelectionMode } from "@/types/canvas";
 import { EnvStatusResponse } from "@/app/api/env-status/route";
 import { loadNodeDefaults, saveNodeDefaults } from "@/store/utils/localStorage";
 import { ProviderModel } from "@/lib/providers/types";
@@ -12,6 +13,7 @@ import { ModelSearchDialog } from "@/components/modals/ModelSearchDialog";
 const LLM_PROVIDERS: { value: LLMProvider; label: string }[] = [
   { value: "google", label: "Google" },
   { value: "openai", label: "OpenAI" },
+  { value: "anthropic", label: "Anthropic" },
 ];
 
 const LLM_MODELS: Record<LLMProvider, { value: LLMModelType; label: string }[]> = {
@@ -19,10 +21,16 @@ const LLM_MODELS: Record<LLMProvider, { value: LLMModelType; label: string }[]> 
     { value: "gemini-3-flash-preview", label: "Gemini 3 Flash" },
     { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
     { value: "gemini-3-pro-preview", label: "Gemini 3.0 Pro" },
+    { value: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro" },
   ],
   openai: [
     { value: "gpt-4.1-mini", label: "GPT-4.1 Mini" },
     { value: "gpt-4.1-nano", label: "GPT-4.1 Nano" },
+  ],
+  anthropic: [
+    { value: "claude-sonnet-4.5", label: "Claude Sonnet 4.5" },
+    { value: "claude-haiku-4.5", label: "Claude Haiku 4.5" },
+    { value: "claude-opus-4.6", label: "Claude Opus 4.6" },
   ],
 };
 
@@ -84,6 +92,40 @@ export function ProjectSetupModal({
   onSave,
   mode,
 }: ProjectSetupModalProps) {
+  const sanitizeProjectFolderName = (projectName: string): string => {
+    return projectName
+      .trim()
+      .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
+      .replace(/\.+$/g, "")
+      .trim();
+  };
+
+  const joinPathForPlatform = (basePath: string, folderName: string): string => {
+    const trimmedBase = basePath.trim();
+    const separator = /^[A-Za-z]:[\\\/]/.test(trimmedBase) || trimmedBase.startsWith("\\\\") ? "\\" : "/";
+    const endsWithSeparator = trimmedBase.endsWith("/") || trimmedBase.endsWith("\\");
+    return `${trimmedBase}${endsWithSeparator ? "" : separator}${folderName}`;
+  };
+
+  const getPathBasename = (fullPath: string): string => {
+    const withoutTrailingSeparator = fullPath.trim().replace(/[\\/]+$/, "");
+    const parts = withoutTrailingSeparator.split(/[\\/]/);
+    return parts[parts.length - 1] || "";
+  };
+
+  const ensureProjectSubfolderPath = (basePath: string, projectName: string): string => {
+    const trimmedBase = basePath.trim();
+    const sanitizedFolder = sanitizeProjectFolderName(projectName);
+    if (!sanitizedFolder) return trimmedBase;
+
+    const basename = getPathBasename(trimmedBase);
+    if (basename.toLowerCase() === sanitizedFolder.toLowerCase()) {
+      return trimmedBase;
+    }
+
+    return joinPathForPlatform(trimmedBase, sanitizedFolder);
+  };
+
   const {
     workflowName,
     saveDirectoryPath,
@@ -94,10 +136,12 @@ export function ProjectSetupModal({
     toggleProvider,
     maxConcurrentCalls,
     setMaxConcurrentCalls,
+    canvasNavigationSettings,
+    updateCanvasNavigationSettings,
   } = useWorkflowStore();
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<"project" | "providers" | "nodeDefaults">("project");
+  const [activeTab, setActiveTab] = useState<"project" | "providers" | "nodeDefaults" | "canvas">("project");
 
   // Project tab state
   const [name, setName] = useState("");
@@ -112,6 +156,7 @@ export function ProjectSetupModal({
   const [showApiKey, setShowApiKey] = useState<Record<ProviderType, boolean>>({
     gemini: false,
     openai: false,
+    anthropic: false,
     replicate: false,
     fal: false,
     kie: false,
@@ -120,6 +165,7 @@ export function ProjectSetupModal({
   const [overrideActive, setOverrideActive] = useState<Record<ProviderType, boolean>>({
     gemini: false,
     openai: false,
+    anthropic: false,
     replicate: false,
     fal: false,
     kie: false,
@@ -131,6 +177,9 @@ export function ProjectSetupModal({
   const [localNodeDefaults, setLocalNodeDefaults] = useState<NodeDefaultsConfig>({});
   const [showImageModelDialog, setShowImageModelDialog] = useState(false);
   const [showVideoModelDialog, setShowVideoModelDialog] = useState(false);
+
+  // Canvas tab state
+  const [localCanvasSettings, setLocalCanvasSettings] = useState<CanvasNavigationSettings>(canvasNavigationSettings);
 
   // Pre-fill when opening in settings mode
   useEffect(() => {
@@ -152,11 +201,12 @@ export function ProjectSetupModal({
 
       // Sync local providers state
       setLocalProviders(providerSettings);
-      setShowApiKey({ gemini: false, openai: false, replicate: false, fal: false, kie: false, wavespeed: false });
+      setShowApiKey({ gemini: false, openai: false, anthropic: false, replicate: false, fal: false, kie: false, wavespeed: false });
       // Initialize override as active if user already has a key set
       setOverrideActive({
         gemini: !!providerSettings.providers.gemini?.apiKey,
         openai: !!providerSettings.providers.openai?.apiKey,
+        anthropic: !!providerSettings.providers.anthropic?.apiKey,
         replicate: !!providerSettings.providers.replicate?.apiKey,
         fal: !!providerSettings.providers.fal?.apiKey,
         kie: !!providerSettings.providers.kie?.apiKey,
@@ -169,13 +219,16 @@ export function ProjectSetupModal({
       setShowImageModelDialog(false);
       setShowVideoModelDialog(false);
 
+      // Sync canvas settings
+      setLocalCanvasSettings(canvasNavigationSettings);
+
       // Fetch env status
       fetch("/api/env-status")
         .then((res) => res.json())
         .then((data: EnvStatusResponse) => setEnvStatus(data))
         .catch(() => setEnvStatus(null));
     }
-  }, [isOpen, mode, workflowName, saveDirectoryPath, useExternalImageStorage, providerSettings]);
+  }, [isOpen, mode, workflowName, saveDirectoryPath, useExternalImageStorage, providerSettings, canvasNavigationSettings]);
 
   const handleBrowse = async () => {
     setIsBrowsing(true);
@@ -217,8 +270,9 @@ export function ProjectSetupModal({
       return;
     }
 
-    const trimmedPath = directoryPath.trim();
-    if (!(trimmedPath.startsWith("/") || /^[A-Za-z]:[\\\/]/.test(trimmedPath) || trimmedPath.startsWith("\\\\"))) {
+    const fullProjectPath = ensureProjectSubfolderPath(directoryPath, name);
+
+    if (!(fullProjectPath.startsWith("/") || /^[A-Za-z]:[\\\/]/.test(fullProjectPath) || fullProjectPath.startsWith("\\\\"))) {
       setError("Project directory must be an absolute path (starting with /, a drive letter, or a UNC path)");
       return;
     }
@@ -227,19 +281,13 @@ export function ProjectSetupModal({
     setError(null);
 
     try {
-      // Validate project directory exists
+      // Validate path shape when it already exists
       const response = await fetch(
-        `/api/workflow?path=${encodeURIComponent(directoryPath.trim())}`
+        `/api/workflow?path=${encodeURIComponent(fullProjectPath)}`
       );
       const result = await response.json();
 
-      if (!result.exists) {
-        setError("Project directory does not exist");
-        setIsValidating(false);
-        return;
-      }
-
-      if (!result.isDirectory) {
+      if (result.exists && !result.isDirectory) {
         setError("Project path is not a directory");
         setIsValidating(false);
         return;
@@ -248,7 +296,7 @@ export function ProjectSetupModal({
       const id = mode === "new" ? generateWorkflowId() : useWorkflowStore.getState().workflowId || generateWorkflowId();
       // Update external storage setting
       setUseExternalImageStorage(externalStorage);
-      onSave(id, name.trim(), directoryPath.trim());
+      onSave(id, name.trim(), fullProjectPath);
       setIsValidating(false);
     } catch (err) {
       setError(
@@ -260,7 +308,7 @@ export function ProjectSetupModal({
 
   const handleSaveProviders = () => {
     // Save each provider's settings
-    const providerIds: ProviderType[] = ["gemini", "openai", "replicate", "fal", "kie", "wavespeed"];
+    const providerIds: ProviderType[] = ["gemini", "openai", "anthropic", "replicate", "fal", "kie", "wavespeed"];
     for (const providerId of providerIds) {
       const local = localProviders.providers[providerId];
       const current = providerSettings.providers[providerId];
@@ -285,11 +333,18 @@ export function ProjectSetupModal({
     onClose();
   };
 
+  const handleSaveCanvas = () => {
+    updateCanvasNavigationSettings(localCanvasSettings);
+    onClose();
+  };
+
   const handleSave = () => {
     if (activeTab === "project") {
       handleSaveProject();
     } else if (activeTab === "providers") {
       handleSaveProviders();
+    } else if (activeTab === "canvas") {
+      handleSaveCanvas();
     } else {
       handleSaveNodeDefaults();
     }
@@ -324,15 +379,16 @@ export function ProjectSetupModal({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
       <div
-        className="bg-neutral-800 rounded-lg p-6 w-[480px] border border-neutral-700 shadow-xl"
+        className="bg-neutral-800 rounded-lg w-[480px] border border-neutral-700 shadow-xl flex flex-col max-h-[80vh]"
         onKeyDown={handleKeyDown}
       >
-        <h2 className="text-lg font-semibold text-neutral-100 mb-4">
-          {mode === "new" ? "New Project" : "Project Settings"}
-        </h2>
+        <div className="px-6 pt-6 pb-0 shrink-0">
+          <h2 className="text-lg font-semibold text-neutral-100 mb-4">
+            {mode === "new" ? "New Project" : "Project Settings"}
+          </h2>
 
-        {/* Tab Bar */}
-        <div className="flex gap-4 border-b border-neutral-700 mb-4">
+          {/* Tab Bar */}
+          <div className="flex gap-4 border-b border-neutral-700">
           <button
             onClick={() => setActiveTab("project")}
             className={`pb-2 text-sm ${activeTab === "project" ? "text-neutral-100 border-b-2 border-white" : "text-neutral-400"}`}
@@ -351,7 +407,17 @@ export function ProjectSetupModal({
           >
             Node Defaults
           </button>
+          <button
+            onClick={() => setActiveTab("canvas")}
+            className={`pb-2 text-sm ${activeTab === "canvas" ? "text-neutral-100 border-b-2 border-white" : "text-neutral-400"}`}
+          >
+            Canvas
+          </button>
+          </div>
         </div>
+
+        {/* Scrollable tab content area */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
 
         {/* Project Tab Content */}
         {activeTab === "project" && (
@@ -505,6 +571,54 @@ export function ProjectSetupModal({
                         onClick={() => {
                           setOverrideActive((prev) => ({ ...prev, openai: false }));
                           updateLocalProvider("openai", { apiKey: null });
+                        }}
+                        className="text-xs text-neutral-500 hover:text-neutral-300"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Anthropic Provider */}
+            <div className="p-3 bg-neutral-900 rounded-lg border border-neutral-700">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-neutral-100">Anthropic</span>
+                {envStatus?.anthropic && !overrideActive.anthropic ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-green-400">Configured via .env</span>
+                    <button
+                      type="button"
+                      onClick={() => setOverrideActive((prev) => ({ ...prev, anthropic: true }))}
+                      className="px-2 py-1 text-xs text-neutral-400 hover:text-neutral-200 transition-colors"
+                    >
+                      Override
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type={showApiKey.anthropic ? "text" : "password"}
+                      value={localProviders.providers.anthropic?.apiKey || ""}
+                      onChange={(e) => updateLocalProvider("anthropic", { apiKey: e.target.value || null })}
+                      placeholder="sk-ant-..."
+                      className="w-48 px-2 py-1 bg-neutral-800 border border-neutral-600 rounded text-neutral-100 text-xs focus:outline-none focus:border-neutral-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey((prev) => ({ ...prev, anthropic: !prev.anthropic }))}
+                      className="text-xs text-neutral-400 hover:text-neutral-200"
+                    >
+                      {showApiKey.anthropic ? "Hide" : "Show"}
+                    </button>
+                    {envStatus?.anthropic && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOverrideActive((prev) => ({ ...prev, anthropic: false }));
+                          updateLocalProvider("anthropic", { apiKey: null });
                         }}
                         className="text-xs text-neutral-500 hover:text-neutral-300"
                       >
@@ -848,12 +962,15 @@ export function ProjectSetupModal({
                     onChange={(e) => {
                       const newProvider = e.target.value as LLMProvider;
                       const firstModelForProvider = LLM_MODELS[newProvider][0].value;
+                      const currentTemp = localNodeDefaults.llm?.temperature ?? 0.7;
                       setLocalNodeDefaults(prev => ({
                         ...prev,
                         llm: {
                           ...prev.llm,
                           provider: newProvider,
                           model: firstModelForProvider,
+                          // Clamp temperature for Anthropic (max 1.0)
+                          ...(newProvider === "anthropic" && currentTemp > 1 ? { temperature: 1 } : {}),
                         }
                       }));
                     }}
@@ -892,7 +1009,7 @@ export function ProjectSetupModal({
                   <input
                     type="range"
                     min="0"
-                    max="2"
+                    max={(localNodeDefaults.llm?.provider || "google") === "anthropic" ? "1" : "2"}
                     step="0.1"
                     value={localNodeDefaults.llm?.temperature ?? 0.7}
                     onChange={(e) => {
@@ -961,7 +1078,117 @@ export function ProjectSetupModal({
           </div>
         )}
 
-        <div className="flex justify-end gap-2 mt-6">
+        {/* Canvas Tab Content */}
+        {activeTab === "canvas" && (
+          <div className="space-y-5">
+            {/* Pan Mode */}
+            <div>
+              <h3 className="text-sm font-medium text-neutral-200 mb-2">Pan Mode</h3>
+              <div className="space-y-1.5">
+                {([
+                  { value: "space" as PanMode, label: "Space + Drag", description: "Hold Space and drag to pan (default)" },
+                  { value: "middleMouse" as PanMode, label: "Middle Mouse", description: "Click and drag with middle mouse button" },
+                  { value: "always" as PanMode, label: "Always On", description: "Pan without holding any keys" },
+                ] as const).map((option) => (
+                  <label
+                    key={option.value}
+                    className={`flex items-start p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                      localCanvasSettings.panMode === option.value
+                        ? "border-blue-500 bg-blue-500/10"
+                        : "border-neutral-700 hover:border-neutral-600 bg-neutral-900/50"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="panMode"
+                      value={option.value}
+                      checked={localCanvasSettings.panMode === option.value}
+                      onChange={(e) => setLocalCanvasSettings({ ...localCanvasSettings, panMode: e.target.value as PanMode })}
+                      className="mt-0.5 mr-3"
+                    />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-neutral-200">{option.label}</div>
+                      <div className="text-xs text-neutral-400 mt-0.5">{option.description}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Zoom Mode */}
+            <div>
+              <h3 className="text-sm font-medium text-neutral-200 mb-2">Zoom Mode</h3>
+              <div className="space-y-1.5">
+                {([
+                  { value: "altScroll" as ZoomMode, label: "Alt + Scroll", description: "Hold Alt and scroll to zoom (default)" },
+                  { value: "ctrlScroll" as ZoomMode, label: "Ctrl + Scroll", description: "Hold Ctrl/Cmd and scroll to zoom" },
+                  { value: "scroll" as ZoomMode, label: "Scroll", description: "Scroll to zoom without holding any keys" },
+                ] as const).map((option) => (
+                  <label
+                    key={option.value}
+                    className={`flex items-start p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                      localCanvasSettings.zoomMode === option.value
+                        ? "border-blue-500 bg-blue-500/10"
+                        : "border-neutral-700 hover:border-neutral-600 bg-neutral-900/50"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="zoomMode"
+                      value={option.value}
+                      checked={localCanvasSettings.zoomMode === option.value}
+                      onChange={(e) => setLocalCanvasSettings({ ...localCanvasSettings, zoomMode: e.target.value as ZoomMode })}
+                      className="mt-0.5 mr-3"
+                    />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-neutral-200">{option.label}</div>
+                      <div className="text-xs text-neutral-400 mt-0.5">{option.description}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Selection Mode */}
+            <div>
+              <h3 className="text-sm font-medium text-neutral-200 mb-2">Selection Mode</h3>
+              <div className="space-y-1.5">
+                {([
+                  { value: "click" as SelectionMode, label: "Click", description: "Click to select nodes (default)" },
+                  { value: "altDrag" as SelectionMode, label: "Alt + Drag", description: "Hold Alt and drag to select multiple nodes" },
+                  { value: "shiftDrag" as SelectionMode, label: "Shift + Drag", description: "Hold Shift and drag to select multiple nodes" },
+                ] as const).map((option) => (
+                  <label
+                    key={option.value}
+                    className={`flex items-start p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                      localCanvasSettings.selectionMode === option.value
+                        ? "border-blue-500 bg-blue-500/10"
+                        : "border-neutral-700 hover:border-neutral-600 bg-neutral-900/50"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="selectionMode"
+                      value={option.value}
+                      checked={localCanvasSettings.selectionMode === option.value}
+                      onChange={(e) => setLocalCanvasSettings({ ...localCanvasSettings, selectionMode: e.target.value as SelectionMode })}
+                      className="mt-0.5 mr-3"
+                    />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-neutral-200">{option.label}</div>
+                      <div className="text-xs text-neutral-400 mt-0.5">{option.description}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        </div>
+
+        {/* Fixed footer */}
+        <div className="flex justify-end gap-2 px-6 py-4 border-t border-neutral-700 shrink-0">
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm text-neutral-400 hover:text-neutral-100 transition-colors"

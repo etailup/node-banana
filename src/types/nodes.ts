@@ -27,16 +27,25 @@ export type NodeType =
   | "audioInput"
   | "annotation"
   | "prompt"
+  | "array"
   | "promptConstructor"
   | "nanoBanana"
   | "generateVideo"
+  | "generateAudio"
   | "llmGenerate"
   | "splitGrid"
   | "output"
   | "outputGallery"
   | "imageCompare"
   | "videoStitch"
-  | "easeCurve";
+  | "easeCurve"
+  | "videoTrim"
+  | "videoFrameGrab"
+  | "router"
+  | "switch"
+  | "conditionalSwitch"
+  | "generate3d"
+  | "glbViewer";
 
 /**
  * Node execution status
@@ -69,6 +78,24 @@ export interface AudioInputNodeData extends BaseNodeData {
 export interface PromptNodeData extends BaseNodeData {
   prompt: string;
   variableName?: string; // Optional variable name for use in PromptConstructor templates
+}
+
+export type ArraySplitMode = "delimiter" | "newline" | "regex";
+
+/**
+ * Array node - converts one text input into ordered text items.
+ */
+export interface ArrayNodeData extends BaseNodeData {
+  inputText: string | null;
+  splitMode: ArraySplitMode;
+  delimiter: string;
+  regexPattern: string;
+  trimItems: boolean;
+  removeEmpty: boolean;
+  selectedOutputIndex: number | null;
+  outputItems: string[];
+  outputText: string | null; // JSON array string for the primary text output
+  error: string | null;
 }
 
 /**
@@ -146,7 +173,8 @@ export interface NanoBananaNodeData extends BaseNodeData {
   resolution: Resolution; // Only used by Nano Banana Pro
   model: ModelType;
   selectedModel?: SelectedModel; // Multi-provider model selection (optional for backward compat)
-  useGoogleSearch: boolean; // Only available for Nano Banana Pro
+  useGoogleSearch: boolean; // Only available for Nano Banana Pro and Nano Banana 2
+  useImageSearch: boolean; // Only available for Nano Banana 2
   parameters?: Record<string, unknown>; // Model-specific parameters for external providers
   inputSchema?: ModelInputDef[]; // Model's input schema for dynamic handles
   status: NodeStatus;
@@ -174,6 +202,51 @@ export interface GenerateVideoNodeData extends BaseNodeData {
 }
 
 /**
+ * Generate 3D node - AI 3D model generation
+ */
+export interface Generate3DNodeData extends BaseNodeData {
+  inputImages: string[];
+  inputImageRefs?: string[];
+  inputPrompt: string | null;
+  output3dUrl: string | null;
+  savedFilename: string | null;
+  savedFilePath: string | null;
+  selectedModel?: SelectedModel;
+  parameters?: Record<string, unknown>;
+  inputSchema?: ModelInputDef[];
+  status: NodeStatus;
+  error: string | null;
+}
+
+/**
+ * Carousel audio item for per-node audio history
+ */
+export interface CarouselAudioItem {
+  id: string;
+  timestamp: number;
+  prompt: string;
+  model: string; // Model ID for audio (not ModelType since external providers)
+}
+
+/**
+ * Generate Audio node - AI audio/TTS generation
+ */
+export interface GenerateAudioNodeData extends BaseNodeData {
+  inputPrompt: string | null;
+  outputAudio: string | null; // Audio data URL
+  outputAudioRef?: string; // External audio reference for storage optimization
+  selectedModel?: SelectedModel; // Required for audio generation
+  parameters?: Record<string, unknown>; // Model-specific parameters (voice, speed, etc.)
+  inputSchema?: ModelInputDef[]; // Model's input schema for dynamic handles
+  status: NodeStatus;
+  error: string | null;
+  audioHistory: CarouselAudioItem[]; // Carousel history (IDs only)
+  selectedAudioHistoryIndex: number; // Currently selected audio in carousel
+  duration: number | null; // Duration in seconds
+  format: string | null; // MIME type (audio/mp3, audio/wav, etc.)
+}
+
+/**
  * LLM Generate node - AI text generation
  */
 export interface LLMGenerateNodeData extends BaseNodeData {
@@ -197,7 +270,8 @@ export interface OutputNodeData extends BaseNodeData {
   image: string | null;
   imageRef?: string; // External image reference for storage optimization
   video?: string | null; // Video data URL or HTTP URL
-  contentType?: "image" | "video"; // Explicit content type hint
+  audio?: string | null; // Audio data URL or HTTP URL
+  contentType?: "image" | "video" | "audio"; // Explicit content type hint
   outputFilename?: string; // Custom filename for saved outputs (without extension)
 }
 
@@ -257,6 +331,74 @@ export interface EaseCurveNodeData extends BaseNodeData {
 }
 
 /**
+ * Video Trim node - trims a video clip to a user-defined start/end time range
+ */
+export interface VideoTrimNodeData extends BaseNodeData {
+  startTime: number;          // Trim start in seconds (default 0)
+  endTime: number;            // Trim end in seconds (default 0 = full duration, set on video load)
+  duration: number | null;    // Source video duration (populated when video loads metadata)
+  outputVideo: string | null; // Trimmed video blob URL or data URL
+  status: NodeStatus;
+  error: string | null;
+  progress: number;           // 0-100 processing progress
+  encoderSupported: boolean | null;
+}
+
+/**
+ * Video Frame Grab node - extracts the first or last frame from a video as a full-resolution PNG image
+ */
+export interface VideoFrameGrabNodeData extends BaseNodeData {
+  framePosition: "first" | "last";   // Which frame to extract
+  outputImage: string | null;        // Extracted frame as base64 PNG data URL
+  status: NodeStatus;
+  error: string | null;
+}
+
+/**
+ * Router node - pure passthrough routing node with dynamic multi-type handles
+ */
+export interface RouterNodeData extends BaseNodeData {
+  // No internal state - all routing is derived from edge connections
+}
+
+/**
+ * Switch node - toggle-controlled routing with named outputs
+ */
+export interface SwitchNodeData extends BaseNodeData {
+  inputType: HandleType | null;  // Derived from connected input edge, null when disconnected
+  switches: Array<{
+    id: string;        // Unique identifier for handle mapping
+    name: string;      // User-editable label
+    enabled: boolean;  // Toggle state
+  }>;
+}
+
+/**
+ * Match mode for conditional switch rules
+ */
+export type MatchMode = "exact" | "contains" | "starts-with" | "ends-with";
+
+/**
+ * Conditional switch rule for text-based routing
+ */
+export interface ConditionalSwitchRule {
+  id: string;           // Unique handle ID, prefixed with "rule-" to avoid collision with reserved "default" keyword
+  value: string;        // Comma-separated match values
+  mode: MatchMode;      // Match strategy
+  label: string;        // User-editable display name
+  isMatched: boolean;   // Computed match state
+}
+
+/**
+ * Conditional Switch node - text-based routing with multi-mode matching
+ */
+export interface ConditionalSwitchNodeData extends BaseNodeData {
+  incomingText: string | null;  // Upstream text for evaluation and display
+  rules: ConditionalSwitchRule[]; // User-defined rules
+  evaluationPaused?: boolean;   // When true, skips rule evaluation and downstream dimming
+}
+
+/**
  * Split Grid node - splits image into grid cells for parallel processing
  */
 export interface SplitGridNodeData extends BaseNodeData {
@@ -269,6 +411,7 @@ export interface SplitGridNodeData extends BaseNodeData {
     resolution: Resolution;
     model: ModelType;
     useGoogleSearch: boolean;
+    useImageSearch: boolean;
   };
   childNodeIds: Array<{
     imageInput: string;
@@ -283,6 +426,15 @@ export interface SplitGridNodeData extends BaseNodeData {
 }
 
 /**
+ * GLB 3D Viewer node - loads and displays 3D models, captures viewport as image
+ */
+export interface GLBViewerNodeData extends BaseNodeData {
+  glbUrl: string | null;       // Object URL for the loaded GLB file
+  filename: string | null;     // Original filename for display
+  capturedImage: string | null; // Base64 PNG snapshot of the 3D viewport
+}
+
+/**
  * Union of all node data types
  */
 export type WorkflowNodeData =
@@ -290,16 +442,25 @@ export type WorkflowNodeData =
   | AudioInputNodeData
   | AnnotationNodeData
   | PromptNodeData
+  | ArrayNodeData
   | PromptConstructorNodeData
   | NanoBananaNodeData
   | GenerateVideoNodeData
+  | Generate3DNodeData
+  | GenerateAudioNodeData
   | LLMGenerateNodeData
   | SplitGridNodeData
   | OutputNodeData
   | OutputGalleryNodeData
   | ImageCompareNodeData
   | VideoStitchNodeData
-  | EaseCurveNodeData;
+  | EaseCurveNodeData
+  | VideoTrimNodeData
+  | VideoFrameGrabNodeData
+  | RouterNodeData
+  | SwitchNodeData
+  | ConditionalSwitchNodeData
+  | GLBViewerNodeData;
 
 /**
  * Workflow node with typed data (extended with optional groupId)
@@ -311,7 +472,7 @@ export type WorkflowNode = Node<WorkflowNodeData, NodeType> & {
 /**
  * Handle types for node connections
  */
-export type HandleType = "image" | "text" | "audio" | "video" | "easeCurve";
+export type HandleType = "image" | "text" | "audio" | "video" | "3d" | "easeCurve";
 
 /**
  * Default settings for node types - stored in localStorage
@@ -325,9 +486,26 @@ export interface GenerateImageNodeDefaults {
   aspectRatio?: string;
   resolution?: string;
   useGoogleSearch?: boolean;
+  useImageSearch?: boolean;
 }
 
 export interface GenerateVideoNodeDefaults {
+  selectedModel?: {
+    provider: ProviderType;
+    modelId: string;
+    displayName: string;
+  };
+}
+
+export interface Generate3DNodeDefaults {
+  selectedModel?: {
+    provider: ProviderType;
+    modelId: string;
+    displayName: string;
+  };
+}
+
+export interface GenerateAudioNodeDefaults {
   selectedModel?: {
     provider: ProviderType;
     modelId: string;
@@ -345,5 +523,7 @@ export interface LLMNodeDefaults {
 export interface NodeDefaultsConfig {
   generateImage?: GenerateImageNodeDefaults;
   generateVideo?: GenerateVideoNodeDefaults;
+  generate3d?: Generate3DNodeDefaults;
+  generateAudio?: GenerateAudioNodeDefaults;
   llm?: LLMNodeDefaults;
 }

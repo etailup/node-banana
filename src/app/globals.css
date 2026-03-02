@@ -10,6 +10,7 @@
   /* Handle colors (used by labels) */
   --handle-color-image: #10b981;
   --handle-color-text: #3b82f6;
+  --handle-color-3d: #f97316;
 }
 
 html {
@@ -46,6 +47,16 @@ body {
   padding: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
+}
+
+/* Switch dimming - nodes downstream of disabled Switch outputs */
+.react-flow__node.switch-dimmed {
+  opacity: 0.4;
+  transition: opacity 250ms ease-in-out;
+}
+
+.react-flow__node:not(.switch-dimmed) {
+  transition: opacity 250ms ease-in-out;
 }
 
 /* Base handle styles */
@@ -85,6 +96,11 @@ body {
 /* Text handles - soft blue */
 .react-flow__handle[data-handletype="text"] {
   background: #3b82f6;
+}
+
+/* 3D handles - orange */
+.react-flow__handle[data-handletype="3d"] {
+  background: #f97316;
 }
 
 .react-flow__edge-path {

@@ -1,0 +1,323 @@
+{
+  "version": 1,
+  "id": "wf_1770800082191_ry34yqs3r",
+  "name": "carousels 1",
+  "nodes": [
+    {
+      "id": "imageInput-1",
+      "type": "imageInput",
+      "position": {
+        "x": 1059.4518743331882,
+        "y": 62.45114723184301
+      },
+      "data": {
+        "image": null,
+        "filename": "snaptik_7539859648006966548_0_v2.jpeg",
+        "dimensions": {
+          "width": 2160,
+          "height": 2880
+        },
+        "imageRef": "img-mlhsqp3g-so4exh"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "prompt-3",
+      "type": "prompt",
+      "position": {
+        "x": 1014.058753107885,
+        "y": 783.0703722014849
+      },
+      "data": {
+        "prompt": "adapt image 1 to this topic and replace the man with the girl in Image 2\n\n\"the 7 reasons why Positive Thinking will change your life\"."
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "nanoBanana-4",
+      "type": "nanoBanana",
+      "position": {
+        "x": 1510.454481073017,
+        "y": 550.1185290991989
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "adapt image 1 to this topic and replace the man with the girl in Image 2\n\n\"the 7 reasons why Positive Thinking will change your life\".",
+        "outputImage": null,
+        "aspectRatio": "9:16",
+        "resolution": "2K",
+        "model": "nano-banana-pro",
+        "selectedModel": {
+          "provider": "kie",
+          "modelId": "gpt-image/1.5-image-to-image",
+          "displayName": "GPT Image 1.5 Edit"
+        },
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "imageHistory": [
+          {
+            "id": "adapt_image_1_to_this_topic_an_4a79c497f4ee8a936d18a73e92fe835e",
+            "timestamp": 1770800627179,
+            "prompt": "adapt image 1 to this topic and replace the man with the girl in Image 2\n\n\"the 7 reasons why Positive Thinking will change your life\".",
+            "aspectRatio": "9:16",
+            "model": "nano-banana-pro"
+          },
+          {
+            "id": "adapt_this_image_to_this_th_288df6520b6d393b988fa1fdad0108bc",
+            "timestamp": 1770800314830,
+            "prompt": "adapt this image to this:\n\n\"the 7 reasons why Positive Thinking will change your life\"",
+            "aspectRatio": "9:16",
+            "model": "nano-banana-pro"
+          }
+        ],
+        "selectedHistoryIndex": 0,
+        "inputSchema": [
+          {
+            "name": "prompt",
+            "type": "text",
+            "required": true,
+            "label": "Prompt"
+          },
+          {
+            "name": "input_urls",
+            "type": "image",
+            "required": true,
+            "label": "Image",
+            "isArray": true
+          }
+        ],
+        "parameters": {
+          "quality": "medium",
+          "aspect_ratio": "2:3"
+        },
+        "outputImageRef": "adapt_image_1_to_this_topic_an_4a79c497f4ee8a936d18a73e92fe835e",
+        "inputImageRefs": [
+          "img-mlhssmnq-osl24l",
+          "img-mlhswhfr-527kt3",
+          "img-mlhswhfr-527kt3"
+        ]
+      },
+      "style": {
+        "width": 200,
+        "height": 372
+      },
+      "measured": {
+        "width": 300,
+        "height": 569
+      },
+      "selected": false,
+      "width": 300,
+      "height": 569,
+      "resizing": false,
+      "dragging": false
+    },
+    {
+      "id": "imageInput-6",
+      "type": "imageInput",
+      "position": {
+        "x": 1057.1243664787687,
+        "y": 416.55575699333116
+      },
+      "data": {
+        "image": null,
+        "filename": "ref_selfie_chin.jpg",
+        "dimensions": {
+          "width": 1440,
+          "height": 1920
+        },
+        "imageRef": "img-mlhssmp6-37nb4v"
+      },
+      "style": {
+        "width": 300,
+        "height": 280
+      },
+      "measured": {
+        "width": 300,
+        "height": 280
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "prompt-9",
+      "type": "prompt",
+      "position": {
+        "x": 1521.2565821699282,
+        "y": 282.97935175032393
+      },
+      "data": {
+        "prompt": "generate a split grid 2*3 with different images that are the continuum of this carousel post."
+      },
+      "style": {
+        "width": 320,
+        "height": 220
+      },
+      "measured": {
+        "width": 320,
+        "height": 220
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "nanoBanana-10",
+      "type": "nanoBanana",
+      "position": {
+        "x": 1966.6521805827383,
+        "y": 617.8193617301318
+      },
+      "data": {
+        "inputImages": [],
+        "inputPrompt": "generate a split grid 2*3 with different images that are the continuum of this carousel post.",
+        "outputImage": null,
+        "aspectRatio": "9:16",
+        "resolution": "2K",
+        "model": "nano-banana-pro",
+        "selectedModel": {
+          "provider": "kie",
+          "modelId": "gpt-image/1.5-image-to-image",
+          "displayName": "GPT Image 1.5 Edit"
+        },
+        "useGoogleSearch": false,
+        "status": "complete",
+        "error": null,
+        "imageHistory": [
+          {
+            "id": "generate_a_split_grid_2_3_with_53267aed094c174457787183def4517c",
+            "timestamp": 1770800688546,
+            "prompt": "generate a split grid 2*3 with different images that are the continuum of this carousel post.",
+            "aspectRatio": "9:16",
+            "model": "nano-banana-pro"
+          }
+        ],
+        "selectedHistoryIndex": 0,
+        "inputSchema": [
+          {
+            "name": "prompt",
+            "type": "text",
+            "required": true,
+            "label": "Prompt"
+          },
+          {
+            "name": "input_urls",
+            "type": "image",
+            "required": true,
+            "label": "Image",
+            "isArray": true
+          }
+        ],
+        "parameters": {
+          "quality": "medium",
+          "aspect_ratio": "3:2"
+        },
+        "outputImageRef": "generate_a_split_grid_2_3_with_53267aed094c174457787183def4517c",
+        "inputImageRefs": [
+          "img-mlht0d20-lmn07f"
+        ]
+      },
+      "style": {
+        "width": 408,
+        "height": 372
+      },
+      "measured": {
+        "width": 408,
+        "height": 372
+      },
+      "selected": false
+    }
+  ],
+  "edges": [
+    {
+      "type": "editable",
+      "animated": false,
+      "source": "prompt-3",
+      "sourceHandle": "text",
+      "target": "nanoBanana-4",
+      "targetHandle": "text",
+      "id": "edge-prompt-3-nanoBanana-4-text-text",
+      "data": {
+        "createdAt": 1770800241152
+      },
+      "selected": false
+    },
+    {
+      "type": "editable",
+      "animated": false,
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "nanoBanana-4",
+      "targetHandle": "image",
+      "id": "edge-imageInput-1-nanoBanana-4-image-image",
+      "data": {
+        "createdAt": 1770800242840
+      },
+      "selected": false
+    },
+    {
+      "source": "imageInput-6",
+      "sourceHandle": "image",
+      "target": "nanoBanana-4",
+      "targetHandle": "image-0",
+      "id": "edge-imageInput-6-nanoBanana-4-image-image-0",
+      "data": {
+        "createdAt": 1770800336370
+      },
+      "selected": false
+    },
+    {
+      "type": "editable",
+      "animated": false,
+      "source": "imageInput-6",
+      "sourceHandle": "image",
+      "target": "nanoBanana-4",
+      "targetHandle": "image",
+      "id": "edge-imageInput-6-nanoBanana-4-image-image",
+      "data": {
+        "createdAt": 1770800338010
+      },
+      "selected": false
+    },
+    {
+      "source": "nanoBanana-4",
+      "sourceHandle": "image",
+      "target": "nanoBanana-10",
+      "targetHandle": "image",
+      "id": "edge-nanoBanana-4-nanoBanana-10-image-image",
+      "data": {
+        "createdAt": 1770800497380
+      }
+    },
+    {
+      "type": "editable",
+      "animated": false,
+      "source": "prompt-9",
+      "sourceHandle": "text",
+      "target": "nanoBanana-10",
+      "targetHandle": "text",
+      "id": "edge-prompt-9-nanoBanana-10-text-text",
+      "data": {
+        "createdAt": 1770800498908
+      }
+    }
+  ],
+  "edgeStyle": "curved"
+}
