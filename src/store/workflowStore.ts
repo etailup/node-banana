@@ -64,6 +64,7 @@ import {
   clearNodeImageRefs,
 } from "./utils/executionUtils";
 import { getConnectedInputsPure, validateWorkflowPure } from "./utils/connectedInputs";
+import { cloudSaveWorkflow, canSaveWorkflow, shouldAutoSave, shouldSkipHydration } from "./cloudExtensions";
 import { evaluateRule } from "./utils/ruleEvaluation";
 import { computeDimmedNodes } from "./utils/dimmingUtils";
 import {
@@ -1708,7 +1709,7 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
     // Hydrate images if we have a directory path and the workflow has image refs
     // Skip hydration on cloud — images use CDN URLs and display directly
     let hydratedWorkflow = workflow;
-    if (directoryPath && !get().isCloud) {
+    if (directoryPath && !shouldSkipHydration(get().isCloud)) {
       try {
         hydratedWorkflow = await hydrateWorkflowImages(workflow, directoryPath);
       } catch (error) {
@@ -1860,12 +1861,8 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
       isCloud,
     } = get();
 
-    // Cloud mode: only need workflowId and workflowName
-    // Local mode: also need saveDirectoryPath
-    if (!workflowId || !workflowName) {
-      return false;
-    }
-    if (!isCloud && !saveDirectoryPath) {
+    if (!workflowId || !workflowName) return false;
+    if (!canSaveWorkflow({ workflowId, workflowName, saveDirectoryPath, isCloud })) {
       return false;
     }
 
@@ -1930,30 +1927,9 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
 
       // Cloud mode: save directly to Supabase (images already CDN URLs, no externalization)
       if (isCloud) {
-        const response = await fetch("/api/workflow", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ workflowId, workflow }),
-        });
-
-        if (!response.ok) {
-          const text = await response.text().catch(() => "Unknown error");
-          useToast.getState().show(`Cloud save failed (${response.status}): ${text.slice(0, 100)}`, "error");
-          return false;
-        }
-
-        const result = await response.json();
-
-        if (result.success) {
-          set({
-            lastSavedAt: Date.now(),
-            hasUnsavedChanges: false,
-          });
-          return true;
-        } else {
-          useToast.getState().show(`Cloud save failed: ${result.error}`, "error");
-          return false;
-        }
+        const ok = await cloudSaveWorkflow(workflowId!, workflow);
+        if (ok) set({ lastSavedAt: Date.now(), hasUnsavedChanges: false });
+        return ok;
       }
 
       // Local mode: externalize images and save to filesystem
@@ -2090,14 +2066,7 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
 
     autoSaveIntervalId = setInterval(async () => {
       const state = get();
-      // Cloud mode: skip saveDirectoryPath check (not needed)
-      const canAutoSave = state.autoSaveEnabled &&
-        state.hasUnsavedChanges &&
-        state.workflowId &&
-        state.workflowName &&
-        !state.isSaving &&
-        (state.isCloud || state.saveDirectoryPath);
-      if (canAutoSave) {
+      if (shouldAutoSave(state)) {
         await state.saveToFile();
       }
     }, 90 * 1000); // 90 seconds
