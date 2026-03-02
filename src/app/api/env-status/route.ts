@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-export interface EnvStatusResponse {
+interface EnvStatusResponse {
   gemini: boolean;
   openai: boolean;
   anthropic: boolean;

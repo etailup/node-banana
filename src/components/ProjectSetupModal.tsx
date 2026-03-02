@@ -4,7 +4,16 @@ import { useState, useEffect } from "react";
 import { generateWorkflowId, useWorkflowStore } from "@/store/workflowStore";
 import { ProviderType, ProviderSettings, NodeDefaultsConfig, LLMProvider, LLMModelType } from "@/types";
 import { CanvasNavigationSettings, PanMode, ZoomMode, SelectionMode } from "@/types/canvas";
-import { EnvStatusResponse } from "@/app/api/env-status/route";
+interface EnvStatusResponse {
+  gemini: boolean;
+  openai: boolean;
+  anthropic: boolean;
+  replicate: boolean;
+  fal: boolean;
+  kie: boolean;
+  wavespeed: boolean;
+  isCloud: boolean;
+}
 import { loadNodeDefaults, saveNodeDefaults } from "@/store/utils/localStorage";
 import { ProviderModel } from "@/lib/providers/types";
 import { ModelSearchDialog } from "@/components/modals/ModelSearchDialog";
