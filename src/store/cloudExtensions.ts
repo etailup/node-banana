@@ -8,16 +8,7 @@
 
 import { useToast } from "@/components/Toast";
 import type { WorkflowFile } from "./workflowStore";
-import type {
-  WorkflowNode,
-  ImageInputNodeData,
-  AnnotationNodeData,
-  NanoBananaNodeData,
-  LLMGenerateNodeData,
-  GenerateVideoNodeData,
-  SplitGridNodeData,
-  OutputNodeData,
-} from "@/types";
+import type { WorkflowNode, OutputNodeData } from "@/types";
 
 /**
  * Save a workflow to Supabase (cloud mode).
@@ -147,98 +138,36 @@ async function uploadImageToR2(
 }
 
 /**
- * Externalize a single node's base64 images to R2, replacing them with CDN URLs.
+ * Recursively walk an object/array, uploading any base64 data URL strings to R2.
+ * Returns a new object with base64 strings replaced by CDN URLs.
  */
-async function cloudExternalizeNode(
-  node: WorkflowNode,
+async function replaceBase64InValue(
+  value: unknown,
   workflowId: string,
   cdnCache: Map<string, string>,
-): Promise<WorkflowNode> {
-  switch (node.type) {
-    case "imageInput": {
-      const d = node.data as ImageInputNodeData;
-      if (!isBase64DataUrl(d.image)) return node;
-      const url = await uploadImageToR2(workflowId, d.image, "inputs", cdnCache);
-      return { ...node, data: { ...d, image: url } } as WorkflowNode;
+): Promise<unknown> {
+  if (value === null || value === undefined) return value;
+  if (typeof value === "string") {
+    if (value.startsWith("data:")) {
+      return uploadImageToR2(workflowId, value, "inputs", cdnCache);
     }
-
-    case "annotation": {
-      const d = node.data as AnnotationNodeData;
-      let sourceImage = d.sourceImage;
-      let outputImage = d.outputImage;
-      if (isBase64DataUrl(sourceImage)) {
-        sourceImage = await uploadImageToR2(workflowId, sourceImage, "inputs", cdnCache);
-      }
-      if (isBase64DataUrl(outputImage)) {
-        outputImage = await uploadImageToR2(workflowId, outputImage, "inputs", cdnCache);
-      }
-      if (sourceImage === d.sourceImage && outputImage === d.outputImage) return node;
-      return { ...node, data: { ...d, sourceImage, outputImage } } as WorkflowNode;
-    }
-
-    case "nanoBanana": {
-      const d = node.data as NanoBananaNodeData;
-      let outputImage: string | null = d.outputImage;
-      let inputImages = d.inputImages;
-      let changed = false;
-
-      if (isBase64DataUrl(outputImage)) {
-        outputImage = await uploadImageToR2(workflowId, outputImage, "generations", cdnCache);
-        changed = true;
-      }
-      if (inputImages?.some(isBase64DataUrl)) {
-        inputImages = await Promise.all(
-          inputImages.map((img) =>
-            isBase64DataUrl(img) ? uploadImageToR2(workflowId, img, "inputs", cdnCache) : img
-          ),
-        );
-        changed = true;
-      }
-      if (!changed) return node;
-      return { ...node, data: { ...d, outputImage, inputImages } } as WorkflowNode;
-    }
-
-    case "llmGenerate": {
-      const d = node.data as LLMGenerateNodeData;
-      if (!d.inputImages?.some(isBase64DataUrl)) return node;
-      const inputImages = await Promise.all(
-        d.inputImages.map((img) =>
-          isBase64DataUrl(img) ? uploadImageToR2(workflowId, img, "inputs", cdnCache) : img
-        ),
-      );
-      return { ...node, data: { ...d, inputImages } } as WorkflowNode;
-    }
-
-    case "generateVideo": {
-      const d = node.data as GenerateVideoNodeData;
-      if (!d.inputImages?.some(isBase64DataUrl)) return node;
-      const inputImages = await Promise.all(
-        d.inputImages.map((img) =>
-          isBase64DataUrl(img) ? uploadImageToR2(workflowId, img, "inputs", cdnCache) : img
-        ),
-      );
-      return { ...node, data: { ...d, inputImages } } as WorkflowNode;
-    }
-
-    case "splitGrid": {
-      const d = node.data as SplitGridNodeData;
-      if (!isBase64DataUrl(d.sourceImage)) return node;
-      const sourceImage = await uploadImageToR2(workflowId, d.sourceImage, "inputs", cdnCache);
-      return { ...node, data: { ...d, sourceImage } } as WorkflowNode;
-    }
-
-    case "output": {
-      const d = node.data as OutputNodeData;
-      // Clear output images — they're regenerated on each run
-      if (isBase64DataUrl(d.image)) {
-        return { ...node, data: { ...d, image: null, video: null } } as WorkflowNode;
-      }
-      return node;
-    }
-
-    default:
-      return node;
+    return value;
   }
+  if (Array.isArray(value)) {
+    return Promise.all(
+      value.map((v) => replaceBase64InValue(v, workflowId, cdnCache)),
+    );
+  }
+  if (typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>);
+    const resolved = await Promise.all(
+      entries.map(async ([k, v]) =>
+        [k, await replaceBase64InValue(v, workflowId, cdnCache)] as const
+      ),
+    );
+    return Object.fromEntries(resolved);
+  }
+  return value; // number, boolean, etc.
 }
 
 /**
@@ -259,12 +188,22 @@ export async function cloudExternalizeWorkflowImages(
   for (let i = 0; i < workflow.nodes.length; i += BATCH_SIZE) {
     const batch = workflow.nodes.slice(i, i + BATCH_SIZE);
     const processed = await Promise.all(
-      batch.map((node, batchIdx) =>
-        cloudExternalizeNode(node, workflowId, cdnCache).then((n) => ({
-          index: i + batchIdx,
-          node: n,
-        })),
-      ),
+      batch.map(async (node, batchIdx) => {
+        let externalized: WorkflowNode;
+        if (node.type === "output") {
+          // Clear output images — they're regenerated on each run
+          const d = node.data as OutputNodeData;
+          if (isBase64DataUrl(d.image)) {
+            externalized = { ...node, data: { ...d, image: null, video: null } } as WorkflowNode;
+          } else {
+            externalized = node;
+          }
+        } else {
+          const data = await replaceBase64InValue(node.data, workflowId, cdnCache);
+          externalized = { ...node, data } as WorkflowNode;
+        }
+        return { index: i + batchIdx, node: externalized };
+      }),
     );
     for (const { index, node } of processed) {
       result[index] = node;
