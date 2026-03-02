@@ -222,6 +222,43 @@ All routes in `src/app/api/`:
 
 - The primary branch is `master`
 - Create feature branches from `master` using: `feature/<short-description>` or `fix/<short-description>`
+- `origin` = `etailup/node-banana` (our fork) — all pushes and PRs go here
+- `upstream` = `shrimbly/node-banana` — fetch-only, never push
+
+## Upstream Sync SOP
+
+Sync upstream changes weekly. See `FORK_CHANGES.md` for conflict resolution details.
+
+```bash
+# 1. Fetch upstream
+git fetch upstream
+
+# 2. Preview what changed in high-risk files
+git diff --stat master..upstream/master -- package.json src/store/workflowStore.ts next.config.ts src/components/Header.tsx
+
+# 3. Create a sync branch (safety net)
+git checkout -b sync/upstream-$(date +%Y%m%d)
+
+# 4. Merge upstream
+git merge upstream/master --no-ff
+
+# 5. Resolve conflicts per FORK_CHANGES.md tier guidance
+
+# 6. Re-apply fork dependencies
+bash scripts/sync-fork-deps.sh
+
+# 7. Verify
+npm run build && npm run test:run
+
+# 8. Fast-forward master
+git checkout master && git merge sync/upstream-$(date +%Y%m%d) --ff-only
+git push origin master
+```
+
+Key rules:
+- Sync weekly (small, frequent merges > big batch syncs)
+- Always use a sync branch (if something goes wrong, just delete it)
+- Update `FORK_CHANGES.md` if new fork files are modified
 
 ## Commits
 - Commit after each logical task or unit of work is complete. When implementing a multi-task plan, commit after finishing each task — do NOT batch all tasks into a single commit at the end.
