@@ -165,6 +165,104 @@ function GenerateComboButton() {
 }
 
 
+function UtilityComboButton() {
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const addNode = useWorkflowStore((state) => state.addNode);
+  const { screenToFlowPosition } = useReactFlow();
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const handleAddNode = (type: NodeType) => {
+    const center = getPaneCenter();
+    const position = screenToFlowPosition({
+      x: center.x + Math.random() * 100 - 50,
+      y: center.y + Math.random() * 100 - 50,
+    });
+
+    addNode(type, position);
+    setIsOpen(false);
+  };
+
+  const handleDragStart = (event: React.DragEvent, type: NodeType) => {
+    event.dataTransfer.setData("application/node-type", type);
+    event.dataTransfer.effectAllowed = "copy";
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="px-2.5 py-1.5 text-[11px] font-medium text-neutral-400 hover:text-neutral-100 hover:bg-neutral-700 rounded transition-colors flex items-center gap-1"
+      >
+        Utility
+        <svg
+          className={`w-3 h-3 transition-transform ${isOpen ? "rotate-180" : ""}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute bottom-full left-0 mb-2 bg-neutral-800 border border-neutral-700 rounded-lg shadow-xl overflow-hidden min-w-[160px]">
+          <button
+            onClick={() => handleAddNode("router")}
+            draggable
+            onDragStart={(e) => handleDragStart(e, "router")}
+            className="w-full px-3 py-2 text-left text-[11px] font-medium text-neutral-300 hover:bg-neutral-700 hover:text-neutral-100 transition-colors flex items-center gap-2 cursor-grab active:cursor-grabbing"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 3v12m0 0l-3-3m3 3l3-3m6-6v12m0 0l-3-3m3 3l3-3" />
+            </svg>
+            Router
+          </button>
+          <button
+            onClick={() => handleAddNode("switch")}
+            draggable
+            onDragStart={(e) => handleDragStart(e, "switch")}
+            className="w-full px-3 py-2 text-left text-[11px] font-medium text-neutral-300 hover:bg-neutral-700 hover:text-neutral-100 transition-colors flex items-center gap-2 cursor-grab active:cursor-grabbing"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8h4l3-4h4l3 4h4M7 16h10" />
+            </svg>
+            Switch
+          </button>
+          <button
+            onClick={() => handleAddNode("conditionalSwitch")}
+            draggable
+            onDragStart={(e) => handleDragStart(e, "conditionalSwitch")}
+            className="w-full px-3 py-2 text-left text-[11px] font-medium text-neutral-300 hover:bg-neutral-700 hover:text-neutral-100 transition-colors flex items-center gap-2 cursor-grab active:cursor-grabbing"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+            </svg>
+            Conditional
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function FloatingActionBar() {
   const {
     nodes,
@@ -265,6 +363,7 @@ export function FloatingActionBar() {
         <NodeButton type="prompt" label="Prompt" />
         <GenerateComboButton />
         <NodeButton type="output" label="Output" />
+        <UtilityComboButton />
 
         {/* Browse models button */}
         <div className="w-px h-5 bg-neutral-600 mx-1.5" />
