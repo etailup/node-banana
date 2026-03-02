@@ -2,6 +2,15 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  serverExternalPackages: [
+    "three",
+    "three-stdlib",
+    "stats-gl",
+    "@react-three/fiber",
+    "@react-three/drei",
+    "@mediapipe/tasks-vision",
+    "hls.js",
+  ],
   experimental: {
     serverActions: {
       bodySizeLimit: "50mb",
