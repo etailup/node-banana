@@ -64,10 +64,8 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
   // Get enabled providers
   const enabledProviders = useMemo(() => {
     const providers: { id: ProviderType; name: string }[] = [];
-    // Gemini available when API key is configured (settings or env var)
-    if (geminiApiKey) {
-      providers.push({ id: "gemini", name: "Gemini" });
-    }
+    // Gemini (Veo) always shown so models are discoverable
+    providers.push({ id: "gemini", name: "Gemini" });
     // fal.ai is always available (works without key but rate limited)
     providers.push({ id: "fal", name: "fal.ai" });
     // Add Replicate if configured
@@ -763,6 +761,13 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
                 Run to generate
               </span>
             )}
+          </div>
+        )}
+
+        {/* Gemini API key warning */}
+        {currentProvider === "gemini" && !geminiApiKey && (
+          <div className="text-[10px] text-amber-400 px-1 py-0.5">
+            Gemini API key required. Set in Settings.
           </div>
         )}
 

@@ -1318,6 +1318,12 @@ export function WorkflowCanvas() {
           case "t":
             nodeType = "generateAudio";
             break;
+          case "s":
+            nodeType = "switch";
+            break;
+          case "c":
+            nodeType = "conditionalSwitch";
+            break;
         }
 
         if (nodeType) {

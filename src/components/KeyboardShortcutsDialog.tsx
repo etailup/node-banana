@@ -35,7 +35,9 @@ const shortcutGroups: ShortcutGroup[] = [
       { keys: ["Shift", "L"], description: "Add LLM Text node" },
       { keys: ["Shift", "A"], description: "Add Annotation node" },
       { keys: ["Shift", "T"], description: "Add Audio node" },
-      { keys: ["Shift", "R"], description: "Add Array node" },
+      { keys: ["Shift", "R"], description: "Add Router node" },
+      { keys: ["Shift", "S"], description: "Add Switch node" },
+      { keys: ["Shift", "C"], description: "Add Conditional Switch node" },
     ],
   },
   {
