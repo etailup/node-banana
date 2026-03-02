@@ -127,7 +127,7 @@ describe("executeWorkflow", () => {
 
     expect(jobId).toBe("job-123");
     expect(mockCreateJob).toHaveBeenCalledOnce();
-    expect(mockCreateJob).toHaveBeenCalledWith(null, {}, null);
+    expect(mockCreateJob).toHaveBeenCalledWith(null, {}, null, undefined);
   });
 
   it("passes parameters when creating job", async () => {
@@ -156,6 +156,7 @@ describe("executeWorkflow", () => {
       "wf-abc",
       params,
       "https://callback.example.com/results",
+      undefined,
     );
   });
 

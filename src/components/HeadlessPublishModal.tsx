@@ -48,7 +48,7 @@ export function HeadlessPublishModal({ isOpen, onClose }: HeadlessPublishModalPr
     const vars: DetectedVariable[] = [];
     const seen = new Set<string>();
 
-    for (const node of nodes) {
+    for (const node of (nodes || [])) {
       const data = node.data as Record<string, unknown>;
 
       // imageInput nodes with variableName or {{var}} in imageUrl
@@ -140,7 +140,7 @@ export function HeadlessPublishModal({ isOpen, onClose }: HeadlessPublishModalPr
   // Node type summary for preview
   const nodeTypeCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    for (const node of nodes) {
+    for (const node of (nodes || [])) {
       const type = node.type || "unknown";
       counts[type] = (counts[type] || 0) + 1;
     }

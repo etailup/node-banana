@@ -243,13 +243,14 @@ describe("createChatTools", () => {
   const nodeIds = ["prompt-1", "gen-1", "out-1"];
 
   describe("tool structure", () => {
-    it("returns object with exactly 3 keys", () => {
+    it("returns object with exactly 4 keys", () => {
       const tools = createChatTools(nodeIds);
 
       const keys = Object.keys(tools);
-      expect(keys).toHaveLength(3);
+      expect(keys).toHaveLength(4);
       expect(keys).toContain("answerQuestion");
       expect(keys).toContain("createWorkflow");
+      expect(keys).toContain("optimizePrompt");
       expect(keys).toContain("editWorkflow");
     });
 
